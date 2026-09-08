@@ -7,6 +7,15 @@
 
         <title>@yield('title', config('app.name', 'Mesa'))</title>
 
+        <script>
+            const storedTheme = window.localStorage.getItem('mesa-lims-theme');
+            const theme = ['dark', 'light'].includes(storedTheme)
+                ? storedTheme
+                : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+            document.documentElement.dataset.theme = theme;
+        </script>
+
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="lims-shell">
@@ -15,7 +24,7 @@
             <a href="{{ route('dashboard') }}" class="brand"><span>mesa<span class="muted">LIMS v2</span></span></a>
             @auth
                 <nav class="topnav" aria-label="Hoofdnavigatie">
-                    <a href="{{ route('dashboard') }}" @class(['selected' => request()->routeIs('dashboard')])>LIMS</a>
+                    <a href="{{ route('dashboard') }}" @class(['selected' => request()->routeIs('dashboard') || request()->is('laboratorium*')])>LIMS</a>
                     @can('viewAny', \App\Models\Assay::class)
                         <a href="{{ route('beheer.dashboard') }}" @class(['selected' => request()->is('beheer*')])>Beheer</a>
                     @endcan
