@@ -8,7 +8,7 @@ class UpdateMatrixRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('administrator') ?? false;
+        return $this->user()?->can('settings.advanced') ?? false;
     }
 
     public function rules(): array

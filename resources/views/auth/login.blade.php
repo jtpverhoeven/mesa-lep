@@ -9,7 +9,7 @@
         @if(session('status'))<div class="notice success" role="status">{{ session('status') }}</div>@endif
         <form method="POST" action="{{ route('login') }}">
             @csrf
-            <div class="field"><label for="email">E-mailadres</label><input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username"></div>
+            <div class="field"><label for="login">Gebruikersnaam of e-mailadres</label><input id="login" name="login" value="{{ old('login') }}" required autofocus autocomplete="username"></div>
             <div class="field"><label for="password">Wachtwoord</label><input id="password" name="password" type="password" required autocomplete="current-password"></div>
             <div class="check-grid"><label><input name="remember" type="checkbox" value="1" @checked(old('remember'))> Ingelogd blijven</label></div>
             <button type="submit" class="button primary">Inloggen</button>

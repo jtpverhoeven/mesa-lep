@@ -5,6 +5,8 @@ use App\Http\Controllers\AssayFieldController;
 use App\Http\Controllers\AssayTypeController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserGroupController;
 use App\Models\Assay;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +50,23 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('beheer')->grou
     Route::get('/assay-types/{assayType}/fields/{field}/edit', [AssayTypeController::class, 'editField'])->name('assay-type-fields.edit');
     Route::put('/assay-types/{assayType}/fields/{field}', [AssayTypeController::class, 'updateField'])->name('assay-type-fields.update');
     Route::delete('/assay-types/{assayType}/fields/{field}', [AssayTypeController::class, 'destroyField'])->name('assay-type-fields.destroy');
+
+    Route::middleware('can:users.manage')->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    });
+
+    Route::middleware('can:groups.manage')->group(function () {
+        Route::get('/user-groups', [UserGroupController::class, 'index'])->name('user-groups.index');
+        Route::get('/user-groups/create', [UserGroupController::class, 'create'])->name('user-groups.create');
+        Route::post('/user-groups', [UserGroupController::class, 'store'])->name('user-groups.store');
+        Route::get('/user-groups/{userGroup}/edit', [UserGroupController::class, 'edit'])->name('user-groups.edit');
+        Route::put('/user-groups/{userGroup}', [UserGroupController::class, 'update'])->name('user-groups.update');
+        Route::delete('/user-groups/{userGroup}', [UserGroupController::class, 'destroy'])->name('user-groups.destroy');
+    });
 });
 
 Route::view('/debug/mockup', 'layouts.mockup')->name('debug.mockup');

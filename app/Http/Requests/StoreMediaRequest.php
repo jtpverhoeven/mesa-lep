@@ -8,7 +8,7 @@ class StoreMediaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('administrator') ?? false;
+        return $this->user()?->can('media.manage') ?? false;
     }
 
     public function rules(): array

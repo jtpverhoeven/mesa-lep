@@ -9,16 +9,16 @@ class AssayPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('administrator');
+        return $user->can('administration.access');
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole('administrator');
+        return $user->can('assays.manage');
     }
 
     public function update(User $user, Assay $assay): bool
     {
-        return $user->hasRole('administrator');
+        return $user->can('assays.manage');
     }
 }
