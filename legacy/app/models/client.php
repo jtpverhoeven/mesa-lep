@@ -3,9 +3,7 @@
 class Client extends Model{
     
     function getAllFirsts(){
-        
-        
-        
+                        
     }
 
     function getAllActive()

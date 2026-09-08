@@ -32,8 +32,8 @@ body {
         linear-gradient(315deg, rgba(209, 222, 214, 0.55), transparent 48%);
 }
 
-.lims-shell { --canvas:#e9edf0; --surface:#fff; --surface-alt:#f4f6f7; --line:#c4cdd2; --ink:#14232d; --muted:#53636d; --accent:#126782; --accent-faint:#d9edf2; height:100vh; overflow:hidden; background:var(--canvas); color:var(--ink); font:13px Tahoma, 'Segoe UI', sans-serif; letter-spacing:0; }
-[data-theme='dark'] .lims-shell { --canvas:#1b2226; --surface:#242c31; --surface-alt:#20282d; --line:#3c484f; --ink:#e3e9eb; --muted:#a5b1b7; --accent:#6bc0d0; --accent-faint:#214851; }
+.lims-shell { --canvas:#e9edf0; --surface:#fff; --surface-alt:#f4f6f7; --line:#c4cdd2; --ink:#14232d; --muted:#53636d; --accent:#126782; --accent-faint:#d9edf2; --field-focus:#f1fcad; height:100vh; overflow:hidden; background:var(--canvas); color:var(--ink); font:13px Tahoma, 'Segoe UI', sans-serif; letter-spacing:0; }
+[data-theme='dark'] .lims-shell { --canvas:#1b2226; --surface:#242c31; --surface-alt:#20282d; --line:#3c484f; --ink:#e3e9eb; --muted:#a5b1b7; --accent:#6bc0d0; --accent-faint:#214851; --field-focus:#4a4223; }
 .lims-shell * { box-sizing:border-box; letter-spacing:0; }
 .topbar { position:fixed; top:0; right:0; left:0; z-index:20; display:flex; align-items:stretch; min-height:44px; background:var(--surface); border-bottom:1px solid #9eabb2; }
 .brand { display:flex; align-items:center; gap:8px; padding:0 14px; font-weight:700; border-right:1px solid var(--line); white-space:nowrap; }
@@ -69,6 +69,7 @@ body {
 .lims-shell a:hover { color:var(--accent); }
 .lims-shell a.button.primary:hover { color:#fff; }
 .lims-shell :focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.lims-shell input:not([type=checkbox]):focus,.lims-shell select:focus,.lims-shell textarea:focus { background:var(--field-focus); outline:0; }
 .user-menu { position:relative; height:100%; border-left:1px solid var(--line); }
 .user-trigger { height:100%; display:flex; align-items:center; gap:9px; padding:8px 14px; cursor:pointer; }
 .user-name { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
