@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AssayController;
+use App\Http\Controllers\AssayFieldController;
 use App\Http\Controllers\AssayTypeController;
+use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
 use App\Models\Assay;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +21,18 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('beheer')->grou
     Route::post('/assays', [AssayController::class, 'store'])->name('assays.store');
     Route::get('/assays/{assay}/edit', [AssayController::class, 'edit'])->name('assays.edit');
     Route::put('/assays/{assay}', [AssayController::class, 'update'])->name('assays.update');
+    Route::get('/assay-fields', [AssayFieldController::class, 'index'])->name('assay-fields.index');
+    Route::get('/assay-fields/create', [AssayFieldController::class, 'create'])->name('assay-fields.create');
+    Route::post('/assay-fields', [AssayFieldController::class, 'store'])->name('assay-fields.store');
+    Route::get('/assay-fields/{assayField}/edit', [AssayFieldController::class, 'edit'])->name('assay-fields.edit');
+    Route::put('/assay-fields/{assayField}', [AssayFieldController::class, 'update'])->name('assay-fields.update');
+    Route::delete('/assay-fields/{assayField}', [AssayFieldController::class, 'destroy'])->name('assay-fields.destroy');
+    Route::get('/matrices', [MatrixController::class, 'index'])->name('matrices.index');
+    Route::get('/matrices/create', [MatrixController::class, 'create'])->name('matrices.create');
+    Route::post('/matrices', [MatrixController::class, 'store'])->name('matrices.store');
+    Route::get('/matrices/{matrix}/edit', [MatrixController::class, 'edit'])->name('matrices.edit');
+    Route::put('/matrices/{matrix}', [MatrixController::class, 'update'])->name('matrices.update');
+    Route::delete('/matrices/{matrix}', [MatrixController::class, 'destroy'])->name('matrices.destroy');
     Route::get('/media', [MediaController::class, 'index'])->name('media.index');
     Route::get('/media/create', [MediaController::class, 'create'])->name('media.create');
     Route::post('/media', [MediaController::class, 'store'])->name('media.store');
