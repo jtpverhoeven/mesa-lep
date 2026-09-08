@@ -1,0 +1,1 @@
+<p><i class="icon-barcode"></i><a href="{LB}/samples/lookup/{barcode}"> {description}</a></p>

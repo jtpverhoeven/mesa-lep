@@ -1,0 +1,1 @@
+<div id="fc_{id}" class="flowComponent"><a href="{LB}/flowComponents/inspect/{id}">{component}</a></div>

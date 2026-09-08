@@ -1,0 +1,208 @@
+
+html{
+    font-family: arial;
+}
+
+body{
+    font-family: arial;
+}
+
+*{
+    font-family: arial;
+     font-size: 13px;
+}
+
+div.firstPageNudge{
+    margin: 50px;
+}
+
+div.followPageNudge{
+    margin: 60px;
+}
+
+table {
+    font-family: arial;
+    font-size: 9.1px;
+}
+
+
+table.addTable{
+    vertical-align: bottom; 
+    font-family: arial, sans-serif;
+    font-size: 7.5px;
+    color: #000000;
+    border-spacing: 0px;
+    border-collapse: collapse;
+   
+}
+
+table.innerAdTable{
+    vertical-align: bottom;
+    font-family: arial, sans-serif;
+    font-size: 7px;
+    border-left: 1px solid #7BC144;
+    color: #000000;
+    border-spacing: 0px;
+    border-collapse: collapse;    
+}
+
+table.innerAdTable td{
+    padding-left: 6px;
+    padding-right: 20px;
+    border-left: 1px solid #7BC144;
+    border-spacing: 0px;
+    border-collapse: collapse;
+    padding-top: 5px;
+}
+
+table.innerAdTable tr{
+    border-left: 1px solid #7BC144;
+    border-spacing: 0px;
+    border-collapse: collapse;
+}
+
+
+table.topinfo{
+    margin-top: 5px;
+    margin-left: 5px;  
+    
+}
+
+table.topinfo td{
+    padding-top: 3px;
+    padding-bottom: 3px;
+    
+}
+
+table.monsterSummaryTable{
+    margin-top: 25px;
+    margin-left: 5px;  
+    border-spacing: 0px;
+    border-collapse: collapse;     
+}
+
+table.monsterSummaryTable th{
+    font-weight: bold;
+    border-top: 1px solid #7BC144;
+    border-bottom: 1px solid #7BC144;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+table.resultTable {
+    border-spacing: 0px;
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 25px;
+    margin-left: 5px;
+}
+
+table.resultTable th{
+    font-weight: bold;
+    border-top: 1px solid #7BC144;
+    border-bottom: 1px solid #7BC144;
+    padding-top: 7px;
+    padding-bottom: 7px;   
+}
+
+table.resultTable td.sampling{
+    border-bottom: 1px solid #7BC144;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    vertical-align: top;
+}
+
+table.resultTable td.samplingNoBorder{
+    border-bottom: none;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    vertical-align: top;
+}
+
+table.resultTable td.sampleTakeBorder{
+    border-bottom: 1px solid #7BC144;
+    padding-top: 5px;
+    padding-bottom: 2px;
+    vertical-align: top;
+}
+
+table.resultTable td.sampleTakeNoBorder{
+    border-bottom: none;
+    padding-top: 5px;
+    padding-bottom: 2px;
+    vertical-align: top;
+}
+
+
+td.resultBorderBottomFull{
+    border-bottom: 1px solid #BFBFBF;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    vertical-align: top;
+}
+
+
+table.resultTable td.resultBorderBottom{
+    border-bottom: 1px solid #BFBFBF;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    vertical-align: top; 
+}
+
+
+table.resultTable td.resultNoBorderBottom{
+    border-bottom: none;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    vertical-align: top; 
+}
+
+
+
+p.legend{
+    font-family: arial;
+    font-size: 7.2px;
+    margin-left: 5px;
+    color: #000000;
+}
+
+table.methodTable{
+    border-spacing: 0px;
+    border-collapse: collapse;
+    width: 100%;
+    margin-left: 5px; 
+    margin-top: 50px;
+    margin-left: 5px;
+    font-family: Arial,sans-serif;
+    color: #000000;  
+}
+
+table.methodTable th{
+    border-top: 1px solid #7BC144;
+    border-bottom: 1px solid #7BC144;
+    padding-top: 7px;
+    padding-bottom: 7px;    
+}
+table.methodTable tr{
+
+}
+
+
+table.methodTable td.border{    
+    border-bottom: 1px solid #7BC144;
+    padding-top: 5px;
+    padding-bottom: 2px;
+}
+
+table.methodTable td.noBorder{
+    border-top: none;
+    border-bottom:  none;
+    padding-bottom: 3px;
+    padding-top: 5px;
+}
+
+.sup{
+    font-size: 100%;
+    vertical-align: top;
+    color: #000000;
+}

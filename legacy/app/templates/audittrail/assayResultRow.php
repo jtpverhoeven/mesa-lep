@@ -1,0 +1,16 @@
+<tr>
+  <td>{volg}</td>
+  <td>{res_0}</td>
+  <td>{res_1}</td>
+  <td>{res_2}</td>
+  <td>{res_3}</td>
+  <td>{res_4}</td>
+  <td>{res_5}</td>
+  <td>{res_6}</td>
+  <td>{res_7}</td>
+  <td>{res_8}</td>
+  <td>{res_9}</td>
+  <td>{res_10}</td>
+  <td>{end_result}</td>
+  <td>{ct_value}</td>
+</tr>

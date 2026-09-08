@@ -1,0 +1,1 @@
+<button type="button" class="btn btn-mini assuranceExplanationButton" data-form-id="{form_id}" data-field-id="{field_id}" data-note="{explanation_note}" data-out-of-date-here="{out_of_date_here}" style="{show_button}" title="Uitleg toevoegen"><i class="icon icon-comment"></i></button>

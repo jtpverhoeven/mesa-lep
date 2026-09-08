@@ -1,0 +1,1 @@
+<p class="msgdivider"><span> {block_date} </span></p>

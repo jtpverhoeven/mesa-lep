@@ -1,0 +1,11 @@
+^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY2,1,65^FT10,70^BCN,,N,N
+^FD>:{barcode}^FS
+^FT90,103^A0N,31,33^FH\^FD{short_code}^FS
+^FT152,181^A0N,39,38^FH\^FD{media}^FS
+^FT18,181^A0N,39,20^FH\^FD{series_type}^FS
+^PQ1,0,1,Y^XZ

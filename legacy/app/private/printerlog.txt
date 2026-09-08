@@ -1,0 +1,22 @@
+31-08-2026 18:22:07	6a95aa2fdcd9b	1	Sending to:10.56.0.27	
+31-08-2026 18:23:08	6a95aa2fdcd9b	1	Released printer spool	
+31-08-2026 18:24:36	6a95aac413229	1	Printing was disabled	
+31-08-2026 18:24:36	6a95aac413229	1	Released printer spool	
+31-08-2026 18:25:02	6a95aade355e1	1	Printing was disabled	
+31-08-2026 18:25:02	6a95aade355e1	1	Released printer spool	
+31-08-2026 18:25:02	6a95aade4ee0c	1	Printing was disabled	
+31-08-2026 18:25:02	6a95aade4ee0c	1	Released printer spool	
+31-08-2026 18:25:02	6a95aade65008	1	Printing was disabled	
+31-08-2026 18:25:02	6a95aade65008	1	Released printer spool	
+31-08-2026 18:25:02	6a95aade7d6f4	1	Printing was disabled	
+31-08-2026 18:25:02	6a95aade7d6f4	1	Released printer spool	
+31-08-2026 18:25:02	6a95aade976a0	1	Printing was disabled	
+31-08-2026 18:25:02	6a95aade976a0	1	Released printer spool	
+01-09-2026 11:45:23	6a969eb3b9546	1	Printing was disabled	
+01-09-2026 11:45:23	6a969eb3b9546	1	Released printer spool	
+01-09-2026 11:49:23	6a969fa34d3de	1	Printing was disabled	
+01-09-2026 11:49:23	6a969fa34d3de	1	Released printer spool	
+04-09-2026 14:07:35	6a9ab48779cf3	1	Printing was disabled	
+04-09-2026 14:07:35	6a9ab48779cf3	1	Released printer spool	
+04-09-2026 14:07:48	6a9ab4944f4f8	1	Printing was disabled	
+04-09-2026 14:07:48	6a9ab4944f4f8	1	Released printer spool	

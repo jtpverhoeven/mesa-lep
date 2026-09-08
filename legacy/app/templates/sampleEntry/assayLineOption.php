@@ -1,0 +1,1 @@
+<option value="singleassay_{id}" class="list-group-item" assayId="{id}" dillution="{dillution}" replicates="{replicates}" assayType="{type}"> {name} </option>

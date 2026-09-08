@@ -1,0 +1,214 @@
+<?PHP
+
+   // parray($confirmation_data);
+
+   //set maximum colonies per plate as based on assay rules
+    $maxPerPlate = $countable_maximum;
+
+    //calculate the upper confidence interval
+    //95% conf is square root of expected variance divided by sample size ( 2plates ) 
+    //this resulting digit is then multiplied by 1.96 ( for 95% CI)
+    $CI = 1.96 * (sqrt($countable_maximum / 2));    
+
+    //this should give 324 for assays with a max count fo 300 and 167 of ones with 150
+    $upperLimit = $maxPerPlate + $CI;       
+
+    //print 'Upper limit is:' . $upperLimit . '<br />';
+
+    //set lower limit and limits for when the result should become estimate
+    $limitForEstimate = 10;     //this value is per ISO/TR 13843 9.4.3.4.2
+    $lowerLimit = 4;            //this value is per ISO/TR 13843 9.4.3.4.2
+
+    //set flags for corner cases
+    $foundUnderMax = False;     //in case all plates are too high to count
+    $foundAboveZero = False;    //in case all plates were negative (i.e.: no colonies)
+    $foundConflicting = False;
+    
+    //set up a flag to save the LOWEST and HIGHEST dillution factor
+    $dfHI = False;
+    $dfLO = False;
+    
+    //keep track of number of dillutions retained
+    $retained = 0;
+
+    //setup an array for the retained dillutions
+    $dillutionRetained = array();
+
+    //loop through all the results, breaking each result into two parts
+    //the $dillutionFactor which will hold the current dillution factor as a number
+    //and the $dPlates, which is an array in itself, containing all the plates in this dillution
+    //which are numbered 0, 1 , 2 for each replica.     
+    
+    foreach($results as $dillutionFactor => $dPlates){
+        
+        if($dfLO == False){ $dfLO = $dillutionFactor; }        
+        $dfHI = $dillutionFactor;
+        
+        //if we already have two consecutive plates we can stop              
+        if($retained == 2){
+            continue;
+        }
+
+        //set a variable to hold result for this dillution
+        $CFU = False;
+                
+        //count if this holds any replicates
+        $noOfReplicates = count($dPlates);
+
+        //below we aquire the CFU for the current dillution
+        if($noOfReplicates > 1){
+            //if we find any analysis with replicates, just calculate the average            
+            $repCFU = 0;            //counter for total CFU in replicates
+            //loop through all the replicates and add CFU
+            foreach($dPlates as $plate){  $repCFU = $repCFU + $plate['kve'];  }
+            //calculate average repCFU
+            $CFU = $repCFU / $replicas;                
+            $CFU = trim($CFU);      //trim is done to remove any whitespaces the user might have accidenlty added            
+        } else{        
+            //if no replicates were found, then we just take the single plate CFU
+            //the first plate is always stored as 0 in the plate array, so we can direclty acces this
+            $CFU = trim($dPlates[0]['kve']);  //trim is done to remove any whitespaces the user might have accidenlty added
+        }
+        
+      //  print 'CFU is now ' . $CFU . '<br />';
+
+        //now that we have the CFU for this dillution stored, we can check if it conforms
+        //to our detection limits, and to setup the flags we started (foundAboveZero, and Undermax)       
+
+        //if its ZERO or not entered, we assume there are no colonies
+        if($CFU == '0' || $CFU == '' || $CFU == '<' ){            
+        //    print 'setting previous to < <br />';
+            $previousCFU = $CFU;    //set a flag to check if we are getting weird results
+            continue;  
+        }else{
+            
+            //if the previous was zero, and this is higher then 0, something weird
+            //is going on.....            
+            if(isset($previousCFU)){
+                if($previousCFU == '0' || $previousCFU == '' || $previousCFU == '<' ){
+          //          print ' conflict found found a increasing one';
+                    $foundConflicting = True;
+                    break;
+                }
+            }
+                        
+            $foundAboveZero = True; //notify that we have found something above zero        
+        }
+
+        if( $CFU == '>' || $CFU > $upperLimit){                                    
+           // print 'setting previous to >  <br />';
+            $previousCFU = $CFU;
+            continue;
+        } else{                       
+                                    
+            //check for excessive gaps in counting, if previous was higher than upper CI
+            //and this one is lower than lower detection limit, something weird is going on....
+            if(isset($previousCFU)){
+                if($previousCFU > $upperLimit && $CFU < $limitForEstimate){             
+                    $foundConflicting = True;
+                    break;                      
+                }    
+            }
+            
+            
+            $dillutionRetained[$dillutionFactor] = $CFU;
+            $retained++;
+            $foundUnderMax = True;
+            $previousCFU = $CFU;
+        }                        
+    }
+
+    //print 'lowest tested dillution: ' . $dfLO . '<br />';
+    //print 'Highest tested dillution: ' . $dfHI . '<br />';
+    
+    //print 'Found under min:' . $foundUnderMax . '<br />';
+    //print 'Found under max:' . $foundUnderMax . '<br />';
+    //parray($dillutionRetained);
+
+    
+    //now we start creating the final results by going through all the scenarios
+    if($foundConflicting == True){
+        $output['kve'] = '?';
+    }
+    
+    //nothing was found.. 
+    if($foundAboveZero == False && $foundConflicting == False){
+        $kve =  round( 1 / $dfLO, -3);
+        $output['kve'] = '< ' . $kve;
+    }
+    
+    //everything was above
+    elseif($foundUnderMax == False && $foundConflicting == False){
+        $theoreticalUpper = round( $maxPerPlate / $dfHI, -3);
+        $output['kve'] = '> '. $theoreticalUpper;
+    }
+    
+    //we retained plates
+    elseif($foundConflicting == False){
+        
+        //if we only have 1 plate, indicating we are low on the low end of the detection limit
+        if($retained == 1){                                    
+        
+            $singleCFU = reset($dillutionRetained);
+            $singleDillution = key($dillutionRetained);                                    
+            
+            //three scenarios are possible..                         
+                        
+            //ISO7218: 9.4.2.5.3 = more than 10 but less then 300 on the last dillution > can report, but estimate
+            if($singleCFU <= $maxPerPlate && $singleCFU >= $limitForEstimate ){                
+                $n =  round($singleCFU / ( 1 * $singleDillution ), -3);
+                $output['kve'] = $n . ' <sup>(estimate</sup>';
+            }
+            
+            //ISO7218: 9.4.2.4.1 = less then 10 (estimate limit) but more than 4 (lower limit), report  ESTIMATE
+            if($singleCFU <= $maxPerPlate && $singleCFU < $limitForEstimate && $singleCFU > $lowerLimit ){                
+                $n =  round($singleCFU / ( 1 * $singleDillution ), -3);
+                $output['kve'] = $n . ' <sup>(estimate</sup>';
+            }                        
+            
+            //ISO7218: 9.4.2.4.1 = less then 4, can only serve as 'detection'
+            if($singleCFU <= $lowerLimit){
+                $output['kve'] = 'Aanwezig';
+            }            
+        } 
+        
+        //else two plates are available, we only need to check if they are not out of bounds
+        //and acceptable
+        else{
+            
+            //setup plates
+            $plate1CFU = reset($dillutionRetained);
+            $plate1Dillution = key($dillutionRetained);                        
+            array_shift($dillutionRetained);                
+            $plate2CFU = reset($dillutionRetained);            
+            
+            //normal situation both are within bounds of counting
+            //if($plate1CFU > $limitForEstimate && $plate1CFU < $maxPerPlate &&
+            //   $plate2CFU > $limitForEstimate && $plate2CFU < $maxPerPlate ){
+                
+            if($plate1CFU > $limitForEstimate && $plate1CFU < $maxPerPlate  ){            
+                $Nsum = $plate1CFU + $plate2CFU;
+                $n = $Nsum / (1 * 1.1 * $plate1Dillution);
+                $n = round($n, -3);
+                $output['kve'] = $n;
+            }
+            
+                        
+            //if plate 1 is above max per plate BUT within CI, and second plate is under 10 but HIGHER than 4
+            //can calculate normal number
+            if($plate1CFU > $maxPerPlate && $plate1CFU < $upperLimit &&
+                $plate2CFU > $lowerLimit && $plate2CFU < $maxPerPlate){
+                
+                $Nsum = $plate1CFU + $plate2CFU;
+                $n = $Nsum / (1 * 1.1 * $plate1Dillution);
+                $n = round($n, -3);
+                $output['kve'] = $n;                
+            }                                    
+        }                
+    }
+    
+    //just for clarity, if something went wrong with the calculations, print a question mark
+    //to notify the user
+    if(!array_key_exists('kve', $output)){
+        $output['kve'] = '?';
+    }

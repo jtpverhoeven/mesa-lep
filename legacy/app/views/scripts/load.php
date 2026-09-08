@@ -1,0 +1,1 @@
+{alpc_load_script}

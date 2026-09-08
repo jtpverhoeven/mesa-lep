@@ -1,0 +1,1 @@
+{research_info_block}

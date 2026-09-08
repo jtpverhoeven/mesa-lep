@@ -1,0 +1,11 @@
+<tr>
+  <td>{volg}</td>
+  <td>{name}</td>
+  <td>{date_in}</td>
+  <td>{time_in}</td>
+  <td>{date_out}</td>
+  <td>{time_out}</td>
+  <td>{date_read}</td>
+  <td>{time_read}</td>
+  <td>{read_by}</td>
+</tr>

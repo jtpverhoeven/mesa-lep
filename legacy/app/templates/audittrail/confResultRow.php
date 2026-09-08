@@ -1,0 +1,14 @@
+<tr>
+  <td>{volg}</td>
+  <td>{df}</td>
+  <td>{rep}</td>
+  <td>{name}</td>
+  <td>{kve1}</td>
+  <td>{kve2}</td>
+  <td>{kve3}</td>
+  <td>{kve4}</td>
+  <td>{kve5}</td>
+  <td>{pos}</td>
+  <td>{neg}</td>
+  <td>{blank}</td>
+</tr>

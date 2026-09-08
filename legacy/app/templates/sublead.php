@@ -1,0 +1,1 @@
+<p class="subLead">{title}</p>

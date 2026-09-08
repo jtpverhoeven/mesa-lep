@@ -1,0 +1,11 @@
+<tr>
+  <td>{volg}</td>
+  <td>{df}</td>
+  <td>{rep}</td>
+  <td>{name}</td>
+  <td>{tht}</td>
+  <td>{ingezet}</td>
+  <td>{inzetby}</td>
+  <td>{afgelezen}</td>
+  <td>{afleesby}</td>
+</tr>

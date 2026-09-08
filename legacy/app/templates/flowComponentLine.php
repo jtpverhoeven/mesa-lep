@@ -1,0 +1,1 @@
+<p> <span class="badge badge-info"><i class="icon-circle-blank"></i> {name} </span></p>

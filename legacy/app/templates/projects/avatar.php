@@ -1,0 +1,1 @@
+<a href="{link}" class="icons"  data-toggle="tooltip" title="{first_name} {last_name}"><img src="{avatar_img_src}"></a>

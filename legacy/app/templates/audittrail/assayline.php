@@ -1,0 +1,11 @@
+<tr>
+  <td>{volg}</td>
+  <td>{name}</td>
+  <td>{q}</td>
+  <td>{techniek}</td>
+  <td>{ref}</td>
+  <td>{conf}</td>
+  <td>{refmethod}</td>
+  <td>{assay_id}</td>  
+  <td>{revision}</td>  
+</tr>
