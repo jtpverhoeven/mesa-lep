@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable([
@@ -22,5 +23,15 @@ class Client extends Model
     {
         return $this->belongsToMany(\App\Models\ClientCategory::class, 'categories_clients', 'client_id', 'clientcategory_id')
             ->withPivot('id');
+    }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'client');
+    }
+
+    public function samples(): HasMany
+    {
+        return $this->hasMany(Sample::class, 'client');
     }
 }

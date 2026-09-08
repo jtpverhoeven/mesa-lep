@@ -21,7 +21,7 @@
     <body class="lims-shell">
         <a class="skip-link" href="#content">Naar inhoud</a>
         <header class="topbar">
-            <a href="{{ route('dashboard') }}" class="brand"><span>mesa<span class="muted">LIMS v2</span></span></a>
+            <a href="{{ route('dashboard') }}" class="brand"><span>mesa<span class="muted mr-12">LIMS</span></span></a>
             @auth
                 <nav class="topnav" aria-label="Hoofdnavigatie">
                     <a href="{{ route('dashboard') }}" @class(['selected' => request()->routeIs('dashboard') || request()->is('laboratorium*')])>LIMS</a>
@@ -53,6 +53,8 @@
                             <a href="{{ route('matrices.index') }}" @class(['selected' => request()->is('beheer/matrices*')])>Analyse matrices</a>
                             <a href="{{ route('media.index') }}" @class(['selected' => request()->is('beheer/media*')])>Media &amp; bevestigingen</a>                            
                             @can('sampling-procedure-fields.manage')<a href="{{ route('sample-procedure-fields.index') }}" @class(['selected' => request()->is('beheer/sample-procedure-fields*')])>Monstername velden</a>@endcan
+                            @can('sample-fields.manage')<a href="{{ route('sample-fields.index') }}" @class(['selected' => request()->is('beheer/sample-fields*')])>Monster velden</a>@endcan
+                            @can('project-fields.manage')<a href="{{ route('project-fields.index') }}" @class(['selected' => request()->is('beheer/project-fields*')])>Project velden</a>@endcan
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><path d="M18 21a8 8 0 0 0-16 0"></path><circle cx="10" cy="7" r="4"></circle><path d="M22 21a8 8 0 0 0-6-7.75"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Gebruikers &amp; groepen</span>
                             @can('users.manage')<a href="{{ route('users.index') }}" @class(['selected' => request()->is('beheer/users*')])>Gebruikers</a>@endcan
                             @can('groups.manage')<a href="{{ route('user-groups.index') }}" @class(['selected' => request()->is('beheer/user-groups*')])>Gebruikersgroepen</a>@endcan

@@ -8,6 +8,8 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CvarController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\ProjectFieldController;
+use App\Http\Controllers\SampleFieldController;
 use App\Http\Controllers\SampleProcedureController;
 use App\Http\Controllers\SampleProcedureFieldController;
 use App\Http\Controllers\UserController;
@@ -90,6 +92,24 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('beheer')->grou
         Route::get('/sample-procedure-fields/{sampleProcedureField}/edit', [SampleProcedureFieldController::class, 'edit'])->name('sample-procedure-fields.edit');
         Route::put('/sample-procedure-fields/{sampleProcedureField}', [SampleProcedureFieldController::class, 'update'])->name('sample-procedure-fields.update');
         Route::delete('/sample-procedure-fields/{sampleProcedureField}', [SampleProcedureFieldController::class, 'destroy'])->name('sample-procedure-fields.destroy');
+    });
+
+    Route::middleware('can:project-fields.manage')->group(function () {
+        Route::get('/project-fields', [ProjectFieldController::class, 'index'])->name('project-fields.index');
+        Route::get('/project-fields/create', [ProjectFieldController::class, 'create'])->name('project-fields.create');
+        Route::post('/project-fields', [ProjectFieldController::class, 'store'])->name('project-fields.store');
+        Route::get('/project-fields/{projectField}/edit', [ProjectFieldController::class, 'edit'])->name('project-fields.edit');
+        Route::put('/project-fields/{projectField}', [ProjectFieldController::class, 'update'])->name('project-fields.update');
+        Route::delete('/project-fields/{projectField}', [ProjectFieldController::class, 'destroy'])->name('project-fields.destroy');
+    });
+
+    Route::middleware('can:sample-fields.manage')->group(function () {
+        Route::get('/sample-fields', [SampleFieldController::class, 'index'])->name('sample-fields.index');
+        Route::get('/sample-fields/create', [SampleFieldController::class, 'create'])->name('sample-fields.create');
+        Route::post('/sample-fields', [SampleFieldController::class, 'store'])->name('sample-fields.store');
+        Route::get('/sample-fields/{sampleField}/edit', [SampleFieldController::class, 'edit'])->name('sample-fields.edit');
+        Route::put('/sample-fields/{sampleField}', [SampleFieldController::class, 'update'])->name('sample-fields.update');
+        Route::delete('/sample-fields/{sampleField}', [SampleFieldController::class, 'destroy'])->name('sample-fields.destroy');
     });
 
     Route::middleware('can:users.manage')->group(function () {
