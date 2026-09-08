@@ -113,10 +113,33 @@ body {
 .inline-form { display:inline; margin-left:10px; }
 .text-button { padding:0; border:0; background:transparent; color:var(--accent); font:inherit; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
 .text-button:hover { color:var(--ink); }
+.directory-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+.directory-search { display:flex; align-items:center; gap:7px; min-width:min(100%, 360px); flex:1 1 280px; color:var(--muted); }
+.directory-search input,.category-create input { width:100%; min-height:35px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); padding:8px 10px; font:inherit; }
+.directory-status { display:flex; gap:0; }
+.directory-status .button { border-radius:0; margin-left:-1px; }
+.directory-status .button:first-child { margin-left:0; border-radius:2px 0 0 2px; }
+.directory-status .button:last-child { border-radius:0 2px 2px 0; }
+.client-directory-table td { white-space:normal; vertical-align:top; }
+.client-directory-table td > small,.client-directory-table td > span:not(.client-category-list):not(.status-label) { display:block; margin-top:4px; color:var(--muted); }
+.client-category-list { display:flex; flex-wrap:wrap; gap:4px; }
+.client-category-list span,.status-label { display:inline-block; padding:3px 6px; border:1px solid #a8c9d3; background:var(--accent-faint); color:#0f586f; font-size:11px; font-weight:600; }
+.status-label.inactive { border-color:#d5b7af; background:#fff1ed; color:#903e32; }
+.icon-button { display:inline-grid; place-items:center; width:32px; height:32px; margin-right:5px; padding:0; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--accent); cursor:pointer; vertical-align:middle; }
+.icon-button:hover { background:var(--accent-faint); }
+.icon-button.danger { color:#903e32; }
+.icon-button:disabled { cursor:not-allowed; opacity:.5; }
+.category-create { display:flex; gap:10px; max-width:600px; margin-bottom:14px; }
+.category-create input { min-width:0; }
+.category-search { margin-bottom:14px; }
+.category-options { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); border:1px solid var(--line); background:var(--surface); }
+.category-option { display:flex; align-items:center; gap:8px; min-height:43px; padding:8px 10px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); cursor:pointer; }
+.category-option:hover { background:var(--accent-faint); }
+.category-options .muted { grid-column:1/-1; padding:16px; margin:0; }
 .empty-state { padding:36px 16px; text-align:center; color:var(--muted); }
 .login-panel { width:100%; max-width:390px; margin:70px auto; padding:26px; border:1px solid var(--line); background:var(--surface); border-radius:4px; }
 .login-panel h1 { font-size:23px; margin-bottom:24px; font-weight:600; }
 .login-panel form { display:grid; gap:20px; }
 .skip-link { position:absolute; top:-50px; left:8px; z-index:50; background:white; padding:8px; }
 .skip-link:focus { top:8px; }
-@media(max-width:700px) { .brand { padding:0 10px; } .brand .muted { display:none; } .topnav a { padding:13px 12px; } .user-name { display:none; } .user-trigger { padding:8px 10px; } .workspace { flex-direction:column; } .sidebar { width:100%; border-right:0; border-bottom:1px solid var(--line); } .sidebar-heading,.sidebar-footer,.nav-group { display:none; } .sidebar nav { display:flex; flex-wrap:wrap; } .sidebar nav a { border-left:0; border-bottom:2px solid transparent; } .main-content { padding:18px 14px; } .form-grid { grid-template-columns:1fr; } .topbar-label { font-size:10px; max-width:140px; } .login-panel { margin:30px auto; padding:20px; } }
+@media(max-width:700px) { .brand { padding:0 10px; } .brand .muted { display:none; } .topnav a { padding:13px 12px; } .user-name { display:none; } .user-trigger { padding:8px 10px; } .workspace { flex-direction:column; } .sidebar { width:100%; border-right:0; border-bottom:1px solid var(--line); } .sidebar-heading,.sidebar-footer,.nav-group { display:none; } .sidebar nav { display:flex; flex-wrap:wrap; } .sidebar nav a { border-left:0; border-bottom:2px solid transparent; } .main-content { padding:18px 14px; } .form-grid { grid-template-columns:1fr; } .topbar-label { font-size:10px; max-width:140px; } .login-panel { margin:30px auto; padding:20px; } .directory-toolbar { align-items:stretch; } .directory-status { width:100%; } .directory-status .button { flex:1; } .category-create { flex-direction:column; } }

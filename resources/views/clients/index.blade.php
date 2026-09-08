@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('title', 'MESA | Klanten')
+@section('content')
+    <div class="page-heading"><div><div class="eyebrow">Laboratorium / Klanten</div><h1>Klanten</h1></div><a class="button" href="{{ route('client-categories.index') }}">Klantcategorieen</a></div>
+    <div data-client-directory="{{ json_encode(['clients' => $clients->map(fn ($client) => ['id' => $client->id, 'name' => $client->name, 'street_name' => $client->street_name, 'street_number' => $client->street_number, 'postal_code' => $client->postal_code, 'place' => $client->place, 'telephone' => $client->telephone, 'cellphone' => $client->cellphone, 'email' => $client->email, 'debit_number' => $client->debit_number, 'active' => (bool) $client->active, 'categories' => $client->categories])->values(), 'createUrl' => route('clients.create'), 'editUrl' => route('clients.edit', ['client' => '__CLIENT__']), 'destroyUrl' => route('clients.destroy', ['client' => '__CLIENT__']), 'csrf' => csrf_token(), 'canManage' => auth()->user()->can('clients.manage')]) }}"></div>
+@endsection

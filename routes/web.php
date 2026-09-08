@@ -3,6 +3,8 @@
 use App\Http\Controllers\AssayController;
 use App\Http\Controllers\AssayFieldController;
 use App\Http\Controllers\AssayTypeController;
+use App\Http\Controllers\ClientCategoryController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CvarController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
@@ -18,6 +20,22 @@ Route::redirect('/', '/dashboard')->name('welcome');
 Route::view('/dashboard', 'dashboard')
     ->middleware('auth')
     ->name('dashboard');
+
+Route::middleware(['auth', 'can:clients.view'])->prefix('laboratorium')->group(function () {
+    Route::get('/klanten', [ClientController::class, 'index'])->name('clients.index');
+    Route::middleware('can:clients.manage')->group(function () {
+        Route::get('/klanten/toevoegen', [ClientController::class, 'create'])->name('clients.create');
+        Route::post('/klanten', [ClientController::class, 'store'])->name('clients.store');
+        Route::get('/klanten/{client}/bewerken', [ClientController::class, 'edit'])->name('clients.edit');
+        Route::put('/klanten/{client}', [ClientController::class, 'update'])->name('clients.update');
+        Route::delete('/klanten/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+    });
+    Route::get('/klantcategorieen', [ClientCategoryController::class, 'index'])->name('client-categories.index');
+    Route::middleware('can:clients.manage')->group(function () {
+        Route::post('/klantcategorieen', [ClientCategoryController::class, 'store'])->name('client-categories.store');
+        Route::delete('/klantcategorieen/{clientCategory}', [ClientCategoryController::class, 'destroy'])->name('client-categories.destroy');
+    });
+});
 
 Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('beheer')->group(function () {
     Route::view('/', 'beheer.dashboard')->name('beheer.dashboard');
