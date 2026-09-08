@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssayController;
 use App\Http\Controllers\AssayFieldController;
 use App\Http\Controllers\AssayTypeController;
+use App\Http\Controllers\CvarController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\UserController;
@@ -66,6 +67,11 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('beheer')->grou
         Route::get('/user-groups/{userGroup}/edit', [UserGroupController::class, 'edit'])->name('user-groups.edit');
         Route::put('/user-groups/{userGroup}', [UserGroupController::class, 'update'])->name('user-groups.update');
         Route::delete('/user-groups/{userGroup}', [UserGroupController::class, 'destroy'])->name('user-groups.destroy');
+    });
+
+    Route::middleware('can:settings.advanced')->group(function () {
+        Route::get('/cvars', [CvarController::class, 'index'])->name('cvars.index');
+        Route::put('/cvars/{cvar}', [CvarController::class, 'update'])->name('cvars.update');
     });
 });
 

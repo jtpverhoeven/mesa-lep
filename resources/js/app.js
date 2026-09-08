@@ -1,4 +1,5 @@
 import { createApp } from 'vue';
+import CvarTable from './components/CvarTable.vue';
 import MediaSelector from './components/MediaSelector.vue';
 import UserMenu from './components/UserMenu.vue';
 
@@ -8,4 +9,8 @@ document.querySelectorAll('[data-user-menu]').forEach((element) => {
 
 document.querySelectorAll('[data-media-selector]').forEach((element) => {
     createApp(MediaSelector, JSON.parse(element.dataset.mediaSelector)).mount(element);
+});
+
+document.querySelectorAll('[data-cvar-table]').forEach((element) => {
+    createApp(CvarTable, JSON.parse(element.dataset.cvarTable)).mount(element);
 });

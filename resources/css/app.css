@@ -103,6 +103,12 @@ body {
 .data-table th { background:#dde3e6; color:var(--muted); font-size:11px; }
 .data-table th,.data-table td { padding:12px 14px; border-bottom:1px solid var(--line); }
 .data-table tbody tr:hover { background:var(--surface-alt); }
+.cvar-table { white-space:normal; }
+.cvar-description { margin-top:4px; font-size:12px; }
+.cvar-value-control { display:flex; align-items:center; gap:8px; min-width:280px; }
+.cvar-value-control input { min-width:0; flex:1; min-height:34px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); padding:6px 8px; font:inherit; }
+.cvar-value-control .button { flex-shrink:0; }
+.cvar-saved { display:block; margin-top:5px; color:#24573d; font-size:12px; }
 .data-table a,.text-link { color:var(--accent); text-decoration:underline; text-underline-offset:3px; }
 .inline-form { display:inline; margin-left:10px; }
 .text-button { padding:0; border:0; background:transparent; color:var(--accent); font:inherit; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
