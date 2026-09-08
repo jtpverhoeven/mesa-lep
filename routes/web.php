@@ -6,6 +6,8 @@ use App\Http\Controllers\AssayTypeController;
 use App\Http\Controllers\CvarController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\SampleProcedureController;
+use App\Http\Controllers\SampleProcedureFieldController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserGroupController;
 use App\Models\Assay;
@@ -18,7 +20,7 @@ Route::view('/dashboard', 'dashboard')
     ->name('dashboard');
 
 Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('beheer')->group(function () {
-    Route::redirect('/', '/beheer/assays');
+    Route::view('/', 'beheer.dashboard')->name('beheer.dashboard');
     Route::get('/assays', [AssayController::class, 'index'])->name('assays.index');
     Route::get('/assays/create', [AssayController::class, 'create'])->name('assays.create');
     Route::post('/assays', [AssayController::class, 'store'])->name('assays.store');
@@ -51,6 +53,26 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('beheer')->grou
     Route::get('/assay-types/{assayType}/fields/{field}/edit', [AssayTypeController::class, 'editField'])->name('assay-type-fields.edit');
     Route::put('/assay-types/{assayType}/fields/{field}', [AssayTypeController::class, 'updateField'])->name('assay-type-fields.update');
     Route::delete('/assay-types/{assayType}/fields/{field}', [AssayTypeController::class, 'destroyField'])->name('assay-type-fields.destroy');
+
+    Route::middleware('can:sampling-procedures.manage')->group(function () {
+        Route::get('/sample-procedures', [SampleProcedureController::class, 'index'])->name('sample-procedures.index');
+        Route::get('/sample-procedures/create', [SampleProcedureController::class, 'create'])->name('sample-procedures.create');
+        Route::post('/sample-procedures', [SampleProcedureController::class, 'store'])->name('sample-procedures.store');
+        Route::get('/sample-procedures/defaults', [SampleProcedureController::class, 'defaults'])->name('sample-procedures.defaults');
+        Route::put('/sample-procedures/defaults', [SampleProcedureController::class, 'updateDefaults'])->name('sample-procedures.defaults.update');
+        Route::get('/sample-procedures/{sampleProcedure}/edit', [SampleProcedureController::class, 'edit'])->name('sample-procedures.edit');
+        Route::put('/sample-procedures/{sampleProcedure}', [SampleProcedureController::class, 'update'])->name('sample-procedures.update');
+        Route::delete('/sample-procedures/{sampleProcedure}', [SampleProcedureController::class, 'destroy'])->name('sample-procedures.destroy');
+    });
+
+    Route::middleware('can:sampling-procedure-fields.manage')->group(function () {
+        Route::get('/sample-procedure-fields', [SampleProcedureFieldController::class, 'index'])->name('sample-procedure-fields.index');
+        Route::get('/sample-procedure-fields/create', [SampleProcedureFieldController::class, 'create'])->name('sample-procedure-fields.create');
+        Route::post('/sample-procedure-fields', [SampleProcedureFieldController::class, 'store'])->name('sample-procedure-fields.store');
+        Route::get('/sample-procedure-fields/{sampleProcedureField}/edit', [SampleProcedureFieldController::class, 'edit'])->name('sample-procedure-fields.edit');
+        Route::put('/sample-procedure-fields/{sampleProcedureField}', [SampleProcedureFieldController::class, 'update'])->name('sample-procedure-fields.update');
+        Route::delete('/sample-procedure-fields/{sampleProcedureField}', [SampleProcedureFieldController::class, 'destroy'])->name('sample-procedure-fields.destroy');
+    });
 
     Route::middleware('can:users.manage')->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');

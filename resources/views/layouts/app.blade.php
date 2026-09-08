@@ -17,7 +17,7 @@
                 <nav class="topnav" aria-label="Hoofdnavigatie">
                     <a href="{{ route('dashboard') }}" @class(['selected' => request()->routeIs('dashboard')])>LIMS</a>
                     @can('viewAny', \App\Models\Assay::class)
-                        <a href="{{ route('assays.index') }}" @class(['selected' => request()->is('beheer*')])>Beheer</a>
+                        <a href="{{ route('beheer.dashboard') }}" @class(['selected' => request()->is('beheer*')])>Beheer</a>
                     @endcan
                 </nav>
                 <div data-user-menu="{{ json_encode(['name' => auth()->user()->name, 'email' => auth()->user()->email, 'logoutUrl' => route('logout'), 'csrf' => csrf_token()]) }}">
@@ -39,9 +39,11 @@
                             <a href="{{ route('assays.index') }}" @class(['selected' => request()->is('beheer/assays*')])>Analyses</a>
                             <a href="{{ route('assay-fields.index') }}" @class(['selected' => request()->is('beheer/assay-fields*')])>Analysevelden</a>
                             <a href="{{ route('assay-types.index') }}" @class(['selected' => request()->is('beheer/assay-types*')])>Analytische basistypen</a>
+                            @can('sampling-procedures.manage')<a href="{{ route('sample-procedures.index') }}" @class(['selected' => request()->is('beheer/sample-procedures*')])>Bemonster procedures</a>@endcan
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><line x1="21" x2="14" y1="4" y2="4"></line><line x1="10" x2="3" y1="4" y2="4"></line><line x1="21" x2="12" y1="12" y2="12"></line><line x1="8" x2="3" y1="12" y2="12"></line><line x1="21" x2="16" y1="20" y2="20"></line><line x1="12" x2="3" y1="20" y2="20"></line><line x1="14" x2="14" y1="2" y2="6"></line><line x1="8" x2="8" y1="10" y2="14"></line><line x1="16" x2="16" y1="18" y2="22"></line></svg>Basis instellingen</span>
                             <a href="{{ route('matrices.index') }}" @class(['selected' => request()->is('beheer/matrices*')])>Analyse matrices</a>
-                            <a href="{{ route('media.index') }}" @class(['selected' => request()->is('beheer/media*')])>Media &amp; bevestigingen</a>
+                            <a href="{{ route('media.index') }}" @class(['selected' => request()->is('beheer/media*')])>Media &amp; bevestigingen</a>                            
+                            @can('sampling-procedure-fields.manage')<a href="{{ route('sample-procedure-fields.index') }}" @class(['selected' => request()->is('beheer/sample-procedure-fields*')])>Monstername velden</a>@endcan
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><path d="M18 21a8 8 0 0 0-16 0"></path><circle cx="10" cy="7" r="4"></circle><path d="M22 21a8 8 0 0 0-6-7.75"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Gebruikers &amp; groepen</span>
                             @can('users.manage')<a href="{{ route('users.index') }}" @class(['selected' => request()->is('beheer/users*')])>Gebruikers</a>@endcan
                             @can('groups.manage')<a href="{{ route('user-groups.index') }}" @class(['selected' => request()->is('beheer/user-groups*')])>Gebruikersgroepen</a>@endcan

@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('title', 'MESA | Monsternameveld bewerken')
+@section('content')
+    <div class="page-heading"><div><div class="eyebrow">Beheer / Basis instellingen</div><h1>Monsternameveld bewerken</h1></div><a class="button" href="{{ route('sample-procedure-fields.index') }}">Terug naar overzicht</a></div>
+    <form method="POST" action="{{ route('sample-procedure-fields.update', $field) }}">@csrf @method('PUT')<fieldset class="form-section"><legend>Monsternameveld</legend><div class="form-grid"><div class="field"><label for="name">Veldnaam</label><input id="name" name="name" value="{{ old('name', $field->name) }}" maxlength="32" required autofocus></div><div class="field"><label for="alias">Weergavenaam</label><input id="alias" name="alias" value="{{ old('alias', $field->alias) }}" maxlength="128" required></div><div class="field"><label for="position">Positie</label><input id="position" name="position" type="number" min="0" value="{{ old('position', $field->position) }}" required></div></div></fieldset><div class="form-actions"><button class="button primary" type="submit">Opslaan</button><a class="button" href="{{ route('sample-procedure-fields.index') }}">Annuleren</a></div></form>
+@endsection

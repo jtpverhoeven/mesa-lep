@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('title', 'MESA | Monstername velden')
+@section('content')
+    <div class="page-heading"><div><div class="eyebrow">Beheer / Basis instellingen</div><h1>Monstername velden</h1></div><a class="button primary" href="{{ route('sample-procedure-fields.create') }}">Monsternameveld toevoegen</a></div>
+    <div class="table-scroll"><table class="data-table"><thead><tr><th>ID</th><th>Veldnaam</th><th>Weergavenaam</th><th>Positie</th><th>Acties</th></tr></thead><tbody>@forelse($fields as $field)<tr><td>{{ $field->id }}</td><td><strong>{{ $field->name }}</strong></td><td>{{ $field->alias }}</td><td>{{ $field->position }}</td><td><a class="text-link" href="{{ route('sample-procedure-fields.edit', $field) }}">Bewerken</a><form class="inline-form" method="POST" action="{{ route('sample-procedure-fields.destroy', $field) }}" onsubmit="return confirm('Dit monsternameveld verwijderen?');">@csrf @method('DELETE')<button class="text-button" type="submit">Verwijderen</button></form></td></tr>@empty<tr><td colspan="5" class="empty-state">Geen monstername velden gedefinieerd.</td></tr>@endforelse</tbody></table></div>
+@endsection
