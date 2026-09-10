@@ -9,6 +9,7 @@ use App\Http\Controllers\CvarController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProjectFieldController;
+use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SampleFieldController;
 use App\Http\Controllers\SampleProcedureController;
 use App\Http\Controllers\SampleProcedureFieldController;
@@ -23,24 +24,34 @@ Route::view('/dashboard', 'dashboard')
     ->middleware('auth')
     ->name('dashboard');
 
-Route::middleware(['auth', 'can:clients.view'])->prefix('laboratorium')->group(function () {
-    Route::get('/klanten', [ClientController::class, 'index'])->name('clients.index');
+Route::middleware(['auth', 'can:clients.view'])->prefix('laboratory')->group(function () {
+    Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
     Route::middleware('can:clients.manage')->group(function () {
-        Route::get('/klanten/toevoegen', [ClientController::class, 'create'])->name('clients.create');
-        Route::post('/klanten', [ClientController::class, 'store'])->name('clients.store');
-        Route::get('/klanten/{client}/bewerken', [ClientController::class, 'edit'])->name('clients.edit');
-        Route::put('/klanten/{client}', [ClientController::class, 'update'])->name('clients.update');
-        Route::delete('/klanten/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+        Route::get('/clients/create', [ClientController::class, 'create'])->name('clients.create');
+        Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
+        Route::get('/clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
+        Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
+        Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
     });
-    Route::get('/klantcategorieen', [ClientCategoryController::class, 'index'])->name('client-categories.index');
+    Route::get('/client-categories', [ClientCategoryController::class, 'index'])->name('client-categories.index');
     Route::middleware('can:clients.manage')->group(function () {
-        Route::get('/klantcategorieen/toevoegen', [ClientCategoryController::class, 'create'])->name('client-categories.create');
-        Route::post('/klantcategorieen', [ClientCategoryController::class, 'store'])->name('client-categories.store');
-        Route::delete('/klantcategorieen/{clientCategory}', [ClientCategoryController::class, 'destroy'])->name('client-categories.destroy');
+        Route::get('/client-categories/create', [ClientCategoryController::class, 'create'])->name('client-categories.create');
+        Route::post('/client-categories', [ClientCategoryController::class, 'store'])->name('client-categories.store');
+        Route::delete('/client-categories/{clientCategory}', [ClientCategoryController::class, 'destroy'])->name('client-categories.destroy');
     });
 });
 
-Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('beheer')->group(function () {
+Route::middleware(['auth', 'can:samples.create'])->prefix('laboratory')->group(function () {
+    Route::get('/samples/create', [SampleController::class, 'create'])->name('samples.create');
+    Route::get('/samples/create/data', [SampleController::class, 'formData'])->name('samples.form-data');
+    Route::get('/samples/clients/search', [SampleController::class, 'searchClients'])->name('samples.clients.search');
+    Route::get('/samples/clients/{client}/projects', [SampleController::class, 'clientProjects'])->name('samples.projects.index');
+    Route::get('/samples/projects/{project}', [SampleController::class, 'project'])->name('samples.projects.show');
+    Route::post('/samples', [SampleController::class, 'store'])->name('samples.store');
+    Route::get('/samples/next-barcode', [SampleController::class, 'nextBarcode'])->name('samples.next-barcode');
+});
+
+Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group(function () {
     Route::view('/', 'beheer.dashboard')->name('beheer.dashboard');
     Route::get('/assays', [AssayController::class, 'index'])->name('assays.index');
     Route::get('/assays/create', [AssayController::class, 'create'])->name('assays.create');

@@ -79,7 +79,7 @@
 
     <script>
         document.getElementById('revision_selector')?.addEventListener('change', function () {
-            window.location.href = '{{ url('/beheer/assays') }}/' + this.value + '/edit';
+            window.location.href = '{{ url('/admin/assays') }}/' + this.value + '/edit';
         });
         const startAnchor = document.getElementById('start_anchor');
         const startFieldNameWrapper = document.getElementById('start_field_name_wrapper');
