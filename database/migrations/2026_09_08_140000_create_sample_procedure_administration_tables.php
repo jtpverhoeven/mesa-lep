@@ -9,8 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sampleprocedurefields', function (Blueprint $table) {
-            $table->charset = 'utf8mb3';
-            $table->collation = 'utf8mb3_general_ci';
+
             $table->integer('id', autoIncrement: true);
             $table->string('name', 32);
             $table->string('alias', 128);
@@ -18,8 +17,7 @@ return new class extends Migration
         });
 
         Schema::create('sampleprocedures', function (Blueprint $table) {
-            $table->charset = 'utf8mb3';
-            $table->collation = 'utf8mb3_general_ci';
+     
             $table->integer('id', autoIncrement: true);
             $table->string('name', 128);
             $table->integer('active')->default(1);

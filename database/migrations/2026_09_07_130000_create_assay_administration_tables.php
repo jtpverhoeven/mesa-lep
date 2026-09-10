@@ -8,9 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('assaytypes', function (Blueprint $table) {
-            $table->charset = 'utf8mb3';
-            $table->collation = 'utf8mb3_general_ci';
+        Schema::create('assaytypes', function (Blueprint $table) {            
             $table->integer('id', autoIncrement: true);
             $table->string('name', 128);
             $table->text('description');
@@ -19,9 +17,7 @@ return new class extends Migration
             $table->integer('active')->default(1);
         });
 
-        Schema::create('assaytypefields', function (Blueprint $table) {
-            $table->charset = 'utf8mb3';
-            $table->collation = 'utf8mb3_general_ci';
+        Schema::create('assaytypefields', function (Blueprint $table) {            
             $table->integer('id', autoIncrement: true);
             $table->integer('test_id');
             $table->string('name', 32);
@@ -33,8 +29,7 @@ return new class extends Migration
         });
 
         Schema::create('assayfields', function (Blueprint $table) {
-            $table->charset = 'utf8mb3';
-            $table->collation = 'utf8mb3_general_ci';
+            
             $table->integer('id', autoIncrement: true);
             $table->string('name', 64);
             $table->string('standard_value', 64);
@@ -42,8 +37,7 @@ return new class extends Migration
         });
 
         Schema::create('assays', function (Blueprint $table) {
-            $table->charset = 'utf8mb3';
-            $table->collation = 'utf8mb3_general_ci';
+       
             $table->integer('id', autoIncrement: true);
             $table->integer('original_id');
             $table->string('name', 128);
@@ -75,8 +69,7 @@ return new class extends Migration
         });
 
         Schema::create('media', function (Blueprint $table) {
-            $table->charset = 'utf8mb3';
-            $table->collation = 'utf8mb3_general_ci';
+    
             $table->integer('id', autoIncrement: true);
             $table->text('name');
             $table->string('short_name', 32)->nullable();
@@ -93,16 +86,14 @@ return new class extends Migration
         });
 
         Schema::create('matrix', function (Blueprint $table) {
-            $table->charset = 'utf8mb3';
-            $table->collation = 'utf8mb3_bin';
+    
             $table->integer('id', autoIncrement: true);
             $table->text('name');
             $table->text('icon')->nullable();
         });
 
         Schema::create('matrixcontent', function (Blueprint $table) {
-            $table->charset = 'utf8mb3';
-            $table->collation = 'utf8mb3_bin';
+    
             $table->integer('id', autoIncrement: true);
             $table->integer('assay_base');
             $table->integer('matrix');

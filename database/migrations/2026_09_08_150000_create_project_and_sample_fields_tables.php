@@ -9,8 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('projectfields', function (Blueprint $table) {
-            $table->charset = 'utf8mb3';
-            $table->collation = 'utf8mb3_general_ci';
+     
             $table->integer('id', autoIncrement: true);
             $table->string('name', 32);
             $table->string('alias', 64);
@@ -22,8 +21,7 @@ return new class extends Migration
         });
 
         Schema::create('samplefields', function (Blueprint $table) {
-            $table->charset = 'utf8mb3';
-            $table->collation = 'utf8mb3_general_ci';
+
             $table->integer('id', autoIncrement: true);
             $table->string('name', 32);
             $table->string('alias', 64);

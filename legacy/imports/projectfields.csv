@@ -1,0 +1,5 @@
+﻿"id","name","alias","type","std_value","position","keep_current"
+"1","project_monster","Bemonster datum","date","Onbekend","1","0"
+"2","project_ontvangst","Ontvangst datum","date","{today}","3","0"
+"4","project_tijd_ontvangst","Ontvangst tijd","text","","4","1"
+"5","project_bemonster_tijd","Bemonster tijd","text","","2","0"

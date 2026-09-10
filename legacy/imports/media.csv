@@ -79,7 +79,7 @@
 "91","Temperatuur Waterbad Legionella","Temp. waterbad Legionella","0","3","°C","1","[]","1","0","1","18",NA
 "93","Temperatuur hitteblok Salmonella PCR","Temp. hitteblok Salmonella PCR","0","3","°C","1","[]","1","0","1","18",NA
 "94","DSM with Bromophenol Blue","DSM buizen","0","1","[]","1",NA,"1","0","1","18",NA
-"95","MUG/EC Microplates/Kit E. coli","MPN plaat","0","1","[]","1",NA,"1","0","1","18",NA
+"95","MUG/EC Microplates/Kit E. coli","MPN plaat E. coli","0","1","[]","1","[]","1","0","1","18",NA
 "96","Plate Count Agar >","> PCA","1","1","[]","1","[]","1","0","1","18",NA
 "97","Thiosulfate Citrate Bile Salts Sucrose agar","TCBS","0","1","[]","1","[]","1","0","1","18",NA
 "98","Vibrio Colorex agar","VC","0","1","[]","1","[]","1","0","1","18",NA
@@ -100,14 +100,14 @@
 "113","Temperatuur hitteblok STEC PCR","Temp. hitteblok STEC PCR","0","3","","1","[]","1","0","1","18",NA
 "114","Temperatuur hitteblok TAB PCR","Temp. hitteblok TAB PCR","0","3","","1","[]","1","0","1","18",NA
 "115","Citraat","Citraat","0","1","[]","1","[]","1","0","1","18",NA
-"116","Dextrose Trypton Agar","DTA","0","1","[]","1","[]","1","0","1","18",NA
+"116","Dextrose Trypton Agar","DTA","0","1","[]","1","[]","1","1","1","18",NA
 "117","Zuurfosfatasereagens","Zuurfosfatasereagens","1","1","[]","1","[]","1","0","1","18",NA
 "118","Filterbatch Legionella","Filterbatch Legionella monsters","0","3","","1","[]","1","0","1","18",NA
 "119","Filterbatch watermonster","Filterbatch watermonsters","0","3","","1","[]","1","0","1","18",NA
 "120","Xylose Lysine Deoxycholate Agar | bevestigingen","XLD","1","1","[]","1","[]","1","0","1","18",NA
 "121","Rapid Salmonella Agar | bevestigingen","RSA","1","1","[]","1","[]","1","0","1","18",NA
 "122","Oordeel analist","Oordeel analist","1","1","[]","0","[]","1","0","1","18",NA
-"123","Rose Bengal Agar","Rose Bengal Agar","0","1","[]","1","[]","1","0","1","18",NA
+"123","Rose Bengal Agar","RBA","0","1","[]","1","[]","1","0","1","18",NA
 "124","Kovacs Reagent","Kovacs Reagent","1","1","[]","1","[]","1","0","1","18",NA
 "125","Microscopie - Gram pos. staaf","Gram pos. staaf","1","1","[]","0","[]","1","0","1","18",NA
 "126","Microscopie - Staaf vormig","Staaf","1","1","[]","0","[]","0","0","1","18",NA
@@ -129,7 +129,7 @@
 "142","Chromogeen coliform agar","CCA","0","1","[]","1","[]","1","0","1","18",NA
 "143","Campylobacter Colorex","Campy Colorex","0","1","[]","1","[]","1","0","1","18",NA
 "144","ESBL plaat","ESBL plaat","0","1","[]","1","[]","1","0","1","18",NA
-"145","Dichloran 18% Glycerol Agar","DG18","0","1","[]","1","[]","1","0","1","18",NA
+"145","Dichloran 18% Glycerol Agar","DG18","0","1","[]","1","[]","1","1","1","9",NA
 "146","API - Vibrio spp.?","API - Vibrio spp.?","1","1","[]","0","[]","1","0","1","18",NA
 "147","cholerae, parahaemolyticus of vulnificus?","cholerae, parahaemolyticus of vu","1","1","[]","0","[]","1","0","1","18",NA
 "148","Alicyclobacillus agar","ACB-agar","1","1","[]","1","[]","1","0","1","18",NA
@@ -137,15 +137,30 @@
 "150","Afenting ALOA/RLM","ALOA & RLM","1","1","[{""supplementId"":0,""name"":""<< THT ALOA         |         THT RLM >>""}]","1","{""pos"":true}","0","0","1","18",NA
 "151","Afenting RVS/MK","RVS & MK","1","1","[{""supplementId"":0,""name"":""<< THT RVS     |     THT MK >>""}]","1","[]","0","0","1","18",NA
 "152","Afenting XLD/RSA","XLD & RSA","1","1","[{""supplementId"":0,""name"":""<< THT XLD     |     THT RSA >>""}]","1","{""pos"":true}","0","0","1","18",NA
-"153","Listeria Special Broth","LSB","0","1","[]","1","[]","1","0","1","18",NA
+"153","Listeria Special Broth 1","LSB - 1","0","1","[]","1","[]","1","0","1","18",NA
 "154","Rappaport Vassiliadis Soya Broth | bevestigingen","RVS","1","1","[]","1","[]","1","0","1","18",NA
 "155","MKTTN (Mueller Kauffman Tetrathionate Novobiocin) | bevestigingen","Mueller Kaufman","1","1","[]","1","[]","1","0","1","18",NA
 "156","Agar Listeria according to Ottaviani and Agosti | bevestigingen","ALOA","1","1","[]","1","[]","1","0","1","18",NA
 "157","Rapid L.mono Medium | bevestigingen","RLM","1","1","[]","1","[]","1","0","1","18",NA
 "158","BAT-agar | bevestiging","BAT","1","1","[]","1","{""pos"":true,""neg"":true,""blank"":true}","1","0","1","18",NA
 "159","BAT-agar","BAT","0","1","[]","1","[]","1","0","1","18",NA
-"160","Dilumat 115","Dilumat 115 - controlegewicht","0","3","gram","1","[]","1","0","1","18",">30<=31"
-"161","Dilumat 166","Dilumat 166 - controlegewicht","0","3","gram","1","[]","1","0","1","18",NA
+"160","Dilumat 115","Dilumat 115 - controlegewicht","0","3","gram","1","[]","1","0","1","18",">22,79<23,27"
+"161","Dilumat 166","Dilumat 166 - controlegewicht","0","3","gram","1","[]","1","0","1","18",">22,79<23,27"
 "162","Plate Count Agar - Rodac","PCA - Rodac","0","1","[]","1","[]","1","0","1","18",NA
 "163","Tryptone Sulfite Cycloserine agar","TSC","0","1","[]","1","[]","1","1","1","18",NA
 "164","Pipet nummer (afdeling pipetteren)","ID-nummer - Pipet","0","3","","1","[]","1","0","1","18",NA
+"165","Dilumat 184","Dilumat 184 - controlegewicht","0","3","gram","1","[]","1","0","1","18",">22,79<23,27"
+"166","Oxytetracycline Glucose Yeast extract agar DUBBEL STERKTE","OGY dubbel","0","1","[{""supplementId"":0,""name"":""Oxytetracycline""}]","1","[]","1","0","1","18",NA
+"167","Groei op Coloriex of CCDA","Groei op Coloriex / CCDA?","1","1","[]","1","[]","1","0","1","18",NA
+"168","MUG/EC Microplates/Kit Enterococcen","MPN plaat Enterococcen","0","1","[]","1","[]","1","0","1","18",NA
+"169","Violet Red Bile Glucose agar - Rodac","VRBG - Rodac","0","1","[]","1","[]","1","0","1","18",NA
+"170","Violet Red Bile Lactose agar - Rodac","VRBL - Rodac","0","1","[]","1","[]","1","0","1","18",NA
+"171","Baird Parker agar - Rodac","BP-platen - Rodac","0","1","[]","1","[]","1","0","1","18",NA
+"172","Oxytetracycline Glucose Yeast extract agar - Rodac","OGY - Rodac","0","1","[{""supplementId"":0,""name"":""Oxytetracycline""}]","1","[]","1","0","1","18",NA
+"173","Listeria Special Broth 2","LSB - 2","0","1","[]","1","[]","1","0","1","18",NA
+"174","Tryptone Sojabouillon U.S.P.","TSB","0","1","[]","1","[]","1","0","1","18",NA
+"175","Oxytetracycline Glucose Yeast extract agar met chloramfenicol","YGC","0","1","[]","1","[]","1","0","1","18",NA
+"176","Symphony agar","SYM","0","1","[]","1","[]","1","1","1","9",NA
+"177","Symphony agar - Rodac","SYM - Rodac","0","1","[]","1","[]","1","0","1","18",NA
+"178","RAPID’P. aeruginosa Agar","RPSA","0","1","[]","1","[]","1","0","1","18",NA
+"179","Baird Parker + Rabbit Plasma Fibrinogen bevestigingen","BP-RPF (bevestigingen)","1","1","[]","1","[]","1","0","1","18",NA
