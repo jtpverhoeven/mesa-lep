@@ -9,6 +9,8 @@ use App\Http\Controllers\CvarController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProjectFieldController;
+use App\Http\Controllers\ReferenceSourceController;
+use App\Http\Controllers\ResearchProfileController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SampleFieldController;
 use App\Http\Controllers\SampleProcedureController;
@@ -49,6 +51,22 @@ Route::middleware(['auth', 'can:samples.create'])->prefix('laboratory')->group(f
     Route::get('/samples/projects/{project}', [SampleController::class, 'project'])->name('samples.projects.show');
     Route::post('/samples', [SampleController::class, 'store'])->name('samples.store');
     Route::get('/samples/next-barcode', [SampleController::class, 'nextBarcode'])->name('samples.next-barcode');
+});
+
+Route::middleware(['auth', 'can:research-profiles.manage'])->prefix('admin/research-profiles')->group(function () {
+    Route::get('/', [ResearchProfileController::class, 'index'])->name('research-profiles.index');
+    Route::get('/create', [ResearchProfileController::class, 'editor'])->name('research-profiles.create');
+    Route::get('/bulk', [ResearchProfileController::class, 'bulk'])->name('research-profiles.bulk');
+    Route::get('/list', [ResearchProfileController::class, 'list'])->name('research-profiles.list');
+    Route::get('/data/{researchProfile?}', [ResearchProfileController::class, 'data'])->name('research-profiles.data');
+    Route::get('/reference-sources', [ResearchProfileController::class, 'referenceSources'])->name('research-profiles.reference-sources');
+    Route::get('/clients/search', [ResearchProfileController::class, 'clients'])->name('research-profiles.clients.search');
+    Route::post('/', [ResearchProfileController::class, 'store'])->name('research-profiles.store');
+    Route::post('/bulk', [ResearchProfileController::class, 'bulkUpdate'])->name('research-profiles.bulk.update');
+    Route::get('/{researchProfile}/edit', [ResearchProfileController::class, 'editor'])->name('research-profiles.edit');
+    Route::put('/{researchProfile}', [ResearchProfileController::class, 'update'])->name('research-profiles.update');
+    Route::delete('/{researchProfile}', [ResearchProfileController::class, 'destroy'])->name('research-profiles.destroy');
+    Route::post('/{researchProfile}/copy', [ResearchProfileController::class, 'copy'])->name('research-profiles.copy');
 });
 
 Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group(function () {
@@ -142,6 +160,12 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
     });
 
     Route::middleware('can:settings.advanced')->group(function () {
+        Route::get('/reference-sources', [ReferenceSourceController::class, 'index'])->name('reference-sources.index');
+        Route::get('/reference-sources/create', [ReferenceSourceController::class, 'create'])->name('reference-sources.create');
+        Route::post('/reference-sources', [ReferenceSourceController::class, 'store'])->name('reference-sources.store');
+        Route::get('/reference-sources/{referenceSource}/edit', [ReferenceSourceController::class, 'edit'])->name('reference-sources.edit');
+        Route::put('/reference-sources/{referenceSource}', [ReferenceSourceController::class, 'update'])->name('reference-sources.update');
+        Route::delete('/reference-sources/{referenceSource}', [ReferenceSourceController::class, 'destroy'])->name('reference-sources.destroy');
         Route::get('/cvars', [CvarController::class, 'index'])->name('cvars.index');
         Route::put('/cvars/{cvar}', [CvarController::class, 'update'])->name('cvars.update');
     });

@@ -14,6 +14,9 @@ use App\Models\Media;
 use App\Models\Matrix;
 use App\Models\MatrixContent;
 use App\Models\ProjectField;
+use App\Models\ReferenceSource;
+use App\Models\ResearchProfile;
+use App\Models\AssayProfile;
 use App\Models\SampleField;
 use App\Models\SampleProcedure;
 use App\Models\SampleProcedureField;
@@ -51,6 +54,9 @@ class ImportLegacyCsvDirectoryCommand extends Command
         'clientcategories.csv' => ClientCategory::class,
         'clients.csv' => Client::class,
         'categories_clients.csv' => ClientCategoryAssignment::class,
+        'referencesources.csv' => ReferenceSource::class,
+        'researchprofiles.csv' => ResearchProfile::class,
+        'assayprofiles.csv' => AssayProfile::class,
         'cvars.csv' => Cvar::class,
         'projectfields.csv' => ProjectField::class,
         'samplefields.csv' => SampleField::class,
@@ -124,7 +130,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
                 rewind($handle);
             }
 
-            $headers = fgetcsv($handle);
+            $headers = fgetcsv($handle, escape: '');
 
             if ($headers === false || $headers === [] || in_array('', $headers, true)) {
                 throw new RuntimeException('header row is missing or contains an empty column name');
@@ -152,7 +158,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
             $failures = 0;
             $line = 1;
 
-            while (($row = fgetcsv($handle)) !== false) {
+            while (($row = fgetcsv($handle, escape: '')) !== false) {
                 $line++;
 
                 if ($row === [null]) {
@@ -167,6 +173,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
                 }
 
                 $attributes = array_combine($headers, array_map([$this, 'normalizeValue'], $row));
+                $attributes = $this->decodeJsonAttributes($model, $attributes);
                 $attributes = $this->anonymizeClient($modelClass, $attributes);
 
                 try {
@@ -197,6 +204,29 @@ class ImportLegacyCsvDirectoryCommand extends Command
     private function normalizeValue(mixed $value): mixed
     {
         return in_array($value, ['NULL', 'NA'], true) ? null : $value;
+    }
+
+    /**
+     * @param array<string, mixed> $attributes
+     * @return array<string, mixed>
+     */
+    private function decodeJsonAttributes(Model $model, array $attributes): array
+    {
+        foreach ($model->getCasts() as $attribute => $cast) {
+            if (! in_array($cast, ['array', 'json'], true) || ! isset($attributes[$attribute]) || ! is_string($attributes[$attribute])) {
+                continue;
+            }
+
+            $decoded = json_decode($attributes[$attribute], true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new RuntimeException("{$attribute} contains invalid JSON: ".json_last_error_msg());
+            }
+
+            $attributes[$attribute] = $decoded;
+        }
+
+        return $attributes;
     }
 
     /**

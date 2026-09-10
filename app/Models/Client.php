@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\ReferenceSource;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -33,5 +34,10 @@ class Client extends Model
     public function samples(): HasMany
     {
         return $this->hasMany(Sample::class, 'client');
+    }
+
+    public function referenceSources(): HasMany
+    {
+        return $this->hasMany(ReferenceSource::class, 'client');
     }
 }
