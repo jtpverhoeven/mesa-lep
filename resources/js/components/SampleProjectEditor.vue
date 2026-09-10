@@ -1,5 +1,5 @@
 <script setup>
-import { LoaderCircle } from '@lucide/vue';
+import { LoaderCircle, Lock, Unlock } from '@lucide/vue';
 import { useClientSelectorStore } from '../stores/clientSelectorStore';
 import { useProjectSelectorStore } from '../stores/projectSelectorStore';
 
@@ -18,12 +18,8 @@ function projectChanged(event) {
     </div>
     <p v-if="!clientStore.selected" class="panel-hint wide">Selecteer eerst een klant.</p>
     <template v-else>
-        <div class="field wide">
-            <label for="sample-project-name">Projectnaam</label>
-            <input id="sample-project-name" v-model="projectStore.form.project_name" maxlength="128" :disabled="projectStore.loadingProject" required>
-        </div>
         <div v-for="field in projectStore.fieldDefinitions" :key="field.name" class="field wide">
-            <label :for="`project-field-${field.name}`">{{ field.alias }}</label>
+            <label class="lockable-field-label" :for="`project-field-${field.name}`"><span>{{ field.alias }}</span><button class="field-lock-button" type="button" :title="projectStore.lockedFields.includes(field.name) ? 'Waarde niet bewaren' : 'Waarde bewaren voor volgend project'" @click="projectStore.toggleFieldLock(field.name)"><Lock v-if="projectStore.lockedFields.includes(field.name)" :size="13" /><Unlock v-else :size="13" /></button></label>
             <textarea v-if="field.type === 'textarea'" :id="`project-field-${field.name}`" v-model="projectStore.form.custom_fields[field.name]" rows="3" :disabled="projectStore.loadingProject"></textarea>
             <input v-else :id="`project-field-${field.name}`" v-model="projectStore.form.custom_fields[field.name]" type="text" :placeholder="field.type === 'date' ? 'dd-mm-jjjj' : ''" :disabled="projectStore.loadingProject">
         </div>

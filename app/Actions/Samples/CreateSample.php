@@ -16,6 +16,7 @@ class CreateSample
     {
         return DB::transaction(function () use ($data) {
             $now = now();
+            DB::statement("select pg_advisory_xact_lock(hashtext('mesa-lims-sample-barcode'))");
             $lastSample = Sample::query()
                 ->where('sample_type', '!=', 'L')
                 ->latest('id')
@@ -40,7 +41,7 @@ class CreateSample
                 'custom_fields' => json_encode($this->customFields($data['custom_fields'] ?? []), JSON_FORCE_OBJECT),
                 'predicted_end' => $now->timestamp,
                 'sample_innoculated' => '',
-                'stored_in' => $data['stored_in'] ?? null,
+                'stored_in' => null,
                 'sample_note' => $data['sample_note'] ?? null,
                 'sample_type' => 'S',
                 'leg_type' => '-',

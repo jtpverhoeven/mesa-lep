@@ -47,4 +47,19 @@ class Assay extends Model
         return $this->belongsToMany(Matrix::class, 'matrixcontent', 'assay_base', 'matrix', 'original_id', 'id')
             ->withPivot('id');
     }
+
+    public function assayProfiles(): HasMany
+    {
+        return $this->hasMany(AssayProfile::class, 'assay');
+    }
+
+    public function sampleAnalyses(): HasMany
+    {
+        return $this->hasMany(SampleAnalysis::class, 'assay_base');
+    }
+
+    public function roamingAnalyses(): HasMany
+    {
+        return $this->hasMany(RoamingAnalysis::class, 'assay');
+    }
 }

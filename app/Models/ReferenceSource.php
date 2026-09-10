@@ -32,6 +32,11 @@ class ReferenceSource extends Model
         return $this->hasMany(AssayProfile::class, 'reference_source');
     }
 
+    public function roamingAnalyses(): HasMany
+    {
+        return $this->hasMany(RoamingAnalysis::class, 'reference_source');
+    }
+
     public function scopeAvailableForClient(Builder $query, ?int $client): void
     {
         $query->where(function (Builder $query) use ($client) {

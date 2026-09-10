@@ -1,5 +1,8 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
+import OpenVue from 'openvue/config';
+import ToastService from 'openvue/toastservice';
+import Aura from '@openvue/themes/aura';
 import ClientCategoryForm from './components/ClientCategoryForm.vue';
 import ClientCategoryManager from './components/ClientCategoryManager.vue';
 import ClientDirectory from './components/ClientDirectory.vue';
@@ -15,6 +18,8 @@ import UserMenu from './components/UserMenu.vue';
 const app = createApp({});
 
 app.use(createPinia());
+app.use(OpenVue, { theme: { preset: Aura } });
+app.use(ToastService);
 app.component('client-category-form', ClientCategoryForm);
 app.component('client-category-manager', ClientCategoryManager);
 app.component('client-directory', ClientDirectory);

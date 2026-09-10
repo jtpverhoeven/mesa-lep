@@ -5,15 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'research_profile', 'assay', 'dillutions', 'replicates', 'reference', 'hidden',
-    'project_order', 'conf_trip', 'reference_source',
+    'said', 'assay', 'dillutions', 'replicates', 'reference', 'reference_scope',
+    'reference_source',
 ])]
-class AssayProfile extends Model
+class RoamingAnalysis extends Model
 {
-    protected $table = 'assayprofiles';
+    protected $table = 'roaminganalysis';
 
     public $timestamps = false;
 
@@ -22,13 +21,12 @@ class AssayProfile extends Model
         return [
             'dillutions' => 'array',
             'reference' => 'array',
-            'hidden' => 'boolean',
         ];
     }
 
-    public function researchProfile(): BelongsTo
+    public function sampleAnalysis(): BelongsTo
     {
-        return $this->belongsTo(ResearchProfile::class, 'research_profile');
+        return $this->belongsTo(\App\Models\SampleAnalysis::class, 'said');
     }
 
     public function assayRecord(): BelongsTo
@@ -39,10 +37,5 @@ class AssayProfile extends Model
     public function referenceSource(): BelongsTo
     {
         return $this->belongsTo(ReferenceSource::class, 'reference_source');
-    }
-
-    public function sampleAnalyses(): HasMany
-    {
-        return $this->hasMany(SampleAnalysis::class, 'assay')->where('profile', '!=', 0);
     }
 }

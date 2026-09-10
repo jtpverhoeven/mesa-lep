@@ -40,4 +40,9 @@ class ResearchProfile extends Model
     {
         return $this->hasMany(AssayProfile::class, 'research_profile')->orderBy('project_order');
     }
+
+    public function sampleAnalyses(): HasMany
+    {
+        return $this->hasMany(SampleAnalysis::class, 'profile');
+    }
 }

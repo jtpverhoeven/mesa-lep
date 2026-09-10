@@ -48,6 +48,7 @@ Route::middleware(['auth', 'can:samples.create'])->prefix('laboratory')->group(f
     Route::get('/samples/create/data', [SampleController::class, 'formData'])->name('samples.form-data');
     Route::get('/samples/clients/search', [SampleController::class, 'searchClients'])->name('samples.clients.search');
     Route::get('/samples/clients/{client}/projects', [SampleController::class, 'clientProjects'])->name('samples.projects.index');
+    Route::get('/samples/clients/{client}/analysis-options', [SampleController::class, 'analysisOptions'])->name('samples.analysis-options');
     Route::get('/samples/projects/{project}', [SampleController::class, 'project'])->name('samples.projects.show');
     Route::post('/samples', [SampleController::class, 'store'])->name('samples.store');
     Route::get('/samples/next-barcode', [SampleController::class, 'nextBarcode'])->name('samples.next-barcode');

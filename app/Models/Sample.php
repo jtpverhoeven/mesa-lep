@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'barcode', 'tht_code', 'follow_no', 'description', 'client_description', 'sampling_method',
@@ -28,5 +29,12 @@ class Sample extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class, 'project');
+    }
+
+    public function analyses(): HasMany
+    {
+        return $this->hasMany(\App\Models\SampleAnalysis::class, 'sample')
+            ->orderBy('project_order')
+            ->orderBy('follow_number');
     }
 }

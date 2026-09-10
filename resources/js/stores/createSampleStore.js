@@ -2,9 +2,10 @@ import { defineStore } from 'pinia';
 import { useClientSelectorStore } from './clientSelectorStore';
 import { legacyFieldValues } from './legacyFieldDefaults';
 import { useProjectSelectorStore } from './projectSelectorStore';
+import { useSampleResearchStore } from './sampleResearchStore';
 
 function emptyForm() {
-    return { description: '', sampling_method: '', stored_in: '', sample_note: '', custom_fields: {} };
+    return { description: '', sampling_method: '', sample_note: '', custom_fields: {} };
 }
 
 export const useCreateSampleStore = defineStore('createSample', {
@@ -18,7 +19,6 @@ export const useCreateSampleStore = defineStore('createSample', {
         submitting: false,
         error: '',
         errors: {},
-        success: '',
     }),
     getters: {
         errorMessages: (state) => Object.values(state.errors).flat(),
@@ -28,6 +28,7 @@ export const useCreateSampleStore = defineStore('createSample', {
             this.endpoints = endpoints;
             useClientSelectorStore().configure(endpoints.clientSearch);
             useProjectSelectorStore().configure(endpoints.clientProjects, endpoints.project);
+            useSampleResearchStore().configure(endpoints.analysisOptions);
         },
         async initialize() {
             this.loading = true;
@@ -49,20 +50,22 @@ export const useCreateSampleStore = defineStore('createSample', {
         },
         async selectClient(client) {
             useClientSelectorStore().select(client);
-            this.success = '';
             this.errors = {};
-            await useProjectSelectorStore().loadForClient(client.id);
+            await Promise.all([
+                useProjectSelectorStore().loadForClient(client.id),
+                useSampleResearchStore().load(client.id),
+            ]);
         },
         clearClient() {
             useClientSelectorStore().clear();
             useProjectSelectorStore().loadForClient(null);
+            useSampleResearchStore().reset();
         },
         async submit() {
             const clientStore = useClientSelectorStore();
             const projectStore = useProjectSelectorStore();
             this.error = '';
             this.errors = {};
-            this.success = '';
 
             if (!clientStore.selected) {
                 this.errors = { client: ['Selecteer een klant uit de zoekresultaten.'] };
@@ -83,6 +86,7 @@ export const useCreateSampleStore = defineStore('createSample', {
                         project: projectStore.selectedId || null,
                         project_name: projectStore.form.project_name,
                         project_custom_fields: projectStore.form.custom_fields,
+                        analyses: useSampleResearchStore().payload,
                         ...this.form,
                     }),
                 });
@@ -93,16 +97,20 @@ export const useCreateSampleStore = defineStore('createSample', {
                 }
                 if (!response.ok) throw new Error();
 
-                this.success = data.message;
                 this.barcode = data.next_barcode;
                 this.form = { ...emptyForm(), custom_fields: legacyFieldValues(this.sampleFields) };
+                useSampleResearchStore().clearSelections();
                 await projectStore.loadForClient(clientStore.selected.id);
                 await projectStore.selectProject(String(data.sample.project_id), clientStore.selected.id);
+                projectStore.form.project_name = data.sample.project_name;
+                return data.sample;
             } catch {
                 this.error = 'Het monster kon niet worden aangemeld.';
             } finally {
                 this.submitting = false;
             }
+
+            return null;
         },
     },
 });

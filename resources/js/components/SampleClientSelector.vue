@@ -6,6 +6,7 @@ import { useCreateSampleStore } from '../stores/createSampleStore';
 
 const clientStore = useClientSelectorStore();
 const sampleStore = useCreateSampleStore();
+const searchInput = ref(null);
 const open = ref(false);
 const activeIndex = ref(-1);
 let searchTimer;
@@ -39,6 +40,7 @@ function selectActive() {
 }
 
 onBeforeUnmount(() => window.clearTimeout(searchTimer));
+defineExpose({ focus: () => searchInput.value?.focus() });
 </script>
 
 <template>
@@ -46,7 +48,7 @@ onBeforeUnmount(() => window.clearTimeout(searchTimer));
         <label for="sample-client">Klant</label>
         <div class="client-search-control">
             <Search :size="16" aria-hidden="true" />
-            <input id="sample-client" :value="clientStore.query" type="search" autocomplete="off" placeholder="Typ minimaal 2 tekens" role="combobox" aria-autocomplete="list" aria-controls="client-results" :aria-expanded="open && clientStore.query.trim().length >= 2" :aria-activedescendant="activeResultId" autofocus @input="inputChanged" @focus="open = true" @blur="open = false" @keydown.down.prevent="move(1)" @keydown.up.prevent="move(-1)" @keydown.enter.prevent="selectActive" @keydown.esc="open = false">
+            <input id="sample-client" ref="searchInput" :value="clientStore.query" type="search" autocomplete="off" placeholder="Typ minimaal 2 tekens" role="combobox" aria-autocomplete="list" aria-controls="client-results" :aria-expanded="open && clientStore.query.trim().length >= 2" :aria-activedescendant="activeResultId" @input="inputChanged" @focus="open = true" @blur="open = false" @keydown.down.prevent="move(1)" @keydown.up.prevent="move(-1)" @keydown.enter.prevent="selectActive" @keydown.esc="open = false">
             <LoaderCircle v-if="clientStore.loading" class="spin" :size="16" aria-label="Klanten laden" />
             <button v-else-if="clientStore.query" class="client-clear" type="button" title="Klant wissen" aria-label="Klant wissen" @mousedown.prevent="sampleStore.clearClient"><X :size="16" aria-hidden="true" /></button>
         </div>
