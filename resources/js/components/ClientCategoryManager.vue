@@ -1,19 +1,16 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Plus, Search, Trash2 } from '@lucide/vue';
+import { Search, Trash2 } from '@lucide/vue';
 
 const props = defineProps({
     categories: { type: Array, default: () => [] },
-    storeUrl: { type: String, required: true },
     destroyUrl: { type: String, required: true },
     csrf: { type: String, required: true },
     canManage: { type: Boolean, default: false },
 });
 
 const categories = ref(props.categories);
-const name = ref('');
 const search = ref('');
-const saving = ref(false);
 const deletingId = ref(null);
 const error = ref('');
 
@@ -21,30 +18,6 @@ const filteredCategories = computed(() => {
     const query = search.value.trim().toLocaleLowerCase();
     return query ? categories.value.filter((category) => category.name.toLocaleLowerCase().includes(query)) : categories.value;
 });
-
-async function addCategory() {
-    const trimmedName = name.value.trim();
-    if (!trimmedName) return;
-
-    saving.value = true;
-    error.value = '';
-    try {
-        const response = await fetch(props.storeUrl, {
-            method: 'POST',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': props.csrf },
-            body: JSON.stringify({ name: trimmedName }),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message);
-
-        categories.value = [...categories.value, result.category].sort((first, second) => first.name.localeCompare(second.name));
-        name.value = '';
-    } catch (exception) {
-        error.value = exception.message || 'De klantcategorie kon niet worden aangemaakt.';
-    } finally {
-        saving.value = false;
-    }
-}
 
 async function deleteCategory(category) {
     if (!window.confirm(`Klantcategorie "${category.name}" verwijderen? De klantkoppelingen worden ook verwijderd.`)) return;
@@ -69,11 +42,6 @@ async function deleteCategory(category) {
 <template>
     <div class="client-category-manager">
         <p v-if="error" class="notice error" role="alert">{{ error }}</p>
-        <form v-if="canManage" class="category-create" @submit.prevent="addCategory">
-            <label class="sr-only" for="new-category-name">Nieuwe klantcategorie</label>
-            <input id="new-category-name" v-model="name" maxlength="65535" placeholder="Nieuwe klantcategorie">
-            <button class="button primary" type="submit" :disabled="saving || !name.trim()"><Plus :size="16" aria-hidden="true" /> {{ saving ? 'Toevoegen...' : 'Toevoegen' }}</button>
-        </form>
         <label class="directory-search category-search">
             <Search :size="16" aria-hidden="true" />
             <span class="sr-only">Klantcategorieen zoeken</span>

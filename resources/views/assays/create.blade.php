@@ -18,7 +18,7 @@
             <div class="check-grid wide">@foreach(['dillution' => 'Gebruikt verdunningen', 'replicates' => "Gebruikt replica's"] as $name => $label)<input type="hidden" name="{{ $name }}" value="0"><label><input type="checkbox" name="{{ $name }}" value="1" @checked(old($name, 0))>{{ $label }}</label>@endforeach</div>
         </div></fieldset>
         <fieldset class="form-section"><legend>Media en matrices</legend><div class="form-grid">
-            <div class="field"><label>Gebruikte media / materialen</label><div data-media-selector="{{ json_encode(['media' => $media->map(fn ($medium) => ['id' => (string) $medium->id, 'name' => $medium->name, 'short_name' => $medium->short_name, 'active' => true])->values(), 'selected' => array_map('strval', (array) old('media', [])), 'inputName' => 'media']) }}"></div></div>
+            <div class="field"><label>Gebruikte media / materialen</label><media-selector v-bind="{{ Illuminate\Support\Js::from(['media' => $media->map(fn ($medium) => ['id' => (string) $medium->id, 'name' => $medium->name, 'short_name' => $medium->short_name, 'active' => true])->values(), 'selected' => array_map('strval', (array) old('media', [])), 'inputName' => 'media']) }}"></media-selector></div>
             <div class="field"><label>Matrices</label><div class="check-grid">@forelse($matrices as $matrix)<label><input type="checkbox" name="matrices[]" value="{{ $matrix->id }}" @checked(in_array($matrix->id, old('matrices', [])))>{{ $matrix->name }}</label>@empty<span class="muted">Geen matrices beschikbaar.</span>@endforelse</div></div>
         </div></fieldset>
         <fieldset class="form-section"><legend>Meta-analyse</legend><div class="check-grid">

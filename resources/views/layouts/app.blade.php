@@ -19,6 +19,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="lims-shell">
+        <div id="app">
         <a class="skip-link" href="#content">Naar inhoud</a>
         <header class="topbar">
             <a href="{{ route('dashboard') }}" class="brand"><span>mesa<span class="muted mr-12">LIMS</span></span></a>
@@ -29,9 +30,9 @@
                         <a href="{{ route('beheer.dashboard') }}" @class(['selected' => request()->is('beheer*')])>Beheer</a>
                     @endcan
                 </nav>
-                <div data-user-menu="{{ json_encode(['name' => auth()->user()->name, 'email' => auth()->user()->email, 'logoutUrl' => route('logout'), 'csrf' => csrf_token()]) }}">
+                <user-menu v-bind="{{ Illuminate\Support\Js::from(['name' => auth()->user()->name, 'email' => auth()->user()->email, 'logoutUrl' => route('logout'), 'csrf' => csrf_token()]) }}">
                     <form method="POST" action="{{ route('logout') }}">@csrf<button class="button" type="submit">Uitloggen</button></form>
-                </div>
+                </user-menu>
             @else
                 <span class="topbar-label">Laboratorium informatiesysteem</span>
             @endauth
@@ -84,6 +85,7 @@
                 @endif
                 @yield('content')
             </main>
+        </div>
         </div>
     </body>
 </html>

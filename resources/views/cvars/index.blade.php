@@ -10,9 +10,9 @@
         </div>
     </div>
 
-    <div data-cvar-table="{{ json_encode([
+    <cvar-table v-bind="{{ Illuminate\Support\Js::from([
         'cvars' => $cvars,
         'updateUrl' => route('cvars.update', ['cvar' => '__CVAR__']),
         'csrf' => csrf_token(),
-    ]) }}"></div>
+    ]) }}"></cvar-table>
 @endsection

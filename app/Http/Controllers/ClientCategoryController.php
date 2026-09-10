@@ -20,6 +20,11 @@ class ClientCategoryController extends Controller
         ]);
     }
 
+    public function create(): View
+    {
+        return view('client-categories.create');
+    }
+
     public function store(
         SaveClientCategoryRequest $request,
         CreateClientCategory $createClientCategory,

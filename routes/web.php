@@ -34,6 +34,7 @@ Route::middleware(['auth', 'can:clients.view'])->prefix('laboratorium')->group(f
     });
     Route::get('/klantcategorieen', [ClientCategoryController::class, 'index'])->name('client-categories.index');
     Route::middleware('can:clients.manage')->group(function () {
+        Route::get('/klantcategorieen/toevoegen', [ClientCategoryController::class, 'create'])->name('client-categories.create');
         Route::post('/klantcategorieen', [ClientCategoryController::class, 'store'])->name('client-categories.store');
         Route::delete('/klantcategorieen/{clientCategory}', [ClientCategoryController::class, 'destroy'])->name('client-categories.destroy');
     });

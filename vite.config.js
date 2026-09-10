@@ -5,6 +5,11 @@ import { bunny } from 'laravel-vite-plugin/fonts';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+    resolve: {
+        alias: {
+            vue: 'vue/dist/vue.esm-bundler.js',
+        },
+    },
     plugins: [
         vue(),
         laravel({
