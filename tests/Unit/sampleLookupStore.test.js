@@ -93,3 +93,25 @@ test('result loading displays a calculation-unavailable message', async () => {
     assert.equal(store.calculationLoading, false);
     assert.equal(store.calculationError, 'Er is geen rekenmodule ingesteld voor deze analyse.');
 });
+
+test('a calculation event wins over an in-flight queued result response', async () => {
+    let finish;
+    globalThis.fetch = () => new Promise((resolve) => { finish = resolve; });
+    const store = useSampleLookupStore();
+    store.endpoints.results = '/analyses/__ANALYSIS__/results';
+    store.data = { sample: { id: 5 }, analyses: [{ id: 12, is_ready: false }] };
+    store.selectedId = 12;
+
+    const pending = store.loadResults();
+    store.applyCalculationEvent({
+        sample_id: 5,
+        analysis_id: 12,
+        calculation: { output: { result: '42' }, isReady: true },
+    });
+    finish({ ok: true, json: async () => ({ data: { rows: [], fields: [], calculation: null, calculation_queued: true } }) });
+    await pending;
+
+    assert.equal(store.calculation.output.result, '42');
+    assert.equal(store.calculationLoading, false);
+    assert.equal(store.data.analyses[0].is_ready, true);
+});

@@ -32,25 +32,11 @@ class ResultController extends Controller
                 'id', 'sample', 'sa_id', 'follow_no', 'profile', 'assay', 'assay_base',
                 'roaming_id', 'df', 'rep', 'data',
             ]),
-            'calculation' => $this->queuedCalculation($sampleAnalysis),
+            'calculation' => [
+                'status' => 'queued',
+                'sample_id' => (int) $sampleAnalysis->sample,
+                'analysis_id' => $sampleAnalysis->id,
+            ],
         ], 202);
-    }
-
-    public function calculate(SampleAnalysis $sampleAnalysis): JsonResponse
-    {
-        CalculateAnalysisResultJob::dispatch($sampleAnalysis->id)->afterCommit();
-
-        return response()->json([
-            'data' => $this->queuedCalculation($sampleAnalysis),
-        ], 202);
-    }
-
-    private function queuedCalculation(SampleAnalysis $analysis): array
-    {
-        return [
-            'status' => 'queued',
-            'sample_id' => (int) $analysis->sample,
-            'analysis_id' => $analysis->id,
-        ];
     }
 }

@@ -1,6 +1,7 @@
 <script setup>
 import { defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue';
 import { ArrowLeft, ArrowRight, Barcode, FileClock, Pencil, Search } from '@lucide/vue';
+import { getEcho } from '../echo.js';
 import { useSampleLookupStore } from '../stores/sampleLookupStore';
 import SampleLookupResearch from './SampleLookupResearch.vue';
 import SampleLookupResults from './SampleLookupResults.vue';
@@ -25,20 +26,20 @@ onMounted(() => {
     const barcode = new URLSearchParams(window.location.search).get('barcode');
     if (barcode) store.lookup(barcode);
 });
-watch(() => store.data?.sample.id, async (sampleId) => {
+watch(() => store.data?.sample.id, (sampleId) => {
     const revision = ++subscriptionRevision;
     if (subscribedSampleId !== null) realtimeClient?.leave(`samples.${subscribedSampleId}`);
     subscribedSampleId = sampleId ?? null;
     if (subscribedSampleId === null) return;
 
-    const { getEcho } = await import('../echo.js');
-    if (revision !== subscriptionRevision) return;
     realtimeClient = getEcho();
     realtimeClient.private(`samples.${subscribedSampleId}`)
         .listen('.analysis.result.calculated', (event) => store.applyCalculationEvent(event))
         .listen('.analysis.result.calculation-failed', (event) => store.applyCalculationFailure(event))
-        .error(() => store.reportRealtimeError());
-});
+        .error(() => {
+            if (revision === subscriptionRevision) store.reportRealtimeError();
+        });
+}, { flush: 'sync' });
 onBeforeUnmount(() => {
     subscriptionRevision++;
     if (subscribedSampleId !== null) realtimeClient?.leave(`samples.${subscribedSampleId}`);
@@ -100,7 +101,7 @@ onBeforeUnmount(() => {
                 <section class="sample-panel"><h2>Voortgang</h2><div class="sample-panel-body"><progress :value="store.progress" max="100" :aria-label="`${store.progress}% gereed`"></progress><p>{{ store.progress }}% gereed</p><small v-if="store.data">Verwacht gereed: {{ date(store.data.sample.predicted_end) }}</small></div></section>
             </div>
             <div class="sample-create-column lookup-results-column">
-                <section class="sample-panel"><h2>Resultaat uitgedrukt in</h2><div class="sample-panel-body"><EndResultDisplay :calculation="store.calculation" :loading="store.calculationLoading" :error="store.calculationError" :retryable="Boolean(store.selected)" empty-text="Selecteer een analyse om het eindresultaat te bekijken." @retry="store.calculate()" /></div></section>
+                <section class="sample-panel"><h2>Resultaat uitgedrukt in</h2><div class="sample-panel-body"><EndResultDisplay :calculation="store.calculation" :loading="store.calculationLoading" :error="store.calculationError" empty-text="Selecteer een analyse om het eindresultaat te bekijken." /></div></section>
                 <section class="sample-panel"><h2>Laboratoriumresultaten<span class="lookup-tools"><button class="icon-button" title="Resultaatrevisies" :disabled="!store.selected" @click="store.placeholder('Resultaatrevisies')"><FileClock :size="15" /></button><button class="icon-button" title="Verdunningen wijzigen" :disabled="!store.selected" @click="store.placeholder('Verdunningen wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body"><SampleLookupResults /><button class="button lookup-confirmations" :disabled="!store.selected" @click="store.placeholder('Bevestigingen')">Bevestigingen</button></div></section>
                 <section class="sample-panel"><h2>Monster notities<span class="lookup-tools"><button class="icon-button" title="Notities wijzigen" :disabled="!store.data" @click="store.placeholder('Monsternotities wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body lookup-note">{{ store.data?.sample.sample_note || 'Geen notities.' }}</div></section>
                 <section v-if="store.debug" class="sample-panel" aria-live="polite"><h2>{{ store.debug.feature }}</h2><div class="sample-panel-body"><SampleLookupPlaceholder :feature="store.debug.feature" :details="store.debug" /></div></section>
@@ -112,7 +113,7 @@ onBeforeUnmount(() => {
 <style>
 .lookup-tools { display:flex; gap:3px; margin-left:auto; flex-wrap:wrap; }
 .lookup-search { display:flex; gap:8px; }
-.lookup-search input { min-width:0; flex:1; min-height:35px; padding:8px 10px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); font:inherit; }
+.lookup-search input { min-width:0; flex:1; }
 .lookup-details { display:grid; grid-template-columns:minmax(80px, 1fr) minmax(0, 2fr); gap:8px 12px; margin:0 0 16px; font-size:12px; }
 .lookup-details dt { color:var(--muted); }
 .lookup-details dd { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }

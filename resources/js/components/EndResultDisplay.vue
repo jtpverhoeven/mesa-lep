@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { AlertCircle, CheckCircle2, LoaderCircle, RefreshCw } from '@lucide/vue';
+import { AlertCircle, CheckCircle2, LoaderCircle } from '@lucide/vue';
 import DOMPurify from 'dompurify';
 
 const props = defineProps({
@@ -8,10 +8,7 @@ const props = defineProps({
     loading: { type: Boolean, default: false },
     error: { type: String, default: '' },
     emptyText: { type: String, default: 'Geen eindresultaat beschikbaar.' },
-    retryable: { type: Boolean, default: false },
 });
-
-defineEmits(['retry']);
 
 function display(value) {
     const normalized = value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '-');
@@ -49,7 +46,6 @@ const messages = computed(() => {
         <div v-else-if="error" class="end-result-state end-result-error" role="alert">
             <AlertCircle :size="17" />
             <span>{{ error }}</span>
-            <button v-if="retryable" class="icon-button" type="button" title="Opnieuw berekenen" @click="$emit('retry')"><RefreshCw :size="15" /></button>
         </div>
         <div v-else-if="results.length" class="end-result-values">
             <div v-for="result in results" :key="result.key" class="end-result-row">

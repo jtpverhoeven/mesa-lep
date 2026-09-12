@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { useSampleResearchStore } from './sampleResearchStore.js';
 
 export const useSampleLookupStore = defineStore('sampleLookup', {
-    state: () => ({ endpoints: {}, data: null, barcode: '', loading: false, saving: false, error: '', selectedId: null, scannedResultFollowNumber: null, tab: 'general', adding: false, requestId: 0, debug: null, resultData: null, resultsLoading: false, resultSaving: {}, resultError: '', calculation: null, calculationLoading: false, calculationError: '', resultRequestId: 0 }),
+    state: () => ({ endpoints: {}, data: null, barcode: '', loading: false, saving: false, error: '', selectedId: null, scannedResultFollowNumber: null, tab: 'general', adding: false, requestId: 0, debug: null, resultData: null, resultsLoading: false, resultSaving: {}, resultError: '', calculation: null, calculationLoading: false, calculationError: '', calculationRevision: 0, resultRequestId: 0 }),
     getters: {
         selected: (state) => state.data?.analyses.find((analysis) => analysis.id === state.selectedId) ?? null,
         progress: (state) => state.data?.analyses.length ? Math.round(state.data.analyses.filter((analysis) => analysis.is_ready).length / state.data.analyses.length * 100) : 0,
@@ -52,6 +52,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
         },
         clearResults() {
             this.resultRequestId++;
+            this.calculationRevision++;
             this.resultData = null;
             this.resultsLoading = false;
             this.resultSaving = {};
@@ -62,6 +63,8 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
         },
         async loadResults(analysisId = this.selectedId) {
             const requestId = ++this.resultRequestId;
+            this.calculationRevision++;
+            const calculationRevision = this.calculationRevision;
             this.resultData = null;
             this.resultError = '';
             this.calculation = null;
@@ -82,9 +85,11 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                 result.data.rows = result.data.rows.map((row) => ({ ...row, data: { ...(row.data ?? {}) } }));
                 if (requestId === this.resultRequestId && this.selectedId === analysisId) {
                     this.resultData = result.data;
-                    this.applyCalculation(analysisId, result.data.calculation);
-                    this.calculationLoading = Boolean(result.data.calculation_queued);
-                    this.calculationError = result.data.calculation_unavailable || '';
+                    if (this.calculationRevision === calculationRevision) {
+                        this.applyCalculation(analysisId, result.data.calculation);
+                        this.calculationLoading = Boolean(result.data.calculation_queued) && !result.data.calculation;
+                        this.calculationError = result.data.calculation_unavailable || '';
+                    }
                 }
             } catch (error) {
                 if (requestId === this.resultRequestId) {
@@ -93,9 +98,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                     this.calculationLoading = false;
                 }
             } finally {
-                if (requestId === this.resultRequestId) {
-                    this.resultsLoading = false;
-                }
+                if (requestId === this.resultRequestId) this.resultsLoading = false;
             }
         },
         async saveResult(row, field) {
@@ -117,9 +120,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Resultaat kon niet worden opgeslagen.');
-                if (this.selectedId === analysisId) {
-                    Object.assign(row, result.data);
-                }
+                if (this.selectedId === analysisId) Object.assign(row, result.data);
             } catch (error) {
                 this.resultError = error.message;
                 this.calculationError = error.message;
@@ -128,28 +129,11 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                 delete this.resultSaving[key];
             }
         },
-        async calculate(analysisId = this.selectedId) {
-            if (!analysisId) return;
-            this.markCalculationQueued(analysisId);
-            try {
-                const endpoint = this.endpoints.calculate.replace('__ANALYSIS__', analysisId);
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '' },
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.message || 'Eindresultaat kon niet worden berekend.');
-            } catch (error) {
-                if (this.selectedId === analysisId) {
-                    this.calculationError = error.message;
-                    this.calculationLoading = false;
-                }
-            }
-        },
         applyCalculation(analysisId, calculation) {
             const analysis = this.data?.analyses.find((item) => item.id === analysisId);
             if (analysis && calculation) analysis.is_ready = Boolean(calculation.isReady);
             if (this.selectedId !== analysisId) return;
+            this.calculationRevision++;
             this.calculation = calculation ?? null;
             this.calculationLoading = false;
             this.calculationError = '';
@@ -158,6 +142,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
             const analysis = this.data?.analyses.find((item) => item.id === analysisId);
             if (analysis) analysis.is_ready = false;
             if (this.selectedId !== analysisId) return;
+            this.calculationRevision++;
             this.calculation = null;
             this.calculationLoading = true;
             this.calculationError = '';
@@ -167,7 +152,11 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
             this.applyCalculation(Number(event.analysis_id), event.calculation);
         },
         applyCalculationFailure(event) {
-            if (Number(event.sample_id) !== Number(this.data?.sample.id) || Number(event.analysis_id) !== Number(this.selectedId)) return;
+            if (Number(event.sample_id) !== Number(this.data?.sample.id)) return;
+            const analysis = this.data?.analyses.find((item) => item.id === Number(event.analysis_id));
+            if (analysis) analysis.is_ready = false;
+            if (Number(event.analysis_id) !== Number(this.selectedId)) return;
+            this.calculationRevision++;
             this.calculationLoading = false;
             this.calculationError = event.message || 'Eindresultaat kon niet worden berekend.';
         },

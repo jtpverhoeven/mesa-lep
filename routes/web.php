@@ -55,7 +55,6 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
 Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/sample-analyses')->group(function () {
     Route::get('/{sampleAnalysis}/results', [ResultController::class, 'index'])->name('sample-analyses.results.index');
     Route::patch('/{sampleAnalysis}/results/{result}', [ResultController::class, 'update'])->name('sample-analyses.results.update');
-    Route::post('/{sampleAnalysis}/calculate', [ResultController::class, 'calculate'])->name('sample-analyses.calculate');
 });
 
 Route::middleware(['auth', 'can:samples.create'])->prefix('laboratory')->group(function () {

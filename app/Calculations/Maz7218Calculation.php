@@ -9,6 +9,8 @@ class Maz7218Calculation implements ResultCalculation
 {
     private const REPORT_FIELD = 'kve';
 
+    private const INVALID_CURVE_MESSAGE = 'Onjuiste gegevens in de verdunningscurve.';
+
     private const P_VALUE_CUTOFF = 0.01;
 
     public function calculate(ResultCalculationContext $context): array
@@ -320,14 +322,23 @@ class Maz7218Calculation implements ResultCalculation
 
     private function failedResult(): array
     {
-        return $this->resultPayload('Fout resultaat gevonden', false);
+        return $this->resultPayload(
+            'Fout resultaat gevonden',
+            false,
+            null,
+            [self::INVALID_CURVE_MESSAGE],
+        );
     }
 
-    private function resultPayload(string $result, bool $isReady, ?string $disposition = null): array
-    {
+    private function resultPayload(
+        string $result,
+        bool $isReady,
+        ?string $disposition = null,
+        array $messages = [],
+    ): array {
         return [
             'output' => [self::REPORT_FIELD => $result],
-            'messageBag' => [],
+            'messageBag' => $messages,
             'reportIn' => self::REPORT_FIELD,
             'outputEn' => [],
             'disposition' => $disposition === null ? [] : [self::REPORT_FIELD => $disposition],
