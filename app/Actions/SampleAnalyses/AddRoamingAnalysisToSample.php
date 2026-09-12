@@ -2,6 +2,7 @@
 
 namespace App\Actions\SampleAnalyses;
 
+use App\Actions\Results\CreateAnalysisResults;
 use App\Models\Assay;
 use App\Models\ReferenceSource;
 use App\Models\RoamingAnalysis;
@@ -45,6 +46,7 @@ class AddRoamingAnalysisToSample
 
             $analysis->roamingAnalysis()->associate($roaming);
             $analysis->save();
+            app(CreateAnalysisResults::class)->handle($analysis);
 
             return $analysis->load(['assayRecord', 'roamingAnalysis.referenceSource']);
         });

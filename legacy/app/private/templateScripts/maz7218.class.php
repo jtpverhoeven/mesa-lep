@@ -17,7 +17,6 @@ class maz7218 extends calculation{
     protected $stratifiedData = [];
 
   
-
     protected function _reportOutput(){
        return array('kve' => 'kve');
     }

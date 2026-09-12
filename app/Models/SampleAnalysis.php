@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
@@ -22,6 +23,7 @@ class SampleAnalysis extends Model
     {
         return [
             'is_ready' => 'boolean',
+            'storedResult' => 'array',
         ];
     }
 
@@ -57,16 +59,30 @@ class SampleAnalysis extends Model
 
     public function roamingAnalysis(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\RoamingAnalysis::class, 'roaming_id');
+        return $this->belongsTo(RoamingAnalysis::class, 'roaming_id');
     }
 
     public function roamingSettings(): HasOne
     {
-        return $this->hasOne(\App\Models\RoamingAnalysis::class, 'said');
+        return $this->hasOne(RoamingAnalysis::class, 'said');
+    }
+
+    public function results(): HasMany
+    {
+        return $this->hasMany(Result::class, 'sa_id')->orderByDesc('df')->orderBy('rep');
     }
 
     public function isRoaming(): bool
     {
         return (int) $this->profile === 0;
+    }
+
+    public function calculationSettings(): AssayProfile|RoamingAnalysis|null
+    {
+        if ($this->isRoaming()) {
+            return $this->roamingAnalysis ?? $this->roamingSettings;
+        }
+
+        return $this->assayProfile;
     }
 }

@@ -13,6 +13,7 @@ import ResearchProfileBulkEditor from './components/ResearchProfileBulkEditor.vu
 import ResearchProfileDirectory from './components/ResearchProfileDirectory.vue';
 import ResearchProfileEditor from './components/ResearchProfileEditor.vue';
 import SampleCreateForm from './components/SampleCreateForm.vue';
+import SampleLookup from './components/SampleLookup.vue';
 import UserMenu from './components/UserMenu.vue';
 
 const app = createApp({});
@@ -30,5 +31,6 @@ app.component('research-profile-bulk-editor', ResearchProfileBulkEditor);
 app.component('research-profile-directory', ResearchProfileDirectory);
 app.component('research-profile-editor', ResearchProfileEditor);
 app.component('sample-create-form', SampleCreateForm);
+app.component('sample-lookup', SampleLookup);
 app.component('user-menu', UserMenu);
 app.mount('#app');

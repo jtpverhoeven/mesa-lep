@@ -11,8 +11,10 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProjectFieldController;
 use App\Http\Controllers\ReferenceSourceController;
 use App\Http\Controllers\ResearchProfileController;
+use App\Http\Controllers\ResultController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SampleFieldController;
+use App\Http\Controllers\SampleLookupController;
 use App\Http\Controllers\SampleProcedureController;
 use App\Http\Controllers\SampleProcedureFieldController;
 use App\Http\Controllers\UserController;
@@ -41,6 +43,19 @@ Route::middleware(['auth', 'can:clients.view'])->prefix('laboratory')->group(fun
         Route::post('/client-categories', [ClientCategoryController::class, 'store'])->name('client-categories.store');
         Route::delete('/client-categories/{clientCategory}', [ClientCategoryController::class, 'destroy'])->name('client-categories.destroy');
     });
+});
+
+Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/lookup')->group(function () {
+    Route::get('/', [SampleLookupController::class, 'index'])->name('samples.lookup');
+    Route::get('/data', [SampleLookupController::class, 'show'])->name('samples.lookup.data');
+    Route::get('/{sample}/options', [SampleLookupController::class, 'options'])->middleware('can:samples.assign-research')->name('samples.lookup.options');
+    Route::post('/{sample}/research', [SampleLookupController::class, 'update'])->name('samples.lookup.research');
+});
+
+Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/sample-analyses')->group(function () {
+    Route::get('/{sampleAnalysis}/results', [ResultController::class, 'index'])->name('sample-analyses.results.index');
+    Route::patch('/{sampleAnalysis}/results/{result}', [ResultController::class, 'update'])->name('sample-analyses.results.update');
+    Route::post('/{sampleAnalysis}/calculate', [ResultController::class, 'calculate'])->name('sample-analyses.calculate');
 });
 
 Route::middleware(['auth', 'can:samples.create'])->prefix('laboratory')->group(function () {

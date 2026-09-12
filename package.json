@@ -20,8 +20,11 @@
     "dependencies": {
         "@lucide/vue": "^1.42.0",
         "@openvue/themes": "^1.0.0-rc.0",
+        "dompurify": "^3.4.15",
+        "laravel-echo": "^2.5.0",
         "openvue": "^1.0.0-rc.0",
         "pinia": "^4.0.3",
+        "pusher-js": "^8.6.0",
         "vue": "^3.5.42"
     }
 }

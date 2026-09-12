@@ -18,6 +18,7 @@ export const useSampleResearchStore = defineStore('sampleResearch', {
         error: '',
         counter: 0,
         locked: false,
+        requestId: 0,
     }),
     getters: {
         profileById: (state) => (id) => state.profiles.find((profile) => Number(profile.id) === Number(id)),
@@ -43,6 +44,7 @@ export const useSampleResearchStore = defineStore('sampleResearch', {
         },
         async load(clientId) {
             this.reset();
+            const requestId = this.requestId;
             if (!clientId) return;
             this.clientId = Number(clientId);
             this.loading = true;
@@ -52,17 +54,20 @@ export const useSampleResearchStore = defineStore('sampleResearch', {
                 });
                 if (!response.ok) throw new Error();
                 const { data } = await response.json();
+                if (requestId !== this.requestId) return;
                 this.profiles = data.profiles;
                 this.assays = data.assays;
                 this.matrices = data.matrices;
                 this.referenceSources = data.reference_sources;
             } catch {
-                this.error = 'De beschikbare onderzoeken konden niet worden geladen.';
+                if (requestId === this.requestId) this.error = 'De beschikbare onderzoeken konden niet worden geladen.';
             } finally {
-                this.loading = false;
+                if (requestId === this.requestId) this.loading = false;
             }
         },
         reset() {
+            this.requestId++;
+            this.loading = false;
             this.clientId = null;
             this.profiles = [];
             this.assays = [];

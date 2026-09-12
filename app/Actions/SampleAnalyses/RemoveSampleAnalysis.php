@@ -2,6 +2,7 @@
 
 namespace App\Actions\SampleAnalyses;
 
+use App\Models\Result;
 use App\Models\RoamingAnalysis;
 use App\Models\Sample;
 use App\Models\SampleAnalysis;
@@ -15,6 +16,7 @@ class RemoveSampleAnalysis
             $analysis = SampleAnalysis::query()->lockForUpdate()->findOrFail($analysis->getKey());
             $sample = Sample::query()->lockForUpdate()->findOrFail($analysis->sample);
 
+            Result::query()->where('sa_id', $analysis->id)->delete();
             RoamingAnalysis::query()->where('said', $analysis->id)->delete();
             $analysis->delete();
 

@@ -2,6 +2,7 @@
 
 namespace App\Actions\SampleAnalyses;
 
+use App\Actions\Results\CreateAnalysisResults;
 use App\Models\AssayProfile;
 use App\Models\ResearchProfile;
 use App\Models\Sample;
@@ -51,7 +52,10 @@ class AddResearchProfileToSample
                 ];
             })->all();
 
-            return app(CreateSampleAnalyses::class)->handle($sample, $definitions);
+            $analyses = app(CreateSampleAnalyses::class)->handle($sample, $definitions);
+            $analyses->each(fn ($analysis) => app(CreateAnalysisResults::class)->handle($analysis));
+
+            return $analyses;
         });
     }
 }
