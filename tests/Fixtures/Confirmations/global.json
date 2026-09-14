@@ -1,0 +1,39 @@
+{
+  "racetrack": {
+    "global": {
+      "0": {
+        "0": {
+          "0": "+",
+          "1": ""
+        },
+        "1": {
+          "0": "-",
+          "1": null
+        }
+      }
+    }
+  },
+  "metadata": {
+    "global": {
+      "0": {
+        "isReady": false,
+        "ratio": false,
+        "0": {
+          "5_inzet": "12-09-2026",
+          "5_inzet_user": 7,
+          "5_aflees": ""
+        }
+      }
+    }
+  },
+  "in_use": {
+    "global": {
+      "0": {
+        "5": true,
+        "12": true,
+        "10": false
+      }
+    }
+  },
+  "data": {}
+}

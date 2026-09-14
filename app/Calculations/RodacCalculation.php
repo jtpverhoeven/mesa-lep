@@ -23,7 +23,7 @@ class RodacCalculation implements ResultCalculation
         $value = (float) $value;
         $addendum = $value > (float) $context->assay->max_count ? '<sup>*</sup>' : '';
 
-        return $this->resultPayload($this->formatValue($value).$addendum, true);
+        return $this->resultPayload($this->formatValue($value).$addendum, true, $value, (int) $context->analysis->id);
     }
 
     private function formatValue(float $value): string
@@ -31,7 +31,7 @@ class RodacCalculation implements ResultCalculation
         return rtrim(rtrim(sprintf('%.2F', $value), '0'), '.');
     }
 
-    private function resultPayload(string $result, bool $isReady): array
+    private function resultPayload(string $result, bool $isReady, ?float $numericValue = null, ?int $targetAnalysisId = null): array
     {
         return [
             'output' => [self::REPORT_FIELD => $result],
@@ -42,6 +42,12 @@ class RodacCalculation implements ResultCalculation
             'isReady' => $isReady,
             'resultMask' => [self::REPORT_FIELD => self::REPORT_FIELD],
             'resultHide' => [],
+            'confirmationTrigger' => [
+                'eligible' => $isReady && $numericValue !== null && $numericValue > 0,
+                'numericValue' => $numericValue,
+                'disposition' => null,
+                'targetAnalysisId' => $targetAnalysisId,
+            ],
         ];
     }
 }

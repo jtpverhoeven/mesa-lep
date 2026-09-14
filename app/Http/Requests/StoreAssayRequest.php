@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\NormalizesAssayConfirmationPayload;
 use App\Models\Assay;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreAssayRequest extends FormRequest
 {
+    use NormalizesAssayConfirmationPayload;
+
     public function authorize(): bool
     {
         return $this->user()->can('create', Assay::class);
@@ -35,6 +38,18 @@ class StoreAssayRequest extends FormRequest
             'max_count' => ['required', 'integer', 'gte:min_count', 'max:2147483647'],
             'duration' => ['nullable', 'string', 'max:5', 'regex:/^\d+(\.\d+)?$/'],
             'start_from' => ['required', Rule::in(['r', 'i'])],
+            'confirmation' => ['required', 'boolean'],
+            'confirmation_type' => ['required', Rule::in([0, 1])],
+            'confirmation_init' => ['required', Rule::in([0, 1, 2])],
+            'confirmation_depth' => ['nullable', 'integer', 'min:0'],
+            'confirmation_script' => ['required', 'array'],
+            'confirmation_script.*.mediaId' => ['required', 'integer', Rule::exists('media', 'id')],
+            'confirmation_script.*.chainId' => ['required', 'integer', 'min:1'],
+            'confirmation_script.*.disposition' => ['required', Rule::in(['+', '-', '?'])],
+            'confirmation_support' => ['nullable', 'array'],
+            'confirmation_support.*.mediaId' => ['required', 'integer', Rule::exists('media', 'id')],
+            'confirmation_support.*.chainId' => ['required', 'integer', 'min:1'],
+            'show_conf_table' => ['nullable', 'integer', Rule::exists('confirmationtables', 'id')],
             'hide_report' => ['required', 'boolean'],
             'uses_indicator' => ['required', 'boolean'],
             'uses_trip_indicator' => ['required', 'boolean'],
@@ -44,5 +59,10 @@ class StoreAssayRequest extends FormRequest
             'custom_fields' => ['nullable', 'array'],
             'custom_fields.*' => ['nullable', 'string', 'max:1000'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeAssayConfirmationPayload();
     }
 }

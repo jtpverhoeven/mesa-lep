@@ -2,6 +2,8 @@
 
 namespace App\Actions\Results;
 
+use App\Actions\Confirmations\ApplyConfirmationWorkflowToResult;
+use App\Actions\Confirmations\ResolveConfirmationDecision;
 use App\Calculations\ResultCalculationCache;
 use App\Calculations\ResultCalculationContext;
 use App\Calculations\ResultCalculationResolver;
@@ -17,6 +19,8 @@ class CalculateAnalysisResult
         private CheckAnalysisResultsComplete $resultsComplete,
         private ResultCalculationResolver $calculations,
         private ResultCalculationCache $cache,
+        private ResolveConfirmationDecision $resolveConfirmation,
+        private ApplyConfirmationWorkflowToResult $applyConfirmation,
     ) {}
 
     public function handle(SampleAnalysis $analysis): array
@@ -28,6 +32,7 @@ class CalculateAnalysisResult
                     'assayProfile',
                     'projectRecord',
                     'results',
+                    'confirmationRecord',
                     'roamingAnalysis',
                     'roamingSettings',
                 ])
@@ -38,7 +43,13 @@ class CalculateAnalysisResult
                 return $analysis->storedResult;
             }
 
+            if (($analysis->storedResult['confirmation']['decision_required'] ?? false) === true) {
+                return $analysis->storedResult;
+            }
+
             $context = $this->calculationContext($analysis);
+
+            $calculator = null;
 
             if (! $this->resultsComplete->handle($context)) {
                 $calculation = $this->incompleteResult();
@@ -50,6 +61,9 @@ class CalculateAnalysisResult
                     $calculator,
                 );
             }
+
+            $workflow = $this->resolveConfirmation->handle($analysis, $context, $calculation);
+            $calculation = $this->applyConfirmation->handle($context, $calculator, $calculation, $workflow);
 
             $isReady = (bool) ($calculation['isReady'] ?? false);
             $calculation['isReady'] = $isReady;

@@ -18,6 +18,10 @@ class ResultCalculationCache
             return false;
         }
 
+        if ((int) $context->assay->confirmation === 1 && ! isset($storedResult['confirmation'])) {
+            return false;
+        }
+
         $storedKey = $storedResult[self::META_KEY]['key'] ?? null;
 
         return is_string($storedKey) && hash_equals($this->key($context, $calculator), $storedKey);
@@ -47,6 +51,10 @@ class ResultCalculationCache
             'replicates',
             'confirmation',
             'confirmation_type',
+            'confirmation_script',
+            'confirmation_support',
+            'confirmation_init',
+            'confirmation_depth',
             'max_count',
             'min_count',
             'script',
@@ -65,16 +73,30 @@ class ResultCalculationCache
             'conf_trip',
         ]));
 
+        $confirmation = $context->analysis->relationLoaded('confirmationRecord')
+            ? $context->analysis->confirmationRecord
+            : null;
+
         return hash('sha256', json_encode([
             'calculator' => $calculator::class,
             'implementation' => is_string($calculatorFile) ? hash_file('sha256', $calculatorFile) : null,
             'assay' => $assay,
             'settings' => $settings,
+            'confirmation_decision' => (int) $context->analysis->conf_requested,
+            'confirmation_record' => $confirmation?->only([
+                'said', 'in_use', 'racetrack', 'metadata', 'isReady', 'data',
+            ]),
         ], JSON_THROW_ON_ERROR));
     }
 
     private function sortedAttributes(array $attributes): array
     {
+        foreach ($attributes as $key => $value) {
+            if (is_array($value)) {
+                $attributes[$key] = $this->sortedAttributes($value);
+            }
+        }
+
         ksort($attributes);
 
         return $attributes;

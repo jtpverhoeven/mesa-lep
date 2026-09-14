@@ -2,6 +2,7 @@
 
 namespace App\Actions\Results;
 
+use App\Actions\Confirmations\GetConfirmation;
 use App\Calculations\Exceptions\ResultCalculationException;
 use App\Calculations\ResultCalculationCache;
 use App\Calculations\ResultCalculationContext;
@@ -14,6 +15,7 @@ class GetAnalysisResults
     public function __construct(
         private ResultCalculationResolver $calculations,
         private ResultCalculationCache $cache,
+        private GetConfirmation $confirmation,
     ) {}
 
     public function handle(SampleAnalysis $analysis): array
@@ -25,6 +27,7 @@ class GetAnalysisResults
                 'projectRecord',
                 'roamingAnalysis',
                 'roamingSettings',
+                'confirmationRecord',
             ])
             ->findOrFail($analysis->getKey());
         $results = app(CreateAnalysisResults::class)->handle($analysis);
@@ -36,7 +39,7 @@ class GetAnalysisResults
 
         return [
             'analysis' => $analysis->only([
-                'id', 'sample', 'profile', 'assay', 'assay_base', 'roaming_id',
+                'id', 'sample', 'profile', 'assay', 'assay_base', 'roaming_id', 'conf_requested', 'is_ready',
             ]),
             'fields' => $analysis->assayRecord?->assayType?->fields
                 ->map(fn ($field) => [
@@ -53,6 +56,7 @@ class GetAnalysisResults
             'calculation' => $calculationState['calculation'],
             'calculation_queued' => $calculationState['queued'],
             'calculation_unavailable' => $calculationState['unavailable'],
+            'confirmation' => $this->confirmation->handle($analysis),
         ];
     }
 

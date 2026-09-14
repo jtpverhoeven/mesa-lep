@@ -6,14 +6,19 @@ import { useSampleLookupStore } from '../stores/sampleLookupStore';
 import SampleLookupResearch from './SampleLookupResearch.vue';
 import SampleLookupResults from './SampleLookupResults.vue';
 import SampleLookupPlaceholder from './SampleLookupPlaceholder.vue';
+import ConfirmationDecisionDialog from './ConfirmationDecisionDialog.vue';
+import ConfirmationDialog from './ConfirmationDialog.vue';
+import { useConfirmationStore } from '../stores/confirmationStore';
 
 const props = defineProps({ endpoints: { type: Object, required: true }, permissions: { type: Object, required: true } });
 const store = useSampleLookupStore();
+const confirmationStore = useConfirmationStore();
 const EndResultDisplay = defineAsyncComponent(() => import('./EndResultDisplay.vue'));
 let realtimeClient = null;
 let subscribedSampleId = null;
 let subscriptionRevision = 0;
 store.endpoints = props.endpoints;
+confirmationStore.configure(props.endpoints.confirmation);
 const tabs = [{ id: 'general', label: 'Algemeen' }, { id: 'metadata', label: 'Metadata' }, { id: 'product', label: 'Productgroep / THT' }, { id: 'documents', label: 'Documenten' }];
 function date(value) {
     if (!value || !Number(value)) return '-';
@@ -21,6 +26,18 @@ function date(value) {
 }
 function display(value) {
     return value !== null && typeof value === 'object' ? JSON.stringify(value) : (value ?? '-');
+}
+async function setConfirmationDecision(decision) {
+    if (!store.selectedId || store.readOnly || confirmationStore.pendingMutationCount) return;
+    const analysisId = store.selectedId;
+    const previousCalculation = store.calculation;
+    store.markCalculationQueued(analysisId);
+    const updated = await confirmationStore.setDecision(decision);
+    if (!updated && store.selectedId === analysisId) store.applyCalculation(analysisId, previousCalculation);
+}
+function openConfirmation() {
+    if (!store.selectedId || store.readOnly || confirmationStore.readOnly) return;
+    confirmationStore.open(store.selectedId, 'global', 0);
 }
 onMounted(() => {
     const barcode = new URLSearchParams(window.location.search).get('barcode');
@@ -33,16 +50,53 @@ watch(() => store.data?.sample.id, (sampleId) => {
     if (subscribedSampleId === null) return;
 
     realtimeClient = getEcho();
+    confirmationStore.setSample(sampleId);
     realtimeClient.private(`samples.${subscribedSampleId}`)
-        .listen('.analysis.result.calculated', (event) => store.applyCalculationEvent(event))
+        .listen('.analysis.result.calculated', (event) => {
+            store.applyCalculationEvent(event);
+            if (Number(event.analysis_id) !== Number(store.selectedId)) return;
+
+            const calculatedConfirmation = event.calculation?.confirmation;
+            if (calculatedConfirmation?.decision_required) {
+                confirmationStore.queueDecisionPrompt({
+                    analysis_id: Number(event.analysis_id),
+                    mode: calculatedConfirmation.mode,
+                });
+            } else if (
+                calculatedConfirmation
+                && (
+                    Number(calculatedConfirmation.decision) !== Number(confirmationStore.data?.decision)
+                    || calculatedConfirmation.status !== confirmationStore.data?.status
+                )
+            ) {
+                confirmationStore.load(Number(event.analysis_id));
+            }
+        })
         .listen('.analysis.result.calculation-failed', (event) => store.applyCalculationFailure(event))
+        .listen('.analysis.confirmation.updated', (event) => confirmationStore.applyUpdatedEvent(event))
+        .listen('.analysis.confirmation.decision-required', (event) => {
+            if (Number(event.analysis_id) === Number(store.selectedId)) confirmationStore.queueDecisionPrompt(event);
+        })
         .error(() => {
             if (revision === subscriptionRevision) store.reportRealtimeError();
         });
 }, { flush: 'sync' });
+watch(() => store.selectedId, () => confirmationStore.reset(true), { flush: 'sync' });
+watch(() => store.resultData?.confirmation, (confirmation) => {
+    if (confirmation && store.selectedId) confirmationStore.hydrate(store.selectedId, confirmation);
+});
+watch(() => store.calculation?.confirmation, (confirmation) => {
+    if (!confirmation?.decision_required || !store.selectedId) return;
+
+    confirmationStore.queueDecisionPrompt({
+        analysis_id: store.selectedId,
+        mode: confirmation.mode,
+    });
+});
 onBeforeUnmount(() => {
     subscriptionRevision++;
     if (subscribedSampleId !== null) realtimeClient?.leave(`samples.${subscribedSampleId}`);
+    confirmationStore.reset();
 });
 </script>
 
@@ -54,7 +108,7 @@ onBeforeUnmount(() => {
             <div class="sample-create-column">
                 <section class="sample-panel">
                     <h2><Barcode :size="16" />Monster opzoeken<span class="lookup-tools"><button class="icon-button" title="Vorig monster" :disabled="!store.data?.previous || store.saving" @click="store.lookup(store.data.previous)"><ArrowLeft :size="16" /></button><button class="icon-button" title="Volgend monster" :disabled="!store.data?.next || store.saving" @click="store.lookup(store.data.next)"><ArrowRight :size="16" /></button></span></h2>
-                    <form class="sample-panel-body lookup-search" @submit.prevent="store.lookup()"><label class="sr-only" for="lookup-barcode">Barcode</label><input id="lookup-barcode" v-model="store.barcode" autofocus autocomplete="off" placeholder="Barcode" maxlength="32" :disabled="store.saving" @focus="$event.target.select()" @keydown.enter="$event.target.select()"><button class="button primary" title="Monster zoeken" :disabled="store.saving || !store.barcode.trim()"><Search :size="18" /></button></form>
+                    <form class="sample-panel-body lookup-search" @submit.prevent="store.lookup()"><label class="sr-only" for="lookup-barcode">Barcode</label><div class="lookup-barcode-control"><Barcode :size="16" aria-hidden="true" /><input id="lookup-barcode" v-model="store.barcode" autofocus autocomplete="off" placeholder="Barcode" maxlength="32" :disabled="store.saving" @focus="$event.target.select()" @keydown.enter="$event.target.select()"></div><button class="button primary" title="Monster zoeken" :disabled="store.saving || !store.barcode.trim()"><Search :size="18" /></button></form>
                     <p v-if="store.loading" class="sample-panel-body" role="status">Monster laden...</p>
                 </section>
                 <section class="sample-panel">
@@ -101,19 +155,23 @@ onBeforeUnmount(() => {
                 <section class="sample-panel"><h2>Voortgang</h2><div class="sample-panel-body"><progress :value="store.progress" max="100" :aria-label="`${store.progress}% gereed`"></progress><p>{{ store.progress }}% gereed</p><small v-if="store.data">Verwacht gereed: {{ date(store.data.sample.predicted_end) }}</small></div></section>
             </div>
             <div class="sample-create-column lookup-results-column">
-                <section class="sample-panel"><h2>Resultaat uitgedrukt in</h2><div class="sample-panel-body"><EndResultDisplay :calculation="store.calculation" :loading="store.calculationLoading" :error="store.calculationError" empty-text="Selecteer een analyse om het eindresultaat te bekijken." /></div></section>
-                <section class="sample-panel"><h2>Laboratoriumresultaten<span class="lookup-tools"><button class="icon-button" title="Resultaatrevisies" :disabled="!store.selected" @click="store.placeholder('Resultaatrevisies')"><FileClock :size="15" /></button><button class="icon-button" title="Verdunningen wijzigen" :disabled="!store.selected" @click="store.placeholder('Verdunningen wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body"><SampleLookupResults /><button class="button lookup-confirmations" :disabled="!store.selected" @click="store.placeholder('Bevestigingen')">Bevestigingen</button></div></section>
+                <section class="sample-panel"><h2>Resultaat uitgedrukt in</h2><div class="sample-panel-body"><EndResultDisplay :calculation="store.calculation" :confirmation="confirmationStore.data" :confirmation-busy="confirmationStore.pendingMutationCount > 0" :confirmation-error="confirmationStore.error" :can-reset-confirmation="permissions.resetConfirmation" :read-only="store.readOnly || confirmationStore.readOnly" :loading="store.calculationLoading" :error="store.calculationError" empty-text="Selecteer een analyse om het eindresultaat te bekijken." @confirmation-decision="setConfirmationDecision" @open-confirmation="openConfirmation" /></div></section>
+                <section class="sample-panel"><h2>Laboratoriumresultaten<span class="lookup-tools"><button class="icon-button" title="Resultaatrevisies" :disabled="!store.selected" @click="store.placeholder('Resultaatrevisies')"><FileClock :size="15" /></button><button class="icon-button" title="Verdunningen wijzigen" :disabled="!store.selected" @click="store.placeholder('Verdunningen wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body"><SampleLookupResults /></div></section>
                 <section class="sample-panel"><h2>Monster notities<span class="lookup-tools"><button class="icon-button" title="Notities wijzigen" :disabled="!store.data" @click="store.placeholder('Monsternotities wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body lookup-note">{{ store.data?.sample.sample_note || 'Geen notities.' }}</div></section>
                 <section v-if="store.debug" class="sample-panel" aria-live="polite"><h2>{{ store.debug.feature }}</h2><div class="sample-panel-body"><SampleLookupPlaceholder :feature="store.debug.feature" :details="store.debug" /></div></section>
             </div>
         </div>
+        <ConfirmationDialog />
+        <ConfirmationDecisionDialog />
     </div>
 </template>
 
 <style>
 .lookup-tools { display:flex; gap:3px; margin-left:auto; flex-wrap:wrap; }
 .lookup-search { display:flex; gap:8px; }
-.lookup-search input { min-width:0; flex:1; }
+.lookup-barcode-control { position:relative; display:flex; align-items:center; flex:1; min-width:0; }
+.lookup-barcode-control > svg { position:absolute; left:10px; z-index:1; color:var(--muted); pointer-events:none; }
+.lookup-barcode-control input { width:100%; min-width:0; min-height:35px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); padding:8px 10px 8px 34px; font:inherit; }
 .lookup-details { display:grid; grid-template-columns:minmax(80px, 1fr) minmax(0, 2fr); gap:8px 12px; margin:0 0 16px; font-size:12px; }
 .lookup-details dt { color:var(--muted); }
 .lookup-details dd { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }

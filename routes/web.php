@@ -5,6 +5,7 @@ use App\Http\Controllers\AssayFieldController;
 use App\Http\Controllers\AssayTypeController;
 use App\Http\Controllers\ClientCategoryController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CvarController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
@@ -53,6 +54,14 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
 });
 
 Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/sample-analyses')->group(function () {
+    Route::get('/{sampleAnalysis}/confirmation', [ConfirmationController::class, 'show'])->name('sample-analyses.confirmation.show');
+    Route::patch('/{sampleAnalysis}/confirmation/decision', [ConfirmationController::class, 'decision'])->name('sample-analyses.confirmation.decision');
+    Route::patch('/{sampleAnalysis}/confirmation/track', [ConfirmationController::class, 'track'])->name('sample-analyses.confirmation.track');
+    Route::patch('/{sampleAnalysis}/confirmation/metadata', [ConfirmationController::class, 'metadata'])->name('sample-analyses.confirmation.metadata');
+    Route::patch('/{sampleAnalysis}/confirmation/support', [ConfirmationController::class, 'support'])->name('sample-analyses.confirmation.support');
+    Route::post('/{sampleAnalysis}/confirmation/contenders', [ConfirmationController::class, 'addContender'])->name('sample-analyses.confirmation.contenders.store');
+    Route::delete('/{sampleAnalysis}/confirmation/contenders/{contender}', [ConfirmationController::class, 'removeContender'])->name('sample-analyses.confirmation.contenders.destroy');
+    Route::patch('/{sampleAnalysis}/confirmation/note', [ConfirmationController::class, 'note'])->name('sample-analyses.confirmation.note');
     Route::get('/{sampleAnalysis}/results', [ResultController::class, 'index'])->name('sample-analyses.results.index');
     Route::patch('/{sampleAnalysis}/results/{result}', [ResultController::class, 'update'])->name('sample-analyses.results.update');
 });

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Assays;
 
+use App\Confirmations\AssayConfirmationConfiguration;
 use App\Models\Assay;
 use App\Models\AssayField;
 use Illuminate\Support\Facades\DB;
@@ -55,9 +56,15 @@ class UpdateAssay
             'confirmation_depth' => array_key_exists('confirmation_depth', $data)
                 ? $data['confirmation_depth']
                 : $assay->confirmation_depth,
-            'confirmation_script' => $data['confirmation_script'] ?? $assay->confirmation_script,
-            'confirmation_support' => $data['confirmation_support'] ?? $assay->confirmation_support,
-            'show_conf_table' => $data['show_conf_table'] ?? $assay->show_conf_table,
+            'confirmation_script' => array_key_exists('confirmation_script', $data)
+                ? AssayConfirmationConfiguration::serializeScript($data['confirmation_script'])
+                : $assay->confirmation_script,
+            'confirmation_support' => array_key_exists('confirmation_support', $data)
+                ? AssayConfirmationConfiguration::serializeSupport($data['confirmation_support'])
+                : $assay->confirmation_support,
+            'show_conf_table' => array_key_exists('show_conf_table', $data)
+                ? $data['show_conf_table']
+                : $assay->show_conf_table,
             'hide_report' => $data['hide_report'] ?? $assay->hide_report,
             'uses_indicator' => $data['uses_indicator'] ?? $assay->uses_indicator,
             'uses_trip_indicator' => $data['uses_trip_indicator'] ?? $assay->uses_trip_indicator,

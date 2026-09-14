@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Confirmations\GetConfirmation;
 use App\Actions\Results\GetAnalysisResults;
 use App\Actions\Results\UpdateResultValue;
 use App\Http\Requests\UpdateResultRequest;
@@ -22,6 +23,7 @@ class ResultController extends Controller
         SampleAnalysis $sampleAnalysis,
         Result $result,
         UpdateResultValue $update,
+        GetConfirmation $confirmation,
     ): JsonResponse {
         $data = $request->validated();
         $result = $update->handle($sampleAnalysis, $result, $data['field'], $data['value'] ?? '');
@@ -37,6 +39,7 @@ class ResultController extends Controller
                 'sample_id' => (int) $sampleAnalysis->sample,
                 'analysis_id' => $sampleAnalysis->id,
             ],
+            'confirmation' => $confirmation->handle($sampleAnalysis->fresh()),
         ], 202);
     }
 }

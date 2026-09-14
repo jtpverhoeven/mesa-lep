@@ -20,7 +20,7 @@
     </head>
     <body class="lims-shell">
         <div id="app">
-        <a class="skip-link" href="#content">Naar inhoud</a>
+        {{-- <a class="skip-link" href="#content">Naar inhoud</a> --}}
         <header class="topbar">
             <a href="{{ route('dashboard') }}" class="brand"><span>mesa<span class="muted mr-12">LIMS</span></span></a>
             @auth

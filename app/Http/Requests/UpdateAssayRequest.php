@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\NormalizesAssayConfirmationPayload;
 use App\Models\Assay;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateAssayRequest extends FormRequest
 {
+    use NormalizesAssayConfirmationPayload;
+
     public function authorize(): bool
     {
         $assay = $this->route('assay');
@@ -69,9 +72,14 @@ class UpdateAssayRequest extends FormRequest
             'confirmation_type' => ['sometimes', Rule::in([0, 1])],
             'confirmation_init' => ['sometimes', Rule::in([0, 1, 2])],
             'confirmation_depth' => ['sometimes', 'nullable', 'integer', 'min:0'],
-            'confirmation_script' => ['sometimes', 'nullable', 'string'],
-            'confirmation_support' => ['sometimes', 'nullable', 'string'],
-            'show_conf_table' => ['sometimes', 'nullable', 'string'],
+            'confirmation_script' => ['sometimes', 'array'],
+            'confirmation_script.*.mediaId' => ['required', 'integer', Rule::exists('media', 'id')],
+            'confirmation_script.*.chainId' => ['required', 'integer', 'min:1'],
+            'confirmation_script.*.disposition' => ['required', Rule::in(['+', '-', '?'])],
+            'confirmation_support' => ['sometimes', 'nullable', 'array'],
+            'confirmation_support.*.mediaId' => ['required', 'integer', Rule::exists('media', 'id')],
+            'confirmation_support.*.chainId' => ['required', 'integer', 'min:1'],
+            'show_conf_table' => ['sometimes', 'nullable', 'integer', Rule::exists('confirmationtables', 'id')],
             'hide_report' => ['sometimes', 'boolean'],
             'uses_indicator' => ['sometimes', 'boolean'],
             'uses_trip_indicator' => ['sometimes', 'boolean'],
@@ -82,5 +90,10 @@ class UpdateAssayRequest extends FormRequest
             'custom_fields.*' => ['nullable', 'string', 'max:1000'],
             'force_changes' => ['sometimes', 'boolean'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeAssayConfirmationPayload();
     }
 }

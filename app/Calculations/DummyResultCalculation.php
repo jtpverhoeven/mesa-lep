@@ -19,6 +19,12 @@ class DummyResultCalculation implements ResultCalculation
             'isReady' => true,
             'resultMask' => ['result' => 'result'],
             'resultHide' => [],
+            'confirmationTrigger' => [
+                'eligible' => false,
+                'numericValue' => null,
+                'disposition' => null,
+                'targetAnalysisId' => $context->analysis->id,
+            ],
         ];
     }
 }

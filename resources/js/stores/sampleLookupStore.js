@@ -120,7 +120,10 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Resultaat kon niet worden opgeslagen.');
-                if (this.selectedId === analysisId) Object.assign(row, result.data);
+                if (this.selectedId === analysisId) {
+                    Object.assign(row, result.data);
+                    if (this.resultData && result.confirmation) this.resultData.confirmation = result.confirmation;
+                }
             } catch (error) {
                 this.resultError = error.message;
                 this.calculationError = error.message;

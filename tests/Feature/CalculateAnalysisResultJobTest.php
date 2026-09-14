@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Actions\Results\CalculateAnalysisResult;
 use App\Events\AnalysisResultCalculated;
 use App\Events\AnalysisResultCalculationFailed;
+use App\Events\ConfirmationDecisionRequired;
 use App\Jobs\CalculateAnalysisResultJob;
 use App\Models\SampleAnalysis;
 use Illuminate\Support\Facades\DB;
@@ -87,6 +88,44 @@ class CalculateAnalysisResultJobTest extends TestCase
                 && $event->analysisId === $analysis->id
                 && $event->calculation === $calculation
                 && $event->calculation['isReady'] === false;
+        });
+    }
+
+    public function test_decision_required_calculation_broadcasts_a_compact_prompt(): void
+    {
+        $analysis = SampleAnalysis::create([
+            'profile_group' => 1,
+            'sample' => 10,
+            'follow_number' => 1,
+            'profile' => 0,
+            'assay' => 20,
+            'assay_base' => 20,
+            'predicted_end' => 0,
+            'project' => null,
+            'project_order' => 1,
+            'is_ready' => false,
+            'storedResult' => null,
+        ]);
+        $calculation = [
+            'output' => ['result' => 'Bevestiging wacht'],
+            'messageBag' => [],
+            'isReady' => false,
+            'confirmation' => [
+                'status' => 'decision_pending',
+                'decision_required' => true,
+                'mode' => 'global',
+            ],
+        ];
+        $calculate = Mockery::mock(CalculateAnalysisResult::class);
+        $calculate->shouldReceive('handle')->once()->andReturn($calculation);
+        Event::fake();
+
+        (new CalculateAnalysisResultJob($analysis->id))->handle($calculate);
+
+        Event::assertDispatched(ConfirmationDecisionRequired::class, function (ConfirmationDecisionRequired $event) use ($analysis): bool {
+            return $event->sampleId === 10
+                && $event->analysisId === $analysis->id
+                && $event->mode === 'global';
         });
     }
 }

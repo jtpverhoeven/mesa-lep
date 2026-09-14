@@ -2,6 +2,7 @@
 
 namespace App\Actions\Assays;
 
+use App\Confirmations\AssayConfirmationConfiguration;
 use App\Models\Assay;
 use App\Models\AssayField;
 use Illuminate\Support\Facades\DB;
@@ -28,9 +29,21 @@ class CreateAssay
                 'max_count' => $data['max_count'],
                 'duration' => $data['duration'] ?? '',
                 'start_from' => $data['start_from'],
-                'confirmation' => 0,
-                'confirmation_script' => '[]',
-                'confirmation_support' => null,
+                'confirmation' => $data['confirmation'] ?? 0,
+                'confirmation_type' => $data['confirmation_type'] ?? 1,
+                'confirmation_init' => $data['confirmation_init'] ?? 0,
+                'confirmation_depth' => array_key_exists('confirmation_depth', $data)
+                    ? $data['confirmation_depth']
+                    : 5,
+                'confirmation_script' => array_key_exists('confirmation_script', $data)
+                    ? AssayConfirmationConfiguration::serializeScript($data['confirmation_script'])
+                    : '[]',
+                'confirmation_support' => array_key_exists('confirmation_support', $data)
+                    ? AssayConfirmationConfiguration::serializeSupport($data['confirmation_support'])
+                    : null,
+                'show_conf_table' => array_key_exists('show_conf_table', $data)
+                    ? $data['show_conf_table']
+                    : null,
                 'custom_fields' => json_encode((object) $customFields->all(), JSON_THROW_ON_ERROR),
                 'script' => $data['script'] ?? '',
                 'hide_report' => $data['hide_report'],

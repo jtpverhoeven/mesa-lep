@@ -40,6 +40,8 @@ class Maz7218Calculation implements ResultCalculation
             return $this->successfulResult(
                 '<'.$this->formatResult(1 / $lowestDilution, $lowestDilution),
                 '-',
+                1 / $lowestDilution,
+                (int) $context->analysis->id,
             );
         }
 
@@ -48,6 +50,10 @@ class Maz7218Calculation implements ResultCalculation
 
             return $this->successfulResult(
                 '>'.$this->formatResult($maximum / $highestDilution, $highestDilution),
+                null,
+                $maximum / $highestDilution,
+                (int) $context->analysis->id,
+                [$this->indicativeAddendum()],
             );
         }
 
@@ -62,18 +68,35 @@ class Maz7218Calculation implements ResultCalculation
         }
 
         $firstDilution = (float) array_key_first($calculationCounts);
-        $colonyCount = array_sum(array_map(
-            fn (array $replicates): float => array_sum($replicates) / count($replicates),
-            $calculationCounts,
-        ));
+        $colonyCount = 0.0;
+
+        foreach ($calculationCounts as $dilution => $replicates) {
+            $adjustedReplicates = [];
+
+            foreach ($replicates as $replicate => $value) {
+                $adjustedReplicates[] = $context->applyConfirmationRatio($value, $dilution, $replicate);
+            }
+
+            $colonyCount += array_sum($adjustedReplicates) / count($adjustedReplicates);
+        }
+
         $relativeDilutionWeight = count($calculationCounts) > 1 ? 1.1 : 1.0;
         $result = round($colonyCount / ($relativeDilutionWeight * $firstDilution));
+        $addenda = $this->resultIsIndicative($counts, $minimum, $maximum)
+            ? [$this->indicativeAddendum()]
+            : [];
 
-        return $this->successfulResult($this->formatResult($result, $firstDilution));
+        return $this->successfulResult(
+            $this->formatResult($result, $firstDilution),
+            null,
+            (float) $result,
+            (int) $context->analysis->id,
+            $addenda,
+        );
     }
 
     /**
-     * @return array<string, list<float|string>>|null
+     * @return array<string, array<int, float|string>>|null
      */
     private function countsByDilution(SampleAnalysis $analysis): ?array
     {
@@ -81,20 +104,21 @@ class Maz7218Calculation implements ResultCalculation
 
         foreach ($analysis->results->sortByDesc(fn ($result): float => (float) $result->df) as $result) {
             $dilution = (float) $result->df;
+            $replicate = (int) $result->rep;
             $value = $result->data[self::REPORT_FIELD] ?? null;
 
             if ($dilution <= 0 || ($value !== '>' && (! is_numeric($value) || (float) $value < 0))) {
                 return null;
             }
 
-            $counts[$this->dilutionKey($dilution)][] = $value === '>' ? '>' : (float) $value;
+            $counts[$this->dilutionKey($dilution)][$replicate] = $value === '>' ? '>' : (float) $value;
         }
 
         return $counts;
     }
 
     /**
-     * @param  array<string, list<float|string>>  $counts
+     * @param  array<string, array<int, float|string>>  $counts
      */
     private function curveIsValid(array $counts): bool
     {
@@ -221,15 +245,15 @@ class Maz7218Calculation implements ResultCalculation
     }
 
     /**
-     * @param  array<string, list<float|string>>  $counts
-     * @return array<string, list<float>>
+     * @param  array<string, array<int, float|string>>  $counts
+     * @return array<string, array<int, float>>
      */
     private function selectCalculationCounts(array $counts, float $minimum, float $maximum): array
     {
         $numeric = [];
 
         foreach ($counts as $dilution => $replicates) {
-            $values = array_values(array_filter($replicates, fn (float|string $value): bool => $value !== '>'));
+            $values = array_filter($replicates, fn (float|string $value): bool => $value !== '>');
 
             if ($values !== []) {
                 $numeric[$dilution] = $values;
@@ -271,7 +295,7 @@ class Maz7218Calculation implements ResultCalculation
     }
 
     /**
-     * @param  array<string, list<float|string>>  $counts
+     * @param  array<string, array<int, float|string>>  $counts
      */
     private function allCountsAre(array $counts, float|string $expected): bool
     {
@@ -284,6 +308,32 @@ class Maz7218Calculation implements ResultCalculation
         }
 
         return true;
+    }
+
+    /**
+     * The legacy calculator marks a result as indicative when no dilution has
+     * a complete set of counts inside the assay limits.
+     *
+     * @param  array<string, array<int, float|string>>  $counts
+     */
+    private function resultIsIndicative(array $counts, float $minimum, float $maximum): bool
+    {
+        foreach ($counts as $replicates) {
+            if ($replicates !== [] && count(array_filter(
+                $replicates,
+                fn (float|string $value): bool => $value !== '>' && $value >= $minimum && $value <= $maximum,
+            )) === count($replicates)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** @return array{code: string, label: string} */
+    private function indicativeAddendum(): array
+    {
+        return ['code' => 'indicative', 'label' => 'indicatieve waarde'];
     }
 
     private function chiSquareSurvival(float $chiSquare): float
@@ -315,9 +365,14 @@ class Maz7218Calculation implements ResultCalculation
         return rtrim(rtrim(sprintf('%.10F', $dilution), '0'), '.');
     }
 
-    private function successfulResult(string $result, ?string $disposition = null): array
-    {
-        return $this->resultPayload($result, true, $disposition);
+    private function successfulResult(
+        string $result,
+        ?string $disposition = null,
+        ?float $numericValue = null,
+        ?int $targetAnalysisId = null,
+        array $addenda = [],
+    ): array {
+        return $this->resultPayload($result, true, $disposition, [], $numericValue, $targetAnalysisId, $addenda);
     }
 
     private function failedResult(): array
@@ -335,8 +390,13 @@ class Maz7218Calculation implements ResultCalculation
         bool $isReady,
         ?string $disposition = null,
         array $messages = [],
+        ?float $numericValue = null,
+        ?int $targetAnalysisId = null,
+        array $addenda = [],
     ): array {
-        return [
+        $isBoundedResult = str_starts_with($result, '<') || str_starts_with($result, '>');
+
+        $payload = [
             'output' => [self::REPORT_FIELD => $result],
             'messageBag' => $messages,
             'reportIn' => self::REPORT_FIELD,
@@ -345,6 +405,18 @@ class Maz7218Calculation implements ResultCalculation
             'isReady' => $isReady,
             'resultMask' => [self::REPORT_FIELD => self::REPORT_FIELD],
             'resultHide' => [],
+            'confirmationTrigger' => [
+                'eligible' => $isReady && $numericValue !== null && $numericValue > 0 && $disposition !== '-' && ! $isBoundedResult,
+                'numericValue' => $numericValue,
+                'disposition' => $disposition,
+                'targetAnalysisId' => $targetAnalysisId,
+            ],
         ];
+
+        if ($addenda !== []) {
+            $payload['addenda'] = $addenda;
+        }
+
+        return $payload;
     }
 }

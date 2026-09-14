@@ -16,6 +16,70 @@ use Tests\TestCase;
 
 class ResultCalculationFailureTest extends TestCase
 {
+    public function test_maz_zero_colony_result_is_complete_but_not_confirmation_eligible(): void
+    {
+        $analysis = new SampleAnalysis;
+        $analysis->id = 42;
+        $analysis->setRelation('results', collect([
+            new Result(['df' => '0.1', 'data' => ['kve' => '0']]),
+        ]));
+        $assay = new Assay;
+        $assay->min_count = 10;
+        $assay->max_count = 300;
+
+        $result = app(Maz7218Calculation::class)->calculate(
+            new ResultCalculationContext($analysis, $assay, new AssayProfile),
+        );
+
+        $this->assertSame('<10', $result['output']['kve']);
+        $this->assertTrue($result['isReady']);
+        $this->assertFalse($result['confirmationTrigger']['eligible']);
+        $this->assertSame('-', $result['confirmationTrigger']['disposition']);
+    }
+
+    public function test_maz_uncountable_result_is_not_confirmation_eligible(): void
+    {
+        $analysis = new SampleAnalysis;
+        $analysis->id = 42;
+        $analysis->setRelation('results', collect([
+            new Result(['df' => '0.1', 'data' => ['kve' => '>']]),
+        ]));
+        $assay = new Assay;
+        $assay->min_count = 10;
+        $assay->max_count = 300;
+
+        $result = app(Maz7218Calculation::class)->calculate(
+            new ResultCalculationContext($analysis, $assay, new AssayProfile),
+        );
+
+        $this->assertSame('>3.000', $result['output']['kve']);
+        $this->assertSame([
+            ['code' => 'indicative', 'label' => 'indicatieve waarde'],
+        ], $result['addenda']);
+        $this->assertTrue($result['isReady']);
+        $this->assertFalse($result['confirmationTrigger']['eligible']);
+    }
+
+    public function test_maz_marks_a_positive_result_below_the_countable_range_as_indicative(): void
+    {
+        $analysis = new SampleAnalysis;
+        $analysis->setRelation('results', collect([
+            new Result(['df' => '1', 'data' => ['kve' => '5']]),
+        ]));
+        $assay = new Assay;
+        $assay->min_count = 10;
+        $assay->max_count = 300;
+
+        $result = app(Maz7218Calculation::class)->calculate(
+            new ResultCalculationContext($analysis, $assay, new AssayProfile),
+        );
+
+        $this->assertSame('5', $result['output']['kve']);
+        $this->assertSame([
+            ['code' => 'indicative', 'label' => 'indicatieve waarde'],
+        ], $result['addenda']);
+    }
+
     public function test_invalid_dilution_curve_returns_a_visible_failure_message(): void
     {
         $analysis = new SampleAnalysis;

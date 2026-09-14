@@ -67,6 +67,11 @@ class SampleAnalysis extends Model
         return $this->hasOne(RoamingAnalysis::class, 'said');
     }
 
+    public function confirmationRecord(): HasOne
+    {
+        return $this->hasOne(Confirmation::class, 'said');
+    }
+
     public function results(): HasMany
     {
         return $this->hasMany(Result::class, 'sa_id')->orderByDesc('df')->orderBy('rep');

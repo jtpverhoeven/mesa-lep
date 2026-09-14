@@ -1,9 +1,11 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue';
-import { LoaderCircle, RefreshCw } from '@lucide/vue';
+import { ClipboardCheck, LoaderCircle, RefreshCw } from '@lucide/vue';
 import { useSampleLookupStore } from '../stores/sampleLookupStore';
+import { useConfirmationStore } from '../stores/confirmationStore';
 
 const store = useSampleLookupStore();
+const confirmationStore = useConfirmationStore();
 const resultEntry = ref(null);
 const dilutionGroups = computed(() => {
     const groups = [];
@@ -68,6 +70,22 @@ function filterKey(event, row, field) {
 
     if (allowed && !allowed.includes(event.key)) event.preventDefault();
 }
+
+function confirmationApplicable(row) {
+    const confirmation = confirmationStore.data;
+
+    if (confirmation?.config?.mode !== 'per_plate') return false;
+    if (Number(confirmation?.decision) !== 1) return false;
+
+    const count = row.data?.kve;
+    if (String(count).trim() === '>' || (String(count).trim() !== '' && Number(count) === 0)) return false;
+
+    return confirmation.scopes?.some((scope) => String(scope.df) === String(row.df) && Number(scope.rep) === Number(row.rep) && scope.applicable);
+}
+
+function openConfirmation(row) {
+    confirmationStore.open(store.selectedId, row.df, Number(row.rep));
+}
 </script>
 
 <template>
@@ -85,10 +103,10 @@ function filterKey(event, row, field) {
             <section v-for="group in dilutionGroups" :key="group.df" class="result-dilution">
                 <h4>Verdunning: {{ dilutionName(group.df) }}</h4>
                 <div v-for="row in group.rows" :key="row.id" class="result-replicate" :data-result-id="row.id">
-                    <h5 v-if="Number(row.rep) > 0">{{ replicateName(row.rep) }}</h5>
+                    <div v-if="Number(row.rep) > 0" class="result-replicate-heading"><h5>{{ replicateName(row.rep) }}</h5></div>
                     <label v-for="field in store.resultData.fields" :key="field.name" class="result-field">
                         <span>{{ field.label }}</span>
-                        <span class="result-control">
+                        <span class="result-control" :class="{ 'has-confirmation': field.name === 'kve' && confirmationApplicable(row) }">
                             <input
                                 v-model="row.data[field.name]"
                                 type="text"
@@ -100,7 +118,8 @@ function filterKey(event, row, field) {
                                 @keydown.enter.prevent="$event.currentTarget.blur()"
                                 @change="store.saveResult(row, field.name)"
                             >
-                            <LoaderCircle v-if="saving(row, field)" class="spin" :size="15" aria-label="Opslaan" />
+                            <LoaderCircle v-if="saving(row, field)" class="spin result-saving-indicator" :size="15" aria-label="Opslaan" />
+                            <button v-if="field.name === 'kve' && confirmationApplicable(row)" class="result-confirmation-button" type="button" title="Bevestiging openen" :aria-label="`Bevestiging openen voor ${row.df}, replica ${row.rep}`" @click.prevent="openConfirmation(row)"><ClipboardCheck :size="15" /></button>
                         </span>
                     </label>
                 </div>
@@ -121,10 +140,15 @@ function filterKey(event, row, field) {
 .result-replicate { display:grid; gap:8px; }
 .result-replicate + .result-replicate { padding-top:10px; border-top:1px solid var(--line); }
 .result-replicate h5 { margin:0; font-size:10px; font-weight:700; text-transform:uppercase; color:var(--accent); }
+.result-replicate-heading { display:flex; align-items:center; justify-content:space-between; min-height:28px; }
 .result-field { display:grid; grid-template-columns:minmax(90px,.8fr) minmax(0,1.4fr); align-items:center; gap:8px; font-size:11px; }
 .result-field > span:first-child { overflow-wrap:anywhere; }
 .result-control { position:relative; display:flex; align-items:center; min-width:0; }
 .result-control input { width:100%; min-width:0; min-height:32px; padding:6px 30px 6px 8px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); font:inherit; }
-.result-control svg { position:absolute; right:8px; color:var(--accent); pointer-events:none; }
+.result-control.has-confirmation input { border-radius:2px 0 0 2px; }
+.result-saving-indicator { position:absolute; right:8px; color:var(--accent); pointer-events:none; }
+.result-control.has-confirmation .result-saving-indicator { right:40px; }
+.result-confirmation-button { display:grid; flex:0 0 34px; align-self:stretch; place-items:center; min-height:32px; padding:0; border:1px solid #9eabb2; border-left:0; border-radius:0 2px 2px 0; background:var(--surface-alt); color:var(--accent); cursor:pointer; }
+.result-confirmation-button:hover,.result-confirmation-button:focus-visible { background:var(--accent-faint); }
 @media (max-width:420px) { .result-field { grid-template-columns:minmax(0,1fr); gap:4px; } }
 </style>
