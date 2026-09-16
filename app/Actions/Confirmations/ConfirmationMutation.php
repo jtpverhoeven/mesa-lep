@@ -2,6 +2,7 @@
 
 namespace App\Actions\Confirmations;
 
+use App\Actions\AssuranceForms\QueueAssuranceFormSynchronization;
 use App\Jobs\CalculateAnalysisResultJob;
 use App\Models\Confirmation;
 use App\Models\Project;
@@ -12,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 class ConfirmationMutation
 {
+    public function __construct(private QueueAssuranceFormSynchronization $queueAssuranceSync) {}
+
     public function execute(SampleAnalysis $analysis, Closure $callback): SampleAnalysis
     {
         $updated = DB::transaction(function () use ($analysis, $callback): SampleAnalysis {
@@ -37,6 +40,12 @@ class ConfirmationMutation
 
             return $callback($locked, $confirmation);
         });
+
+        $updated->loadMissing('sampleRecord');
+
+        if ($updated->sampleRecord?->sample_innoculated !== null && $updated->sampleRecord?->sample_innoculated !== '') {
+            $this->queueAssuranceSync->handle($updated->sampleRecord->sample_innoculated);
+        }
 
         CalculateAnalysisResultJob::dispatch($updated->id)->afterCommit();
 

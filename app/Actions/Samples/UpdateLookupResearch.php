@@ -2,6 +2,7 @@
 
 namespace App\Actions\Samples;
 
+use App\Actions\AssuranceForms\QueueAssuranceFormSynchronization;
 use App\Actions\SampleAnalyses\AddResearchProfileToSample;
 use App\Actions\SampleAnalyses\AddRoamingAnalysisToSample;
 use App\Actions\SampleAnalyses\RemoveSampleAnalysis;
@@ -15,8 +16,12 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateLookupResearch
 {
+    public function __construct(private QueueAssuranceFormSynchronization $queueAssuranceSync) {}
+
     public function handle(Sample $sample, array $data): void
     {
+        $formDateSource = $sample->sample_innoculated;
+
         DB::transaction(function () use ($sample, $data) {
             $sample = Sample::query()->lockForUpdate()->findOrFail($sample->id);
             $project = Project::query()->lockForUpdate()->findOrFail($sample->project);
@@ -42,5 +47,9 @@ class UpdateLookupResearch
                 }
             }
         }, 3);
+
+        if ($formDateSource !== null && $formDateSource !== '') {
+            $this->queueAssuranceSync->handle($formDateSource);
+        }
     }
 }

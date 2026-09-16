@@ -37,11 +37,10 @@ class RecalculateConfirmation
                 ? (bool) $summary['scope_ready']
                 : true;
             $metadata[$scope['df']][(string) $scope['rep']]['ratio'] = $summary['ratio'] ?? false;
-            $inUse[$scope['df']][(string) $scope['rep']] = [
-                ...($inUse[$scope['df']][(string) $scope['rep']] ?? []),
-                ...($evaluation['evaluations'][$key]['in_use'] ?? []),
-                ...($evaluation['support'][$key] ?? []),
-            ];
+            $inUse[$scope['df']][(string) $scope['rep']] = array_replace(
+                $evaluation['evaluations'][$key]['in_use'] ?? [],
+                $evaluation['support'][$key] ?? [],
+            );
             $allReady = $allReady && $metadata[$scope['df']][(string) $scope['rep']]['isReady'];
         }
 

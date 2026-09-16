@@ -26,6 +26,8 @@ export const useConfirmationStore = defineStore('confirmation', {
         lastEventRevision: null,
         error: '',
         decisionPrompt: null,
+        assuranceExplanationField: null,
+        assuranceExplanation: '',
         requestRevision: 0,
     }),
     getters: {
@@ -101,6 +103,24 @@ export const useConfirmationStore = defineStore('confirmation', {
         async saveMetadata(key, value) {
             const scope = this.selectedScope;
             return this.mutate(`metadata:${key}`, this.endpoint('metadata'), { df: scope.df, rep: scope.rep, key, value });
+        },
+        openAssuranceExplanation(field) {
+            this.assuranceExplanationField = field;
+            this.assuranceExplanation = field?.explanation ?? '';
+        },
+        async saveAssuranceExplanation() {
+            const scope = this.selectedScope;
+            const field = this.assuranceExplanationField;
+            if (!scope || !field || !this.endpoints.assuranceExplanation) return null;
+
+            const result = await this.mutate(
+                `assurance-explanation:${field.key}`,
+                this.endpoint('assuranceExplanation'),
+                { df: scope.df, rep: scope.rep, key: field.key, explanation: this.assuranceExplanation },
+            );
+
+            if (result) this.assuranceExplanationField = null;
+            return result;
         },
         async toggleSupport(mediaId, active) {
             const scope = this.selectedScope;
@@ -196,6 +216,8 @@ export const useConfirmationStore = defineStore('confirmation', {
             this.lastEventRevision = null;
             this.error = '';
             this.decisionPrompt = null;
+            this.assuranceExplanationField = null;
+            this.assuranceExplanation = '';
         },
     },
 });

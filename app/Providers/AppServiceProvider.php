@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Confirmations\ConfirmationAssuranceFields;
-use App\Confirmations\PendingConfirmationAssuranceFields;
+use App\Confirmations\DatabaseConfirmationAssuranceFields;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -15,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(ConfirmationAssuranceFields::class, PendingConfirmationAssuranceFields::class);
+        $this->app->bind(ConfirmationAssuranceFields::class, DatabaseConfirmationAssuranceFields::class);
     }
 
     /**

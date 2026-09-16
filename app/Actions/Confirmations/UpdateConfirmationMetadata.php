@@ -2,6 +2,9 @@
 
 namespace App\Actions\Confirmations;
 
+use App\Actions\AssuranceForms\UpdateAssuranceExpiryEvidence;
+use App\Actions\AssuranceForms\UpdateConfirmationAssuranceValue;
+use App\AssuranceForms\AssuranceValueRepository;
 use App\Confirmations\AssayConfirmationConfiguration;
 use App\Models\Confirmation;
 use App\Models\ConfKeyStore;
@@ -13,16 +16,20 @@ class UpdateConfirmationMetadata
     public function __construct(
         private ConfirmationMutation $mutation,
         private RecalculateConfirmation $recalculate,
+        private UpdateConfirmationAssuranceValue $assurance,
+        private UpdateAssuranceExpiryEvidence $updateEvidence,
+        private AssuranceValueRepository $assuranceValues,
     ) {}
 
     public function handle(SampleAnalysis $analysis, string $df, int $rep, string $key, ?string $value): SampleAnalysis
     {
+        if ($this->isAssuranceField($key)) {
+            return $this->assurance->handle($analysis, $df, $rep, $key, $value ?? '');
+        }
+
         return $this->mutation->execute($analysis, function (SampleAnalysis $analysis, ?Confirmation $confirmation) use ($df, $rep, $key, $value): SampleAnalysis {
             $confirmation = $this->mutation->requireConfirmation($confirmation);
             $this->mutation->assertScope($analysis, $df, $rep);
-            if ($this->isAssuranceField($key)) {
-                throw ValidationException::withMessages(['key' => 'Dit borgingsveld is nog niet beschikbaar.']);
-            }
 
             [$mediaId, $field] = $this->parseKey($key);
             $steps = AssayConfirmationConfiguration::decode($analysis->assayRecord?->confirmation_script);
@@ -38,6 +45,11 @@ class UpdateConfirmationMetadata
 
             if ($field === 'inzet' || $field === 'aflees') {
                 $confirmation->metadata = $metadata;
+
+                if ($field === 'inzet') {
+                    $expiryDate = $this->assuranceValues->valueForAnalysisAndMedia($analysis, $mediaId);
+                    $this->updateEvidence->handle($analysis, $mediaId, $value, $expiryDate);
+                }
             } else {
                 $innocdate = $metadata[$df][$rep][$stepIndex][$mediaId.'_inzet'] ?? null;
 

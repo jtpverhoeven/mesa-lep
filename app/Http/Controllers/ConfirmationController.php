@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\AssuranceForms\UpdateConfirmationAssuranceExplanation;
 use App\Actions\Confirmations\AddConfirmationContender;
 use App\Actions\Confirmations\GetConfirmation;
 use App\Actions\Confirmations\RemoveConfirmationContender;
@@ -14,6 +15,7 @@ use App\Events\ConfirmationUpdated;
 use App\Http\Requests\Confirmations\AddConfirmationContenderRequest;
 use App\Http\Requests\Confirmations\RemoveConfirmationContenderRequest;
 use App\Http\Requests\Confirmations\SetConfirmationDecisionRequest;
+use App\Http\Requests\Confirmations\UpdateConfirmationAssuranceExplanationRequest;
 use App\Http\Requests\Confirmations\UpdateConfirmationMetadataRequest;
 use App\Http\Requests\Confirmations\UpdateConfirmationNoteRequest;
 use App\Http\Requests\Confirmations\UpdateConfirmationSupportRequest;
@@ -70,6 +72,18 @@ class ConfirmationController extends Controller
     ): JsonResponse {
         $data = $request->validated();
         $analysis = $update->handle($sampleAnalysis, $data['df'], $data['rep'], $data['key'], $data['value'] ?? null);
+
+        return $this->updated($analysis, $get, $data['df'], $data['rep']);
+    }
+
+    public function assuranceExplanation(
+        UpdateConfirmationAssuranceExplanationRequest $request,
+        SampleAnalysis $sampleAnalysis,
+        UpdateConfirmationAssuranceExplanation $update,
+        GetConfirmation $get,
+    ): JsonResponse {
+        $data = $request->validated();
+        $analysis = $update->handle($sampleAnalysis, $data['df'], $data['rep'], $data['key'], (string) ($data['explanation'] ?? ''));
 
         return $this->updated($analysis, $get, $data['df'], $data['rep']);
     }

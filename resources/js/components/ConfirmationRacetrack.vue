@@ -1,6 +1,6 @@
 <script setup>
 import { nextTick } from 'vue';
-import { LoaderCircle } from '@lucide/vue';
+import { LoaderCircle, MessageSquare } from '@lucide/vue';
 import { useConfirmationStore } from '../stores/confirmationStore';
 
 const store = useConfirmationStore();
@@ -113,7 +113,19 @@ function metadata(field, event) {
                                 <td class="control-column"><input v-if="metadataField(step, 'poscontrol')" :value="metadataField(step, 'poscontrol').value ?? ''" :disabled="store.readOnly" maxlength="1" aria-label="Positieve controle" @change="metadata(metadataField(step, 'poscontrol'), $event)"></td>
                                 <td class="control-column"><input v-if="metadataField(step, 'negcontrol')" :value="metadataField(step, 'negcontrol').value ?? ''" :disabled="store.readOnly" maxlength="1" aria-label="Negatieve controle" @change="metadata(metadataField(step, 'negcontrol'), $event)"></td>
                                 <td class="control-column"><input v-if="metadataField(step, 'blankcontrol')" :value="metadataField(step, 'blankcontrol').value ?? ''" :disabled="store.readOnly" maxlength="1" aria-label="Blanco controle" @change="metadata(metadataField(step, 'blankcontrol'), $event)"></td>
-                                <td class="tht-column"><input v-if="metadataField(step, 'tht')" :value="metadataField(step, 'tht').value ?? ''" disabled placeholder="Niet beschikbaar" :aria-label="`THT ${step.name}`"></td>
+                                <td class="tht-column">
+                                    <input
+                                        v-if="metadataField(step, 'tht')"
+                                        :value="metadataField(step, 'tht').value ?? ''"
+                                        :class="{ 'assurance-warning': metadataField(step, 'tht').out_of_specification || metadataField(step, 'tht').out_of_date_here, 'assurance-explained': metadataField(step, 'tht').explanation && (metadataField(step, 'tht').out_of_specification || metadataField(step, 'tht').out_of_date_here) }"
+                                        :disabled="store.readOnly || !metadataField(step, 'tht').available"
+                                        :placeholder="metadataField(step, 'tht').kind === 'material' ? (metadataField(step, 'tht').acceptable_range || '') : 'dd-mm-jjjj'"
+                                        :aria-label="`THT ${step.name}`"
+                                        @change="metadata(metadataField(step, 'tht'), $event)"
+                                    >
+                                    <small v-if="metadataField(step, 'tht')?.out_of_date_text" class="assurance-note">{{ metadataField(step, 'tht').out_of_date_text }}</small>
+                                    <button v-if="metadataField(step, 'tht')?.requires_explanation || metadataField(step, 'tht')?.explanation" class="assurance-explanation-button" type="button" title="Uitleg" :aria-label="`Uitleg THT ${step.name}`" @click="store.openAssuranceExplanation(metadataField(step, 'tht'))"><MessageSquare :size="13" /></button>
+                                </td>
                             </tr>
                         </template>
                         <tr v-if="!(store.data?.config.steps ?? []).length"><td :colspan="(store.selectedEvaluation?.contenders?.length ?? 0) + 7" class="empty-state">Geen bevestigingsmedia geconfigureerd.</td></tr>
@@ -139,6 +151,11 @@ function metadata(field, event) {
 .confirmation-grid tbody th strong { margin-left:4px; color:var(--accent); }
 .confirmation-grid input { width:100%; min-width:0; min-height:25px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); padding:2px 4px; font-size:11px; }
 .confirmation-grid input:disabled { background:var(--surface-alt); color:var(--muted); }
+.confirmation-grid .tht-column { position:relative; }
+.confirmation-grid .tht-column input.assurance-warning { border-color:#bf685d; background:#fff1ed; }
+.confirmation-grid .tht-column input.assurance-explained { border-color:#c78a2c; background:#fff2d9; }
+.confirmation-grid .assurance-note { display:block; max-width:84px; overflow:hidden; color:#903e32; font-size:9px; text-overflow:ellipsis; white-space:nowrap; }
+.confirmation-grid .assurance-explanation-button { display:inline-grid; place-items:center; width:22px; height:22px; margin-top:3px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--accent); cursor:pointer; }
 .confirmation-grid .answer-cell { width:52px; }
 .confirmation-grid .answer-cell input { text-align:center; font-size:14px; font-weight:700; }
 .confirmation-grid .answer-cell input:focus { outline:2px solid var(--accent); outline-offset:-2px; }

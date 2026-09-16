@@ -118,11 +118,14 @@ class ConfirmationState
             'support_fields' => collect($support)->values()->map(function (array $row) use ($selectedScope, $media, $evaluation): array {
                 $scopeKey = $this->scopeKey($selectedScope['df'], $selectedScope['rep']);
                 $active = $evaluation['support'][$scopeKey][(string) $row['mediaId']] ?? false;
+                $assuranceField = collect($evaluation['evaluations'][$scopeKey]['metadata_fields'] ?? [])
+                    ->firstWhere('key', (int) $row['mediaId'].'_tht');
 
                 return [
                     'media_id' => (int) $row['mediaId'],
                     'name' => $media[(string) $row['mediaId']]['name'] ?? 'Medium '.$row['mediaId'],
                     'active' => (bool) $active,
+                    'assurance' => $assuranceField,
                 ];
             })->all(),
             'summary' => [

@@ -46,8 +46,35 @@ class ConfirmationStateBuilder
 
             $scopeMetadata = $metadata[$scope['df']][(string) $scope['rep']] ?? $metadata[$scope['df']][$scope['rep']] ?? [];
             $scopeTrack = $racetrack[$scope['df']][(string) $scope['rep']] ?? $racetrack[$scope['df']][$scope['rep']] ?? [];
-            $evaluations[$key] = $this->evaluator->evaluate($steps, $scopeTrack, $scopeMetadata, $media, $controls);
+            $evaluations[$key] = $this->evaluator->evaluate($analysis, $steps, $scopeTrack, $scopeMetadata, $media, $controls);
             $supportValues[$key] = $this->supportValues($support, $scope['df'], $scope['rep'], $inUse);
+            $existingKeys = collect($evaluations[$key]['metadata_fields'])->pluck('key')->all();
+
+            foreach ($support as $supportRow) {
+                $supportMediaId = (int) ($supportRow['mediaId'] ?? 0);
+
+                if (! ($supportValues[$key][(string) $supportMediaId] ?? false)) {
+                    continue;
+                }
+
+                foreach ($this->evaluator->assuranceFields($analysis, $supportMediaId, $media[(string) $supportMediaId] ?? []) as $field) {
+                    if (in_array($field['key'], $existingKeys, true)) {
+                        continue;
+                    }
+
+                    $evaluations[$key]['metadata_fields'][] = $field;
+                    $existingKeys[] = $field['key'];
+                }
+            }
+
+            $evaluations[$key]['summary']['scope_ready'] = collect($evaluations[$key]['metadata_fields'])->every(function (array $field): bool {
+                if (($field['required'] ?? false) && (($field['value'] ?? null) === null || ($field['value'] ?? '') === '')) {
+                    return false;
+                }
+
+                return ! ($field['requires_explanation'] ?? false)
+                    || (($field['explanation'] ?? '') !== '');
+            }) && collect($evaluations[$key]['contenders'])->every(fn (array $contender): bool => $contender['finished']);
         }
 
         return [
@@ -70,6 +97,8 @@ class ConfirmationStateBuilder
             (string) $media->id => [
                 'name' => $media->name,
                 'hasDate' => $media->hasDate,
+                'type' => $media->type,
+                'acceptable_range' => $media->acceptable_range,
                 'confirmation_controls' => $media->confirmation_controls,
             ],
         ])->all();

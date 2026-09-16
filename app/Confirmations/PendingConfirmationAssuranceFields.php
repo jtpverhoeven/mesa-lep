@@ -2,9 +2,11 @@
 
 namespace App\Confirmations;
 
+use App\Models\SampleAnalysis;
+
 class PendingConfirmationAssuranceFields implements ConfirmationAssuranceFields
 {
-    public function fields(int $mediaId, array $media): array
+    public function fields(SampleAnalysis $analysis, int $mediaId, array $media): array
     {
         if ((int) ($media['hasDate'] ?? 0) !== 1) {
             return [];

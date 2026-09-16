@@ -2,11 +2,14 @@
 
 namespace App\Confirmations;
 
+use App\Models\SampleAnalysis;
+
 class ConfirmationRacetrackEvaluator
 {
     public function __construct(private ConfirmationAssuranceFields $assuranceFields) {}
 
     public function evaluate(
+        SampleAnalysis $analysis,
         array $steps,
         array $contenders,
         array $metadata,
@@ -83,13 +86,18 @@ class ConfirmationRacetrackEvaluator
 
             $metadataFields = [
                 ...$metadataFields,
-                ...$this->fieldsForStep($mediaId, $stepMetadata, $mediaInfo, $controlValues),
+                ...$this->fieldsForStep($analysis, $mediaId, $stepMetadata, $mediaInfo, $controlValues),
             ];
         }
 
-        $metadataComplete = collect($metadataFields)
-            ->where('required', true)
-            ->every(fn (array $field): bool => ! $this->emptyAnswer($field['value'] ?? null));
+        $metadataComplete = collect($metadataFields)->every(function (array $field): bool {
+            if (($field['required'] ?? false) && $this->emptyAnswer($field['value'] ?? null)) {
+                return false;
+            }
+
+            return ! ($field['requires_explanation'] ?? false)
+                || ! $this->emptyAnswer($field['explanation'] ?? null);
+        });
         $scopeReady = $states !== []
             && collect($states)->every(fn (array $state): bool => $state['finished'])
             && $metadataComplete;
@@ -107,6 +115,11 @@ class ConfirmationRacetrackEvaluator
         ];
     }
 
+    public function assuranceFields(SampleAnalysis $analysis, int $mediaId, array $media): array
+    {
+        return $this->assuranceFields->fields($analysis, $mediaId, $media);
+    }
+
     private function answer(array $contender, int $stepIndex): mixed
     {
         return array_key_exists($stepIndex, $contender)
@@ -119,7 +132,7 @@ class ConfirmationRacetrackEvaluator
         return $answer === null || $answer === '';
     }
 
-    private function fieldsForStep(int $mediaId, array $metadata, array $media, array $controlValues): array
+    private function fieldsForStep(SampleAnalysis $analysis, int $mediaId, array $metadata, array $media, array $controlValues): array
     {
         $fields = [
             [
@@ -154,7 +167,7 @@ class ConfirmationRacetrackEvaluator
             ];
         }
 
-        return [...$fields, ...$this->assuranceFields->fields($mediaId, $media)];
+        return [...$fields, ...$this->assuranceFields->fields($analysis, $mediaId, $media)];
     }
 
     private function jsonArray(mixed $value): array

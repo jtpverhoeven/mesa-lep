@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssayController;
 use App\Http\Controllers\AssayFieldController;
 use App\Http\Controllers\AssayTypeController;
+use App\Http\Controllers\AssuranceFormController;
 use App\Http\Controllers\ClientCategoryController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConfirmationController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\SampleFieldController;
 use App\Http\Controllers\SampleLookupController;
 use App\Http\Controllers\SampleProcedureController;
 use App\Http\Controllers\SampleProcedureFieldController;
+use App\Http\Controllers\SampleRegisterController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserGroupController;
 use App\Models\Assay;
@@ -53,11 +55,27 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
     Route::post('/{sample}/research', [SampleLookupController::class, 'update'])->name('samples.lookup.research');
 });
 
+Route::middleware(['auth', 'can:samples.list'])->prefix('laboratory/samples/register')->group(function () {
+    Route::get('/', [SampleRegisterController::class, 'index'])->name('samples.register');
+    Route::get('/data', [SampleRegisterController::class, 'data'])->name('samples.register.data');
+    Route::post('/inoculation', [SampleRegisterController::class, 'inoculate'])->name('samples.register.inoculation');
+});
+
+Route::middleware(['auth', 'can:assurance-form.view'])->prefix('laboratory/assurance-forms')->group(function () {
+    Route::get('/', [AssuranceFormController::class, 'index'])->name('assurance-forms.index');
+    Route::get('/{date}', [AssuranceFormController::class, 'show'])->name('assurance-forms.show');
+    Route::post('/{date}', [AssuranceFormController::class, 'store'])->name('assurance-forms.store');
+    Route::patch('/{assuranceForm}/fields', [AssuranceFormController::class, 'updateField'])->name('assurance-forms.fields.update');
+    Route::patch('/{assuranceForm}/explanation', [AssuranceFormController::class, 'updateExplanation'])->name('assurance-forms.explanation.update');
+    Route::get('/{assuranceForm}/print', [AssuranceFormController::class, 'print'])->name('assurance-forms.print');
+});
+
 Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/sample-analyses')->group(function () {
     Route::get('/{sampleAnalysis}/confirmation', [ConfirmationController::class, 'show'])->name('sample-analyses.confirmation.show');
     Route::patch('/{sampleAnalysis}/confirmation/decision', [ConfirmationController::class, 'decision'])->name('sample-analyses.confirmation.decision');
     Route::patch('/{sampleAnalysis}/confirmation/track', [ConfirmationController::class, 'track'])->name('sample-analyses.confirmation.track');
     Route::patch('/{sampleAnalysis}/confirmation/metadata', [ConfirmationController::class, 'metadata'])->name('sample-analyses.confirmation.metadata');
+    Route::patch('/{sampleAnalysis}/confirmation/assurance-explanation', [ConfirmationController::class, 'assuranceExplanation'])->name('sample-analyses.confirmation.assurance-explanation');
     Route::patch('/{sampleAnalysis}/confirmation/support', [ConfirmationController::class, 'support'])->name('sample-analyses.confirmation.support');
     Route::post('/{sampleAnalysis}/confirmation/contenders', [ConfirmationController::class, 'addContender'])->name('sample-analyses.confirmation.contenders.store');
     Route::delete('/{sampleAnalysis}/confirmation/contenders/{contender}', [ConfirmationController::class, 'removeContender'])->name('sample-analyses.confirmation.contenders.destroy');

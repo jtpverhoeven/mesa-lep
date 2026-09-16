@@ -33,7 +33,7 @@ class Sample extends Model
 
     public function analyses(): HasMany
     {
-        return $this->hasMany(\App\Models\SampleAnalysis::class, 'sample')
+        return $this->hasMany(SampleAnalysis::class, 'sample')
             ->orderBy('project_order')
             ->orderBy('follow_number');
     }
