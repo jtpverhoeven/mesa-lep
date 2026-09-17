@@ -5,6 +5,7 @@ import AssayConfirmationEditor from './components/AssayConfirmationEditor.vue';
 import AssayMetaSelector from './components/AssayMetaSelector.vue';
 import AssuranceFormViewer from './components/AssuranceFormViewer.vue';
 import OpenVue from 'openvue/config';
+import ConfirmationService from 'openvue/confirmationservice';
 import ToastService from 'openvue/toastservice';
 import Aura from '@openvue/themes/aura';
 import ClientCategoryForm from './components/ClientCategoryForm.vue';
@@ -27,6 +28,7 @@ const app = createApp({});
 
 app.use(createPinia());
 app.use(OpenVue, { theme: { preset: Aura } });
+app.use(ConfirmationService);
 app.use(ToastService);
 app.component('assay-directory', AssayDirectory);
 app.component('assay-confirmation-editor', AssayConfirmationEditor);

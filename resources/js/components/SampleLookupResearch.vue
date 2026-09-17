@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { ArrowDown, ArrowUp, Barcode, Plus, Star, Trash2, X } from '@lucide/vue';
+import Dialog from 'openvue/dialog';
 import { useSampleLookupStore } from '../stores/sampleLookupStore';
 import { useSampleResearchStore } from '../stores/sampleResearchStore';
 import SampleResearchSelector from './SampleResearchSelector.vue';
@@ -11,6 +12,21 @@ const store = useSampleLookupStore();
 const research = useSampleResearchStore();
 const selector = ref(null);
 const removing = ref(null);
+const addDialogPassThrough = {
+    mask: { class: 'p-3 bg-[rgba(20,35,45,.45)]' },
+    root: { class: 'w-[min(760px,calc(100vw-24px))] max-h-[calc(100vh-24px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]', 'aria-labelledby': 'lookup-add-title' },
+    header: { class: 'flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-3 py-[9px]' },
+    headerActions: { class: 'hidden' },
+    content: { class: 'p-0' },
+    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2.5' },
+};
+const removeDialogPassThrough = {
+    mask: { class: 'p-[18px] bg-[rgba(20,35,45,.45)]' },
+    root: { class: 'w-[min(620px,100%)] max-h-[calc(100vh-36px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]', role: 'alertdialog', 'aria-labelledby': 'lookup-remove-title' },
+    header: { class: 'flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-3 py-[9px]' },
+    content: { class: 'p-0' },
+    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2.5' },
+};
 const groups = computed(() => {
     const groups = [];
     for (const analysis of store.data?.analyses ?? []) {
@@ -45,24 +61,20 @@ const groups = computed(() => {
             </section>
         </div>
     </section>
-    <div v-if="store.adding" class="research-modal-backdrop" @keydown.esc="!store.saving && (store.adding = false)">
-        <section class="research-modal lookup-add-modal" role="dialog" aria-modal="true" aria-labelledby="lookup-add-title">
-            <header><h3 id="lookup-add-title">Onderzoek toevoegen · {{ store.data.sample.barcode }}</h3><button class="icon-button" title="Sluiten" :disabled="store.saving" @click="store.adding = false"><X :size="18" /></button></header>
-            <fieldset class="research-modal-body" :disabled="store.saving">
-                <SampleResearchSelector ref="selector" />
-                <SelectedSampleResearch @edit-profile-assay="(entry, assay) => selector.editProfileAssay(entry, assay)" @edit-roaming="(entry) => selector.editRoaming(entry)" />
-            </fieldset>
-            <p v-if="store.error" role="alert" class="error-text">{{ store.error }}</p>
-            <footer><button class="button" :disabled="store.saving" @click="store.adding = false">Annuleren</button><button class="button primary" :disabled="store.saving || research.loading || !research.selected.length || !!research.pendingConflict" @click="store.mutate({ operation: 'add', analyses: research.payload })"><Plus :size="16" />{{ store.saving ? 'Opslaan...' : 'Toevoegen' }}</button></footer>
-        </section>
-    </div>
-    <div v-if="removing" class="research-modal-backdrop">
-        <section class="research-modal" role="alertdialog" aria-modal="true" aria-labelledby="lookup-remove-title">
-            <header><h3 id="lookup-remove-title">Analyse verwijderen</h3></header>
-            <div class="research-modal-body">{{ removing.name }} (SAID {{ removing.id }}) verwijderen?</div>
-            <footer><button class="button" @click="removing = null">Annuleren</button><button class="button danger" @click="store.mutate({ operation: 'remove', analysis_id: removing.id }); removing = null"><Trash2 :size="15" />Verwijderen</button></footer>
-        </section>
-    </div>
+    <Dialog v-model:visible="store.adding" modal :draggable="false" :dismissable-mask="false" :close-on-escape="!store.saving" :closable="false" :block-scroll="true" :unstyled="true" :pt="addDialogPassThrough">
+        <template #header><h3 id="lookup-add-title" class="m-0 text-[15px]">Onderzoek toevoegen · {{ store.data?.sample.barcode }}</h3><button class="icon-button" type="button" title="Sluiten" :disabled="store.saving" @click="store.adding = false"><X :size="18" /></button></template>
+        <fieldset class="grid gap-4 p-[14px]" :disabled="store.saving">
+            <SampleResearchSelector ref="selector" />
+            <SelectedSampleResearch @edit-profile-assay="(entry, assay) => selector.editProfileAssay(entry, assay)" @edit-roaming="(entry) => selector.editRoaming(entry)" />
+        </fieldset>
+        <p v-if="store.error" role="alert" class="px-[14px] pb-[14px] text-[11px] text-[#903e32]">{{ store.error }}</p>
+        <template #footer><button class="button" type="button" :disabled="store.saving" @click="store.adding = false">Annuleren</button><button class="button primary" type="button" :disabled="store.saving || research.loading || !research.selected.length || !!research.pendingConflict" @click="store.mutate({ operation: 'add', analyses: research.payload })"><Plus :size="16" />{{ store.saving ? 'Opslaan...' : 'Toevoegen' }}</button></template>
+    </Dialog>
+    <Dialog :visible="removing !== null" modal :draggable="false" :dismissable-mask="false" :close-on-escape="false" :closable="false" :block-scroll="true" :unstyled="true" :pt="removeDialogPassThrough" @update:visible="removing = null">
+        <template #header><h3 id="lookup-remove-title" class="m-0 text-[15px]">Analyse verwijderen</h3></template>
+        <div class="p-[14px]">{{ removing?.name }} (SAID {{ removing?.id }}) verwijderen?</div>
+        <template #footer><button class="button" type="button" @click="removing = null">Annuleren</button><button class="button danger" type="button" @click="store.mutate({ operation: 'remove', analysis_id: removing.id }); removing = null"><Trash2 :size="15" />Verwijderen</button></template>
+    </Dialog>
 </template>
 
 <style scoped>

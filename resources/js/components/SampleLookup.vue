@@ -1,5 +1,5 @@
 <script setup>
-import { defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue';
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ArrowLeft, ArrowRight, Barcode, FileClock, Pencil, Search } from '@lucide/vue';
 import { getEcho } from '../echo.js';
 import { useSampleLookupStore } from '../stores/sampleLookupStore';
@@ -14,9 +14,12 @@ const props = defineProps({ endpoints: { type: Object, required: true }, permiss
 const store = useSampleLookupStore();
 const confirmationStore = useConfirmationStore();
 const EndResultDisplay = defineAsyncComponent(() => import('./EndResultDisplay.vue'));
+const barcodeInput = ref(null);
 let realtimeClient = null;
 let subscribedSampleId = null;
 let subscriptionRevision = 0;
+const sampleChannelSettled = ref(false);
+const sampleChannelFailed = ref(false);
 store.endpoints = props.endpoints;
 confirmationStore.configure(props.endpoints.confirmation);
 const tabs = [{ id: 'general', label: 'Algemeen' }, { id: 'metadata', label: 'Metadata' }, { id: 'product', label: 'Productgroep / THT' }, { id: 'documents', label: 'Documenten' }];
@@ -39,12 +42,18 @@ function openConfirmation() {
     if (!store.selectedId || store.readOnly || confirmationStore.readOnly) return;
     confirmationStore.open(store.selectedId, 'global', 0);
 }
+function focusBarcodeInput() {
+    barcodeInput.value?.focus();
+    barcodeInput.value?.select();
+}
 onMounted(() => {
     const barcode = new URLSearchParams(window.location.search).get('barcode');
     if (barcode) store.lookup(barcode);
 });
 watch(() => store.data?.sample.id, (sampleId) => {
     const revision = ++subscriptionRevision;
+    sampleChannelSettled.value = false;
+    sampleChannelFailed.value = false;
     if (subscribedSampleId !== null) realtimeClient?.leave(`samples.${subscribedSampleId}`);
     subscribedSampleId = sampleId ?? null;
     if (subscribedSampleId === null) return;
@@ -52,6 +61,9 @@ watch(() => store.data?.sample.id, (sampleId) => {
     realtimeClient = getEcho();
     confirmationStore.setSample(sampleId);
     realtimeClient.private(`samples.${subscribedSampleId}`)
+        .subscribed(() => {
+            if (revision === subscriptionRevision) sampleChannelSettled.value = true;
+        })
         .listen('.analysis.result.calculated', (event) => {
             store.applyCalculationEvent(event);
             if (Number(event.analysis_id) !== Number(store.selectedId)) return;
@@ -78,8 +90,17 @@ watch(() => store.data?.sample.id, (sampleId) => {
             if (Number(event.analysis_id) === Number(store.selectedId)) confirmationStore.queueDecisionPrompt(event);
         })
         .error(() => {
-            if (revision === subscriptionRevision) store.reportRealtimeError();
+            if (revision !== subscriptionRevision) return;
+            sampleChannelFailed.value = true;
+            sampleChannelSettled.value = true;
+            store.reportRealtimeError();
         });
+}, { flush: 'sync' });
+watch([() => store.selectedId, sampleChannelSettled], async ([analysisId, channelSettled]) => {
+    if (!analysisId || !channelSettled) return;
+
+    await store.loadResults(analysisId);
+    if (sampleChannelFailed.value && store.selectedId === analysisId) store.reportRealtimeError();
 }, { flush: 'sync' });
 watch(() => store.selectedId, () => confirmationStore.reset(true), { flush: 'sync' });
 watch(() => store.resultData?.confirmation, (confirmation) => {
@@ -108,7 +129,7 @@ onBeforeUnmount(() => {
             <div class="sample-create-column">
                 <section class="sample-panel">
                     <h2><Barcode :size="16" />Monster opzoeken<span class="lookup-tools"><button class="icon-button" title="Vorig monster" :disabled="!store.data?.previous || store.saving" @click="store.lookup(store.data.previous)"><ArrowLeft :size="16" /></button><button class="icon-button" title="Volgend monster" :disabled="!store.data?.next || store.saving" @click="store.lookup(store.data.next)"><ArrowRight :size="16" /></button></span></h2>
-                    <form class="sample-panel-body lookup-search" @submit.prevent="store.lookup()"><label class="sr-only" for="lookup-barcode">Barcode</label><div class="lookup-barcode-control"><Barcode :size="16" aria-hidden="true" /><input id="lookup-barcode" v-model="store.barcode" autofocus autocomplete="off" placeholder="Barcode" maxlength="32" :disabled="store.saving" @focus="$event.target.select()" @keydown.enter="$event.target.select()"></div><button class="button primary" title="Monster zoeken" :disabled="store.saving || !store.barcode.trim()"><Search :size="18" /></button></form>
+                    <form class="sample-panel-body lookup-search" @submit.prevent="store.lookup()"><label class="sr-only" for="lookup-barcode">Barcode</label><div class="lookup-barcode-control"><Barcode :size="16" aria-hidden="true" /><input id="lookup-barcode" ref="barcodeInput" v-model="store.barcode" autofocus autocomplete="off" placeholder="Barcode" maxlength="32" :disabled="store.saving" @focus="$event.target.select()" @keydown.enter="$event.target.select()"></div><button class="button primary" title="Monster zoeken" :disabled="store.saving || !store.barcode.trim()"><Search :size="18" /></button></form>
                     <p v-if="store.loading" class="sample-panel-body" role="status">Monster laden...</p>
                 </section>
                 <section class="sample-panel">
@@ -156,7 +177,7 @@ onBeforeUnmount(() => {
             </div>
             <div class="sample-create-column lookup-results-column">
                 <section class="sample-panel"><h2>Resultaat uitgedrukt in</h2><div class="sample-panel-body"><EndResultDisplay :calculation="store.calculation" :confirmation="confirmationStore.data" :confirmation-busy="confirmationStore.pendingMutationCount > 0" :confirmation-error="confirmationStore.error" :can-reset-confirmation="permissions.resetConfirmation" :read-only="store.readOnly || confirmationStore.readOnly" :loading="store.calculationLoading" :error="store.calculationError" empty-text="Selecteer een analyse om het eindresultaat te bekijken." @confirmation-decision="setConfirmationDecision" @open-confirmation="openConfirmation" /></div></section>
-                <section class="sample-panel"><h2>Laboratoriumresultaten<span class="lookup-tools"><button class="icon-button" title="Resultaatrevisies" :disabled="!store.selected" @click="store.placeholder('Resultaatrevisies')"><FileClock :size="15" /></button><button class="icon-button" title="Verdunningen wijzigen" :disabled="!store.selected" @click="store.placeholder('Verdunningen wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body"><SampleLookupResults /></div></section>
+                <section class="sample-panel"><h2>Laboratoriumresultaten<span class="lookup-tools"><button class="icon-button" title="Resultaatrevisies" :disabled="!store.selected" @click="store.placeholder('Resultaatrevisies')"><FileClock :size="15" /></button><button class="icon-button" title="Verdunningen wijzigen" :disabled="!store.selected" @click="store.placeholder('Verdunningen wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body"><SampleLookupResults @finished-entry="focusBarcodeInput" /></div></section>
                 <section class="sample-panel"><h2>Monster notities<span class="lookup-tools"><button class="icon-button" title="Notities wijzigen" :disabled="!store.data" @click="store.placeholder('Monsternotities wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body lookup-note">{{ store.data?.sample.sample_note || 'Geen notities.' }}</div></section>
                 <section v-if="store.debug" class="sample-panel" aria-live="polite"><h2>{{ store.debug.feature }}</h2><div class="sample-panel-body"><SampleLookupPlaceholder :feature="store.debug.feature" :details="store.debug" /></div></section>
             </div>

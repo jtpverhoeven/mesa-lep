@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { useSampleResearchStore } from './sampleResearchStore.js';
 
 export const useSampleLookupStore = defineStore('sampleLookup', {
-    state: () => ({ endpoints: {}, data: null, barcode: '', loading: false, saving: false, error: '', selectedId: null, scannedResultFollowNumber: null, tab: 'general', adding: false, requestId: 0, debug: null, resultData: null, resultsLoading: false, resultSaving: {}, resultError: '', calculation: null, calculationLoading: false, calculationError: '', calculationRevision: 0, resultRequestId: 0 }),
+    state: () => ({ endpoints: {}, data: null, barcode: '', loading: false, saving: false, error: '', selectedId: null, scannedPlateFollowNumber: null, plateFocusRevision: 0, tab: 'general', adding: false, requestId: 0, debug: null, resultData: null, resultsLoading: false, resultSaving: {}, resultError: '', calculation: null, calculationLoading: false, calculationError: '', calculationRevision: 0, resultRequestId: 0 }),
     getters: {
         selected: (state) => state.data?.analyses.find((analysis) => analysis.id === state.selectedId) ?? null,
         progress: (state) => state.data?.analyses.length ? Math.round(state.data.analyses.filter((analysis) => analysis.is_ready).length / state.data.analyses.length * 100) : 0,
@@ -13,11 +13,26 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
             if (this.saving) return;
             const requestId = ++this.requestId;
             const scannedBarcode = String(barcode ?? '').trim();
-            const [sampleBarcode, analysisFollowNumber, resultFollowNumber] = scannedBarcode.split('.');
+            const [sampleBarcode, analysisFollowNumber, plateFollowNumber] = scannedBarcode.split('.');
             this.barcode = scannedBarcode;
+            this.scannedPlateFollowNumber = plateFollowNumber || null;
+            const replaceBarcodeUrl = () => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('barcode', this.barcode);
+                window.history.replaceState({}, '', url);
+            };
+            if (sampleBarcode && String(this.data?.sample.barcode) === sampleBarcode) {
+                const selectedId = this.data.analyses.find((analysis) => String(analysis.follow_number) === analysisFollowNumber)?.id ?? this.data.analyses[0]?.id ?? null;
+                this.error = '';
+                this.debug = null;
+                this.adding = false;
+                replaceBarcodeUrl();
+                if (this.selectedId === selectedId) this.plateFocusRevision++;
+                else this.selectedId = selectedId;
+                return;
+            }
             this.data = null;
             this.selectedId = null;
-            this.scannedResultFollowNumber = resultFollowNumber || null;
             this.clearResults();
             this.debug = null;
             this.adding = false;
@@ -34,9 +49,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                 if (requestId !== this.requestId) return;
                 this.data = data;
                 this.selectedId = data.analyses.find((analysis) => String(analysis.follow_number) === analysisFollowNumber)?.id ?? data.analyses[0]?.id ?? null;
-                const url = new URL(window.location.href);
-                url.searchParams.set('barcode', this.barcode);
-                window.history.replaceState({}, '', url);
+                replaceBarcodeUrl();
             } catch (error) {
                 if (requestId === this.requestId) this.error = error.message;
             } finally {

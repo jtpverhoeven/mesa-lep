@@ -18,11 +18,11 @@ class CalculateAnalysisResultJob implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 10;
+    public int $tries = 1;
 
-    public int $timeout = 120;
+    public int $timeout = 10;
 
-    public int $uniqueFor = 180;
+    public int $uniqueFor = 25;
 
     public function __construct(public int $analysisId)
     {
@@ -34,7 +34,7 @@ class CalculateAnalysisResultJob implements ShouldBeUnique, ShouldQueue
         return [
             (new WithoutOverlapping("analysis-result:{$this->analysisId}"))
                 ->releaseAfter(2)
-                ->expireAfter(180),
+                ->expireAfter(30),
         ];
     }
 

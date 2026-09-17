@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { AlertTriangle, FlaskConical, LoaderCircle, Plus, Search, UsersRound, X } from '@lucide/vue';
+import Dialog from 'openvue/dialog';
 import { useSampleResearchStore } from '../stores/sampleResearchStore';
 import RoamingAnalysisDialog from './RoamingAnalysisDialog.vue';
 
@@ -10,6 +11,14 @@ const query = ref('');
 const matrix = ref('');
 const accreditation = ref('all');
 const roaming = ref({ open: false, assay: null, defaults: null, editSource: null, editKey: null });
+const conflictDialogPassThrough = {
+    mask: { class: 'p-[20px] bg-[rgba(20,35,45,.45)]' },
+    root: { class: 'w-[min(520px,100%)] max-h-[calc(100vh-40px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]', role: 'alertdialog', 'aria-labelledby': 'conflict-title' },
+    header: { class: 'flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-3 py-[9px]' },
+    headerActions: { class: 'hidden' },
+    content: { class: 'p-0' },
+    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2.5' },
+};
 
 const filteredProfiles = computed(() => store.profiles.filter((profile) => !query.value || profile.name.toLowerCase().includes(query.value.toLowerCase())));
 const filteredAssays = computed(() => store.assays.filter((assay) => {
@@ -69,13 +78,14 @@ defineExpose({ editProfileAssay, editRoaming });
         <p v-if="store.error" class="error-text research-error">{{ store.error }}</p>
     </div>
 
-    <div v-if="store.pendingConflict" class="research-modal-backdrop">
-        <section class="research-modal conflict-modal" role="alertdialog" aria-modal="true" aria-labelledby="conflict-title">
-            <header><div><small>Dubbele analyse</small><h3 id="conflict-title">Keuze vereist</h3></div><AlertTriangle :size="20" /></header>
-            <div class="research-modal-body"><p><strong>{{ store.pendingConflict.profile.name }}</strong> bevat onderzoek dat al geselecteerd is:</p><ul><li v-for="assay in store.pendingConflict.conflicts" :key="assay.id">{{ assay.name }}</li></ul></div>
-            <footer><button class="button" type="button" @click="store.resolveConflict('cancel')"><X :size="15" />Annuleren</button><button class="button" type="button" @click="store.resolveConflict('exclude')">Dubbele overslaan</button><button class="button primary" type="button" @click="store.resolveConflict('replace')">Bestaande vervangen</button></footer>
-        </section>
-    </div>
+    <Dialog :visible="store.pendingConflict !== null" modal :draggable="false" :dismissable-mask="false" :close-on-escape="false" :closable="false" :block-scroll="true" :unstyled="true" :pt="conflictDialogPassThrough" @update:visible="store.pendingConflict = null">
+        <template #header>
+            <div><small class="block text-[10px] text-[var(--muted)]">Dubbele analyse</small><h3 id="conflict-title" class="m-0 text-[15px]">Keuze vereist</h3></div>
+            <AlertTriangle :size="20" />
+        </template>
+        <div class="p-[14px]"><p><strong>{{ store.pendingConflict?.profile.name }}</strong> bevat onderzoek dat al geselecteerd is:</p><ul class="m-[10px_0_0] list-disc pl-5"><li v-for="assay in store.pendingConflict?.conflicts ?? []" :key="assay.id">{{ assay.name }}</li></ul></div>
+        <template #footer><button class="button" type="button" @click="store.resolveConflict('cancel')"><X :size="15" />Annuleren</button><button class="button" type="button" @click="store.resolveConflict('exclude')">Dubbele overslaan</button><button class="button primary" type="button" @click="store.resolveConflict('replace')">Bestaande vervangen</button></template>
+    </Dialog>
 
     <RoamingAnalysisDialog :open="roaming.open" :assay="roaming.assay" :defaults="roaming.defaults" :reference-sources="store.referenceSources" @cancel="roaming.open = false" @save="saveRoaming" />
 </template>

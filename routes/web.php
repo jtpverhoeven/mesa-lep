@@ -58,7 +58,9 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
 Route::middleware(['auth', 'can:samples.list'])->prefix('laboratory/samples/register')->group(function () {
     Route::get('/', [SampleRegisterController::class, 'index'])->name('samples.register');
     Route::get('/data', [SampleRegisterController::class, 'data'])->name('samples.register.data');
+    Route::patch('/settings', [SampleRegisterController::class, 'settings'])->name('samples.register.settings');
     Route::post('/inoculation', [SampleRegisterController::class, 'inoculate'])->name('samples.register.inoculation');
+    Route::patch('/{sample}/conditions', [SampleRegisterController::class, 'updateConditions'])->name('samples.register.conditions');
 });
 
 Route::middleware(['auth', 'can:assurance-form.view'])->prefix('laboratory/assurance-forms')->group(function () {

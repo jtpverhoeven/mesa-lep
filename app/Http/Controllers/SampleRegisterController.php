@@ -2,18 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\AssuranceForms\GetOrCreateAssuranceForm;
+use App\Actions\AssuranceForms\QueueAssuranceFormSynchronization;
+use App\Actions\AssuranceForms\ResolveAssuranceDay;
 use App\Actions\Samples\RegisterSampleInoculation;
+use App\Models\Cvar;
+use App\Models\Project;
 use App\Models\Sample;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SampleRegisterController extends Controller
 {
+    private const STORAGE_CVAR = 'MESA_CURRENT_BIN';
+
+    private const DILUTION_CVAR = 'MESA_CURRENT_DILUTION';
+
     public function index(): View
     {
         return view('samples.register');
@@ -51,6 +61,7 @@ class SampleRegisterController extends Controller
             'samples' => $samples->map(fn (Sample $sample): array => $this->sampleData($sample))->all(),
             'next_cursor' => $hasMore && $samples->isNotEmpty() ? (int) $samples->last()->id : null,
             'has_more' => $hasMore,
+            'settings' => $this->settingsForUser((string) $request->user()->getAuthIdentifier()),
         ]]);
     }
 
@@ -59,6 +70,8 @@ class SampleRegisterController extends Controller
         $validated = $request->validate([
             'barcode' => ['required', 'string', 'max:64'],
             'overwrite' => ['sometimes', 'boolean'],
+            'storage' => ['sometimes', 'nullable', 'string', 'max:5'],
+            'dilution_at' => ['sometimes', 'nullable', 'string', 'max:5'],
         ]);
         $sample = $this->findSample((string) $validated['barcode']);
 
@@ -66,8 +79,12 @@ class SampleRegisterController extends Controller
             throw ValidationException::withMessages(['barcode' => 'Onbekende barcode.']);
         }
 
+        $settings = $this->settingsForUser((string) $request->user()->getAuthIdentifier());
+        $storedIn = array_key_exists('storage', $validated) ? (string) ($validated['storage'] ?? '') : $settings['storage'];
+        $dilutedAt = array_key_exists('dilution_at', $validated) ? (string) ($validated['dilution_at'] ?? '') : $settings['dilution_at'];
+
         try {
-            $sample = $register->handle($sample, (bool) ($validated['overwrite'] ?? false));
+            $sample = $register->handle($sample, (bool) ($validated['overwrite'] ?? false), $storedIn, $dilutedAt);
         } catch (ValidationException $exception) {
             if (array_key_exists('already_started', $exception->errors())) {
                 return response()->json([
@@ -82,6 +99,73 @@ class SampleRegisterController extends Controller
         return response()->json(['data' => [
             'message' => 'Monster '.$sample->barcode.' is ingezet.',
             'sample' => $this->sampleData($sample->load(['client', 'project', 'analyses.assayRecord'])),
+        ]]);
+    }
+
+    public function settings(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'storage' => ['nullable', 'string', 'max:5'],
+            'dilution_at' => ['nullable', 'string', 'max:5'],
+        ]);
+        $userId = (string) $request->user()->getAuthIdentifier();
+
+        $this->saveUserSetting(self::STORAGE_CVAR, $userId, (string) ($validated['storage'] ?? ''), 'A');
+        $this->saveUserSetting(self::DILUTION_CVAR, $userId, (string) ($validated['dilution_at'] ?? ''), '1');
+
+        return response()->json(['data' => $this->settingsForUser($userId)]);
+    }
+
+    public function updateConditions(
+        Request $request,
+        Sample $sample,
+        ResolveAssuranceDay $resolveDay,
+        GetOrCreateAssuranceForm $getOrCreateForm,
+        QueueAssuranceFormSynchronization $queueAssuranceSync,
+    ): JsonResponse {
+        $validated = $request->validate([
+            'innoc' => ['required', 'date_format:d-m-Y H:i'],
+            'storage' => ['nullable', 'string', 'max:5'],
+            'diluted_at' => ['nullable', 'string', 'max:5'],
+        ]);
+        $inoculatedAt = $this->parseInoculationDate((string) $validated['innoc']);
+        $previousInoculation = '';
+
+        $updated = DB::transaction(function () use ($sample, $inoculatedAt, $validated, &$previousInoculation): Sample {
+            $lockedSample = Sample::query()->lockForUpdate()->findOrFail($sample->getKey());
+            $project = (int) $lockedSample->project > 0
+                ? Project::query()->lockForUpdate()->find($lockedSample->project)
+                : null;
+
+            if ($project?->locked || $project?->auth_status) {
+                throw ValidationException::withMessages([
+                    'sample' => 'Dit project is vergrendeld of geautoriseerd.',
+                ]);
+            }
+
+            $previousInoculation = (string) ($lockedSample->sample_innoculated ?? '');
+
+            if (! $this->hasInoculation($previousInoculation)) {
+                throw ValidationException::withMessages([
+                    'sample' => 'Kan niet wijzigen. Dit monster is nog niet gescand.',
+                ]);
+            }
+
+            $lockedSample->sample_innoculated = (string) $inoculatedAt->timestamp;
+            $lockedSample->stored_in = (string) ($validated['storage'] ?? '');
+            $lockedSample->diluted_at = (string) ($validated['diluted_at'] ?? '');
+            $lockedSample->save();
+
+            return $lockedSample->fresh();
+        });
+
+        $newFormDate = $resolveDay->handle($updated->sample_innoculated)['form_date'];
+        $getOrCreateForm->handle($newFormDate);
+        $queueAssuranceSync->handleMany([$previousInoculation, $updated->sample_innoculated]);
+
+        return response()->json(['data' => [
+            'message' => 'Monster '.$updated->barcode.' is bijgewerkt.',
+            'sample' => $this->sampleData($updated->load(['client', 'project', 'analyses.assayRecord'])),
         ]]);
     }
 
@@ -136,6 +220,64 @@ class SampleRegisterController extends Controller
     private function sampleType(string $listType): string
     {
         return ['1' => 'S', '2' => 'L', '3' => 'R'][$listType] ?? 'S';
+    }
+
+    /**
+     * @return array{storage: string, dilution_at: string}
+     */
+    private function settingsForUser(string $userId): array
+    {
+        return [
+            'storage' => $this->userSetting(self::STORAGE_CVAR, $userId, 'A'),
+            'dilution_at' => $this->userSetting(self::DILUTION_CVAR, $userId, '1'),
+        ];
+    }
+
+    private function userSetting(string $name, string $userId, string $fallback): string
+    {
+        $values = json_decode((string) Cvar::query()->where('cvar', $name)->value('value'), true);
+
+        if (! is_array($values) || ! array_key_exists($userId, $values)) {
+            return $fallback;
+        }
+
+        $value = trim((string) $values[$userId]);
+
+        return $value !== '' ? $value : $fallback;
+    }
+
+    private function saveUserSetting(string $name, string $userId, string $value, string $fallback): void
+    {
+        $cvar = Cvar::query()->firstOrNew(['cvar' => $name]);
+        $values = json_decode((string) $cvar->value, true);
+        $values = is_array($values) ? $values : [];
+        $values[$userId] = $value;
+        $cvar->value = json_encode($values, JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR);
+        $cvar->default ??= $fallback;
+        $cvar->description ??= 'Monsterregistratie instelling per gebruiker.';
+        $cvar->save();
+    }
+
+    private function parseInoculationDate(string $value): CarbonImmutable
+    {
+        try {
+            $date = CarbonImmutable::createFromFormat('!d-m-Y H:i', trim($value), 'Europe/Amsterdam');
+        } catch (\Throwable) {
+            throw ValidationException::withMessages(['innoc' => 'Gebruik het formaat dd-mm-jjjj uu:mm.']);
+        }
+
+        if (! $date instanceof CarbonImmutable || $date->format('d-m-Y H:i') !== trim($value)) {
+            throw ValidationException::withMessages(['innoc' => 'Gebruik het formaat dd-mm-jjjj uu:mm.']);
+        }
+
+        return $date;
+    }
+
+    private function hasInoculation(string $value): bool
+    {
+        $value = trim($value);
+
+        return $value !== '' && $value !== '0';
     }
 
     /**

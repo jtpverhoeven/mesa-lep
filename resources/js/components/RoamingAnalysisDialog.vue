@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref, watch } from 'vue';
 import { Code2, ListChecks, Save, X } from '@lucide/vue';
+import Dialog from 'openvue/dialog';
 
 const props = defineProps({
     open: { type: Boolean, default: false },
@@ -25,6 +26,14 @@ const dilutionOptions = [
     { key: '-9', value: '0.000000001', label: '-9' },
     { key: '-10', value: '0.0000000001', label: '-10' },
 ];
+const dialogPassThrough = {
+    mask: { class: 'p-[20px] bg-[rgba(20,35,45,.45)]' },
+    root: { class: 'w-[min(620px,100%)] max-h-[calc(100vh-40px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]', 'aria-labelledby': 'roaming-title' },
+    header: { class: 'flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-3 py-[9px]' },
+    headerActions: { class: 'hidden' },
+    content: { class: 'p-0' },
+    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2.5' },
+};
 
 function toText(value) {
     return Object.entries(value ?? {}).map(([key, setting]) => `${key}=${setting}`).join('\n');
@@ -95,21 +104,22 @@ watch(() => [props.open, props.assay?.id, props.defaults], ([open]) => { if (ope
 </script>
 
 <template>
-    <div v-if="open" class="research-modal-backdrop" @mousedown.self="emit('cancel')">
-        <section class="research-modal" role="dialog" aria-modal="true" aria-labelledby="roaming-title">
-            <header><div><small>Losse analyse</small><h3 id="roaming-title">{{ assay?.name }}</h3></div><button class="icon-button" type="button" title="Sluiten" @click="emit('cancel')"><X :size="16" /></button></header>
-            <div class="research-modal-body form-grid">
-                <div v-if="assay?.dillution" class="field wide dilution-control">
-                    <div class="dilution-heading"><label>Verdunningen</label><div class="dilution-mode" role="tablist" aria-label="Invoermethode verdunningen"><button type="button" role="tab" :aria-selected="dilutionMode === 'picker'" title="Interactieve selectie" @click="dilutionMode = 'picker'"><ListChecks :size="15" /></button><button type="button" role="tab" :aria-selected="dilutionMode === 'text'" title="Tekstinvoer" @click="dilutionMode = 'text'"><Code2 :size="15" /></button></div></div>
-                    <div v-if="dilutionMode === 'picker'" class="dilution-picker"><label v-for="option in dilutionOptions" :key="option.key"><input type="checkbox" :checked="selectedDilution(option)" @change="toggleDilution(option, $event.target.checked)"><span>{{ option.label }}</span></label></div>
-                    <textarea v-else id="roaming-dillutions" v-model="form.dillutionsText" rows="6" placeholder="-1=0.1" @blur="validateDillutions"></textarea>
-                    <small>De interactieve selectie en tekstweergave blijven gesynchroniseerd.</small><span v-if="errors.dillutions" class="error-text">{{ errors.dillutions }}</span>
-                </div>
-                <div v-if="assay?.replicates" class="field"><label for="roaming-replicates">Replica's</label><input id="roaming-replicates" v-model.number="form.replicates" type="number" min="0"></div>
-                <div class="field"><label for="roaming-source">Referentiebron</label><select id="roaming-source" v-model="form.referenceSource"><option value="">Geen bron</option><option v-for="source in referenceSources" :key="source.id" :value="source.id">{{ source.name }}</option></select></div>
-                <div class="field wide"><label for="roaming-reference">Referentiewaarden</label><textarea id="roaming-reference" v-model="form.referenceText" rows="4" placeholder="ref_naam=waarde"></textarea><small>Een instelling per regel, als naam=waarde.</small><span v-if="errors.reference" class="error-text">{{ errors.reference }}</span></div>
+    <Dialog :visible="open" modal :draggable="false" :dismissable-mask="true" :close-on-escape="false" :closable="false" :block-scroll="true" :unstyled="true" :pt="dialogPassThrough" @update:visible="emit('cancel')">
+        <template #header>
+            <div><small class="block text-[10px] text-[var(--muted)]">Losse analyse</small><h3 id="roaming-title" class="m-0 text-[15px]">{{ assay?.name }}</h3></div>
+            <button class="icon-button" type="button" title="Sluiten" @click="emit('cancel')"><X :size="16" /></button>
+        </template>
+        <div class="form-grid p-[14px]">
+            <div v-if="assay?.dillution" class="field wide dilution-control">
+                <div class="dilution-heading"><label>Verdunningen</label><div class="dilution-mode" role="tablist" aria-label="Invoermethode verdunningen"><button type="button" role="tab" :aria-selected="dilutionMode === 'picker'" title="Interactieve selectie" @click="dilutionMode = 'picker'"><ListChecks :size="15" /></button><button type="button" role="tab" :aria-selected="dilutionMode === 'text'" title="Tekstinvoer" @click="dilutionMode = 'text'"><Code2 :size="15" /></button></div></div>
+                <div v-if="dilutionMode === 'picker'" class="dilution-picker"><label v-for="option in dilutionOptions" :key="option.key"><input type="checkbox" :checked="selectedDilution(option)" @change="toggleDilution(option, $event.target.checked)"><span>{{ option.label }}</span></label></div>
+                <textarea v-else id="roaming-dillutions" v-model="form.dillutionsText" rows="6" placeholder="-1=0.1" @blur="validateDillutions"></textarea>
+                <small>De interactieve selectie en tekstweergave blijven gesynchroniseerd.</small><span v-if="errors.dillutions" class="error-text">{{ errors.dillutions }}</span>
             </div>
-            <footer><button class="button" type="button" @click="emit('cancel')">Annuleren</button><button class="button primary" type="button" @click="save"><Save :size="15" />Instellingen toepassen</button></footer>
-        </section>
-    </div>
+            <div v-if="assay?.replicates" class="field"><label for="roaming-replicates">Replica's</label><input id="roaming-replicates" v-model.number="form.replicates" type="number" min="0"></div>
+            <div class="field"><label for="roaming-source">Referentiebron</label><select id="roaming-source" v-model="form.referenceSource"><option value="">Geen bron</option><option v-for="source in referenceSources" :key="source.id" :value="source.id">{{ source.name }}</option></select></div>
+            <div class="field wide"><label for="roaming-reference">Referentiewaarden</label><textarea id="roaming-reference" v-model="form.referenceText" rows="4" placeholder="ref_naam=waarde"></textarea><small>Een instelling per regel, als naam=waarde.</small><span v-if="errors.reference" class="error-text">{{ errors.reference }}</span></div>
+        </div>
+        <template #footer><button class="button" type="button" @click="emit('cancel')">Annuleren</button><button class="button primary" type="button" @click="save"><Save :size="15" />Instellingen toepassen</button></template>
+    </Dialog>
 </template>

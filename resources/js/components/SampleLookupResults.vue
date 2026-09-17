@@ -6,6 +6,7 @@ import { useConfirmationStore } from '../stores/confirmationStore';
 
 const store = useSampleLookupStore();
 const confirmationStore = useConfirmationStore();
+const emit = defineEmits(['finished-entry']);
 const resultEntry = ref(null);
 const dilutionGroups = computed(() => {
     const groups = [];
@@ -19,15 +20,27 @@ const dilutionGroups = computed(() => {
     return groups;
 });
 
-watch(() => store.selectedId, (analysisId) => store.loadResults(analysisId), { immediate: true });
-watch(() => store.resultData, async (resultData) => {
-    if (!resultData || store.scannedResultFollowNumber === null) return;
+watch([() => store.resultData, () => store.plateFocusRevision], async ([resultData]) => {
+    if (!resultData) return;
 
     await nextTick();
-    const row = resultData.rows.find((item) => String(item.follow_no) === store.scannedResultFollowNumber);
-    resultEntry.value?.querySelector(`[data-result-id="${row?.id}"] input:not(:disabled)`)?.focus();
-    store.scannedResultFollowNumber = null;
+    const row = resultData.rows.find((item) => String(item.follow_no) === store.scannedPlateFollowNumber);
+    const input = row
+        ? resultEntry.value?.querySelector(`[data-result-id="${row.id}"] input:not(:disabled)`)
+        : resultEntry.value?.querySelector('input:not(:disabled)');
+    input?.focus();
+    store.scannedPlateFollowNumber = null;
 });
+
+function finishEntry(event) {
+    if (event.shiftKey) return;
+
+    const inputs = [...(resultEntry.value?.querySelectorAll('input:not(:disabled)') ?? [])];
+    if (event.currentTarget !== inputs.at(-1)) return;
+
+    event.preventDefault();
+    emit('finished-entry');
+}
 
 function dilutionName(df) {
     if (Number(df) === 1) return 'Origineel monster';
@@ -115,6 +128,7 @@ function openConfirmation(row) {
                                 :inputmode="Number(field.filter) === 1 ? 'decimal' : 'text'"
                                 :disabled="store.readOnly || saving(row, field)"
                                 @keydown="filterKey($event, row, field)"
+                                @keydown.tab="finishEntry"
                                 @keydown.enter.prevent="$event.currentTarget.blur()"
                                 @change="store.saveResult(row, field.name)"
                             >

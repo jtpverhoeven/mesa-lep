@@ -189,14 +189,6 @@ button.selected-research-title { cursor:pointer; }
 .selected-profile-assays > div { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:36px; padding:4px 7px 4px 30px; border-bottom:1px solid var(--line); font-size:11px; }
 .selected-profile-assays > div:last-child { border-bottom:0; }
 .selected-profile-assays .icon-button { width:25px; height:25px; margin:0; flex:none; }
-.research-modal-backdrop { position:fixed; z-index:60; inset:0; display:grid; place-items:center; padding:20px; background:rgba(20,35,45,.45); }
-.research-modal { width:min(620px,100%); max-height:calc(100vh - 40px); overflow:auto; border:1px solid #8e9ba2; background:var(--surface); box-shadow:0 18px 45px rgba(20,35,45,.3); }
-.research-modal > header { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:56px; padding:9px 12px; border-bottom:1px solid var(--line); background:var(--surface-alt); }
-.research-modal > header h3,.research-modal > header small { margin:0; }
-.research-modal > header h3 { font-size:15px; }
-.research-modal > header small { display:block; color:var(--muted); font-size:10px; }
-.research-modal-body { padding:14px; }
-.research-modal-body textarea { width:100%; resize:vertical; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); padding:7px 9px; font:inherit; }
 .dilution-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .dilution-mode { display:flex; }
 .dilution-mode button { display:grid; place-items:center; width:31px; height:28px; margin-left:-1px; border:1px solid #9eabb2; border-radius:0; background:var(--surface); color:var(--muted); cursor:pointer; }
@@ -209,9 +201,6 @@ button.selected-research-title { cursor:pointer; }
 .dilution-picker label:nth-child(2n) { border-right:0; }
 .dilution-picker label:nth-last-child(-n+2) { border-bottom:0; }
 .dilution-control > .error-text { display:block; }
-.research-modal-body ul { margin:10px 0 0; padding-left:20px; }
-.research-modal > footer { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; padding:10px 12px; border-top:1px solid var(--line); background:var(--surface-alt); }
-.conflict-modal { width:min(520px,100%); }
 .table-scroll { overflow:auto; background:var(--surface); border:1px solid var(--line); }
 .data-table { width:100%; border-collapse:collapse; text-align:left; white-space:nowrap; }
 .data-table th { background:#dde3e6; color:var(--muted); font-size:11px; }

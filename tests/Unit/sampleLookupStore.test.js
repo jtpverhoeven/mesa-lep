@@ -26,7 +26,7 @@ test('latest barcode wins when responses arrive out of order', async () => {
     assert.equal(store.loading, false);
 });
 
-test('compound barcode selects the analysis and retains the result follow number', async () => {
+test('compound barcode selects the analysis and retains the plate follow number', async () => {
     let requestedUrl;
     globalThis.fetch = async (url) => {
         requestedUrl = url;
@@ -42,8 +42,46 @@ test('compound barcode selects the analysis and retains the result follow number
 
     assert.equal(requestedUrl, '/lookup?barcode=26091000');
     assert.equal(store.selectedId, 20);
-    assert.equal(store.scannedResultFollowNumber, '3');
+    assert.equal(store.scannedPlateFollowNumber, '3');
     assert.equal(store.barcode, '26091000.2.3');
+});
+
+test('rescanning the same sample replaces the analysis and plate targets', async () => {
+    let requests = 0;
+    const store = useSampleLookupStore();
+    store.endpoints.lookup = '/lookup';
+
+    globalThis.fetch = async () => {
+        requests++;
+        return { ok: true, json: async () => ({ data: { sample: { id: 1, barcode: '26091000' }, analyses: [
+            { id: 10, follow_number: 1 },
+            { id: 20, follow_number: 2 },
+        ] } }) };
+    };
+    await store.lookup('26091000.1.1');
+    const sampleData = store.data;
+    store.scannedPlateFollowNumber = null;
+    await store.lookup('26091000.2.3');
+
+    assert.equal(requests, 1);
+    assert.equal(store.data, sampleData);
+    assert.equal(store.selectedId, 20);
+    assert.equal(store.scannedPlateFollowNumber, '3');
+});
+
+test('scanning another plate in the selected analysis preserves loaded results', async () => {
+    globalThis.fetch = () => { throw new Error('Same-sample plate scans must not request data.'); };
+    const store = useSampleLookupStore();
+    store.data = { sample: { id: 1, barcode: '26091000' }, analyses: [{ id: 20, follow_number: 2 }] };
+    store.selectedId = 20;
+    store.resultData = { rows: [{ id: 30, follow_no: 3 }] };
+
+    await store.lookup('26091000.2.3');
+
+    assert.equal(store.selectedId, 20);
+    assert.equal(store.resultData.rows[0].id, 30);
+    assert.equal(store.scannedPlateFollowNumber, '3');
+    assert.equal(store.plateFocusRevision, 1);
 });
 
 test('failed new scan clears the old sample and ignores an old success', async () => {
@@ -92,6 +130,28 @@ test('result loading displays a calculation-unavailable message', async () => {
 
     assert.equal(store.calculationLoading, false);
     assert.equal(store.calculationError, 'Er is geen rekenmodule ingesteld voor deze analyse.');
+});
+
+test('a new scan invalidates an in-flight result response from the previous sample', async () => {
+    let finishResults;
+    globalThis.fetch = (url) => {
+        if (url === '/analyses/12/results') return new Promise((resolve) => { finishResults = resolve; });
+
+        return Promise.resolve({ ok: true, json: async () => ({ data: { sample: { id: 6, barcode: '26091001' }, analyses: [] } }) });
+    };
+    const store = useSampleLookupStore();
+    store.endpoints = { lookup: '/lookup', results: '/analyses/__ANALYSIS__/results' };
+    store.data = { sample: { id: 5 }, analyses: [{ id: 12 }] };
+    store.selectedId = 12;
+
+    const pendingResults = store.loadResults();
+    await store.lookup('26091001');
+    finishResults({ ok: true, json: async () => ({ data: { rows: [], fields: [], calculation: { output: { result: 'old' } } } }) });
+    await pendingResults;
+
+    assert.equal(store.data.sample.id, 6);
+    assert.equal(store.resultData, null);
+    assert.equal(store.calculation, null);
 });
 
 test('a calculation event wins over an in-flight queued result response', async () => {

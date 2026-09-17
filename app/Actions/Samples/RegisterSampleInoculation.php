@@ -21,11 +21,11 @@ class RegisterSampleInoculation
         private SynchronizeAssuranceForm $synchronizeForm,
     ) {}
 
-    public function handle(Sample $sample, bool $overwrite = false): Sample
+    public function handle(Sample $sample, bool $overwrite = false, ?string $storedIn = null, ?string $dilutedAt = null): Sample
     {
         $previousInoculation = '';
 
-        $updated = DB::transaction(function () use ($sample, $overwrite, &$previousInoculation): Sample {
+        $updated = DB::transaction(function () use ($sample, $overwrite, $storedIn, $dilutedAt, &$previousInoculation): Sample {
             $lockedSample = Sample::query()->lockForUpdate()->findOrFail($sample->getKey());
             $project = (int) $lockedSample->project > 0
                 ? Project::query()->lockForUpdate()->find($lockedSample->project)
@@ -46,6 +46,15 @@ class RegisterSampleInoculation
             }
 
             $lockedSample->sample_innoculated = (string) now()->timestamp;
+
+            if ($storedIn !== null) {
+                $lockedSample->stored_in = $storedIn;
+            }
+
+            if ($dilutedAt !== null) {
+                $lockedSample->diluted_at = $dilutedAt;
+            }
+
             $lockedSample->save();
 
             return $lockedSample->fresh();

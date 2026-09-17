@@ -9,6 +9,14 @@ const store = useConfirmationStore();
 const noteDialogOpen = ref(false);
 const noteDraft = ref('');
 const applicableScopes = computed(() => store.data?.scopes?.filter((scope) => scope.applicable) ?? []);
+const dialogPassThrough = {
+    mask: { class: 'p-[18px] bg-[rgba(20,35,45,.48)]' },
+    root: { class: 'w-[min(980px,100%)] max-h-[calc(100vh-36px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]', 'aria-labelledby': 'confirmation-title' },
+    header: { class: 'flex items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-[14px] py-[11px]' },
+    headerActions: { class: 'hidden' },
+    content: { class: 'p-0' },
+    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-[14px] py-2.5' },
+};
 
 function openNoteDialog() {
     noteDraft.value = store.data?.note ?? '';
@@ -41,43 +49,41 @@ function scopeLabel(scope) {
 </script>
 
 <template>
-    <div v-if="store.dialogOpen" class="confirmation-modal-backdrop" role="presentation" @click.self="store.close()">
-        <section class="confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="confirmation-title">
-            <header>
-                <div><h2 id="confirmation-title">Bevestiging</h2><small v-if="store.data">{{ store.data.status }}</small></div>
-                <button class="icon-button" type="button" title="Sluiten" aria-label="Bevestiging sluiten" @click="store.close()"><X :size="16" /></button>
-            </header>
-            <div class="confirmation-modal-body">
-                <p v-if="store.error" class="error-text" role="alert">{{ store.error }}</p>
-                <div v-if="applicableScopes.length > 1" class="confirmation-scope-tabs" role="tablist" aria-label="Bevestigingsscope">
-                    <button v-for="scope in applicableScopes" :key="`${scope.df}:${scope.rep}`" type="button" :aria-selected="store.selectedScopeKey === `${scope.df}:${scope.rep}`" @click="store.load(store.analysisId, scope.df, scope.rep)">{{ scopeLabel(scope) }}<small>{{ scope.ready ? 'Gereed' : 'Wacht' }}</small></button>
-                </div>
-                <div class="confirmation-summary"><strong>{{ store.selectedEvaluation?.summary?.confirmed ?? 0 }}/{{ store.selectedEvaluation?.summary?.tested ?? 0 }}</strong><span>ratio {{ store.selectedEvaluation?.summary?.ratio ?? '-' }}</span><span>{{ store.selectedScope?.ready ? 'Gereed' : 'Nog niet gereed' }}</span><span v-if="store.pendingMutationCount" role="status">Opslaan...</span></div>
-                <ConfirmationRacetrack />
-                <div class="confirmation-support-list">
-                    <label v-for="field in store.data?.support_fields ?? []" :key="field.media_id">
-                        <span class="support-toggle"><input type="checkbox" :checked="field.active" :disabled="store.readOnly" @change="store.toggleSupport(field.media_id, $event.target.checked)">{{ field.name }}</span>
-                        <input v-if="field.assurance" class="support-value" :class="{ 'support-warning': field.assurance.out_of_specification || field.assurance.out_of_date_here }" :value="field.assurance.value ?? ''" :disabled="store.readOnly || !field.active || !field.assurance.available" :placeholder="field.assurance.kind === 'material' ? (field.assurance.acceptable_range || '') : 'dd-mm-jjjj'" @change="saveSupportValue(field, $event)">
-                        <button v-if="field.assurance?.requires_explanation || field.assurance?.explanation" class="icon-button" type="button" title="Uitleg" aria-label="Uitleg ondersteunend medium" @click="store.openAssuranceExplanation(field.assurance)"><MessageSquare :size="14" /></button>
-                    </label>
-                </div>
-                <div class="confirmation-note-summary">
-                    <div class="confirmation-note-heading"><span>Notitie</span><button class="button" type="button" @click="openNoteDialog"><MessageSquare :size="14" />{{ store.data?.note ? 'Notitie bewerken' : 'Notitie toevoegen' }}</button></div>
-                    <p v-if="store.data?.note" class="confirmation-note-preview">{{ store.data.note }}</p>
-                </div>
-                <div v-if="store.assuranceExplanationField" class="confirmation-explanation-editor">
-                    <label :for="`confirmation-explanation-${store.assuranceExplanationField.key}`">Uitleg: {{ store.assuranceExplanationField.key }}</label>
-                    <textarea :id="`confirmation-explanation-${store.assuranceExplanationField.key}`" v-model="store.assuranceExplanation" :disabled="store.readOnly" rows="3"></textarea>
-                    <div class="confirmation-explanation-actions"><button class="button" type="button" @click="store.assuranceExplanationField = null">Sluiten</button><button class="button primary" type="button" :disabled="store.readOnly || store.loading" @click="store.saveAssuranceExplanation"><Save :size="15" />Opslaan</button></div>
-                </div>
+    <Dialog v-model:visible="store.dialogOpen" modal :draggable="false" :dismissable-mask="true" :close-on-escape="false" :closable="false" :block-scroll="true" :unstyled="true" :pt="dialogPassThrough">
+        <template #header>
+            <div><h2 id="confirmation-title" class="m-0 text-[16px]">Bevestiging</h2><small v-if="store.data" class="mt-[3px] block text-[var(--muted)]">{{ store.data.status }}</small></div>
+            <button class="icon-button" type="button" title="Sluiten" aria-label="Bevestiging sluiten" @click="store.close()"><X :size="16" /></button>
+        </template>
+        <div class="grid gap-[14px] p-[14px]">
+            <p v-if="store.error" class="error-text" role="alert">{{ store.error }}</p>
+            <div v-if="applicableScopes.length > 1" class="confirmation-scope-tabs" role="tablist" aria-label="Bevestigingsscope">
+                <button v-for="scope in applicableScopes" :key="`${scope.df}:${scope.rep}`" type="button" :aria-selected="store.selectedScopeKey === `${scope.df}:${scope.rep}`" @click="store.load(store.analysisId, scope.df, scope.rep)">{{ scopeLabel(scope) }}<small>{{ scope.ready ? 'Gereed' : 'Wacht' }}</small></button>
             </div>
-            <footer>
+            <div class="confirmation-summary"><strong>{{ store.selectedEvaluation?.summary?.confirmed ?? 0 }}/{{ store.selectedEvaluation?.summary?.tested ?? 0 }}</strong><span>ratio {{ store.selectedEvaluation?.summary?.ratio ?? '-' }}</span><span>{{ store.selectedScope?.ready ? 'Gereed' : 'Nog niet gereed' }}</span><span v-if="store.pendingMutationCount" role="status">Opslaan...</span></div>
+            <ConfirmationRacetrack />
+            <div class="confirmation-support-list">
+                <label v-for="field in store.data?.support_fields ?? []" :key="field.media_id">
+                    <span class="support-toggle"><input type="checkbox" :checked="field.active" :disabled="store.readOnly" @change="store.toggleSupport(field.media_id, $event.target.checked)">{{ field.name }}</span>
+                    <input v-if="field.assurance" class="support-value" :class="{ 'support-warning': field.assurance.out_of_specification || field.assurance.out_of_date_here }" :value="field.assurance.value ?? ''" :disabled="store.readOnly || !field.active || !field.assurance.available" :placeholder="field.assurance.kind === 'material' ? (field.assurance.acceptable_range || '') : 'dd-mm-jjjj'" @change="saveSupportValue(field, $event)">
+                    <button v-if="field.assurance?.requires_explanation || field.assurance?.explanation" class="icon-button" type="button" title="Uitleg" aria-label="Uitleg ondersteunend medium" @click="store.openAssuranceExplanation(field.assurance)"><MessageSquare :size="14" /></button>
+                </label>
+            </div>
+            <div class="confirmation-note-summary">
+                <div class="confirmation-note-heading"><span>Notitie</span><button class="button" type="button" @click="openNoteDialog"><MessageSquare :size="14" />{{ store.data?.note ? 'Notitie bewerken' : 'Notitie toevoegen' }}</button></div>
+                <p v-if="store.data?.note" class="confirmation-note-preview">{{ store.data.note }}</p>
+            </div>
+            <div v-if="store.assuranceExplanationField" class="confirmation-explanation-editor">
+                <label :for="`confirmation-explanation-${store.assuranceExplanationField.key}`">Uitleg: {{ store.assuranceExplanationField.key }}</label>
+                <textarea :id="`confirmation-explanation-${store.assuranceExplanationField.key}`" v-model="store.assuranceExplanation" :disabled="store.readOnly" rows="3"></textarea>
+                <div class="confirmation-explanation-actions"><button class="button" type="button" @click="store.assuranceExplanationField = null">Sluiten</button><button class="button primary" type="button" :disabled="store.readOnly || store.loading" @click="store.saveAssuranceExplanation"><Save :size="15" />Opslaan</button></div>
+            </div>
+        </div>
+        <template #footer>
                 <button class="button" type="button" :disabled="store.readOnly || !store.selectedScope" @click="store.addContender"><Plus :size="15" />Kolonie toevoegen</button>
                 <button v-if="store.selectedEvaluation?.contenders?.length" class="button" type="button" :disabled="store.readOnly" @click="store.removeContender(store.selectedEvaluation.contenders.at(-1).index)">Laatste verwijderen</button>
                 <button class="button primary" type="button" :disabled="store.loading" @click="store.close"><Save :size="15" />Sluiten</button>
-            </footer>
-        </section>
-    </div>
+        </template>
+    </Dialog>
     <Dialog v-model:visible="noteDialogOpen" modal header="Notitie" :draggable="false" :dismissable-mask="true" :block-scroll="true" :style="{ width: 'min(520px, calc(100vw - 32px))' }">
         <textarea v-model="noteDraft" class="confirmation-note-editor" :disabled="store.readOnly" rows="7" autofocus aria-label="Notitie"></textarea>
         <template #footer>
@@ -88,13 +94,6 @@ function scopeLabel(scope) {
 </template>
 
 <style scoped>
-.confirmation-modal-backdrop { position:fixed; z-index:70; inset:0; display:grid; place-items:center; padding:18px; background:rgba(20,35,45,.48); }
-.confirmation-modal { width:min(980px,100%); max-height:calc(100vh - 36px); overflow:auto; border:1px solid #8e9ba2; background:var(--surface); box-shadow:0 18px 45px rgba(20,35,45,.3); }
-.confirmation-modal > header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:11px 14px; border-bottom:1px solid var(--line); background:var(--surface-alt); }
-.confirmation-modal h2,.confirmation-modal small { margin:0; }
-.confirmation-modal h2 { font-size:16px; }
-.confirmation-modal header small { display:block; margin-top:3px; color:var(--muted); }
-.confirmation-modal-body { display:grid; gap:14px; padding:14px; }
 .confirmation-scope-tabs { display:flex; overflow:auto; border-bottom:1px solid var(--line); }
 .confirmation-scope-tabs button { display:grid; gap:2px; min-width:110px; padding:8px 10px; border:0; border-bottom:2px solid transparent; background:var(--surface); color:var(--muted); font:inherit; text-align:left; cursor:pointer; }
 .confirmation-scope-tabs button[aria-selected=true] { border-bottom-color:var(--accent); background:var(--accent-faint); color:var(--accent); }
@@ -115,5 +114,4 @@ function scopeLabel(scope) {
 .confirmation-explanation-editor { display:grid; gap:6px; padding-top:10px; border-top:1px solid var(--line); font-size:11px; font-weight:600; }
 .confirmation-explanation-editor textarea { width:100%; resize:vertical; border:1px solid #9eabb2; background:var(--surface); color:var(--ink); padding:7px 9px; font:inherit; }
 .confirmation-explanation-actions { display:flex; justify-content:flex-end; gap:8px; }
-.confirmation-modal > footer { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; padding:10px 14px; border-top:1px solid var(--line); background:var(--surface-alt); }
 </style>
