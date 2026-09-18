@@ -16,6 +16,7 @@ class GetProjectSearchSample
         $sample->load([
             'analyses.assayRecord',
             'analyses.researchProfile',
+            'metadata',
         ]);
 
         $sampleIds = $project->samples()->orderBy('id')->pluck('id');
@@ -40,6 +41,9 @@ class GetProjectSearchSample
                 ->reject(fn (array $field): bool => $field['name'] === 'follow')
                 ->values()
                 ->all(),
+            'metadata' => $sample->metadata->map->only([
+                'id', 'sample', 'name', 'value', 'meta_data_key_id', 'meta_order',
+            ])->values()->all(),
             'analyses' => $sample->analyses->map(fn ($analysis): array => [
                 ...$analysis->only([
                     'id', 'profile_group', 'profile', 'follow_number', 'conf_requested', 'is_ready',

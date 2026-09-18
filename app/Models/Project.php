@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable([
     'reference', 'client', 'subclient', 'project_name', 'project_notes', 'project_date',
@@ -33,5 +34,12 @@ class Project extends Model
     public function sampleAnalyses(): HasMany
     {
         return $this->hasMany(SampleAnalysis::class, 'project')->orderBy('project_order');
+    }
+
+    public function metadata(): HasManyThrough
+    {
+        return $this->hasManyThrough(Metadata::class, Sample::class, 'project', 'sample')
+            ->orderBy('metadata.meta_order')
+            ->orderBy('metadata.id');
     }
 }

@@ -37,4 +37,11 @@ class Sample extends Model
             ->orderBy('project_order')
             ->orderBy('follow_number');
     }
+
+    public function metadata(): HasMany
+    {
+        return $this->hasMany(Metadata::class, 'sample')
+            ->orderBy('meta_order')
+            ->orderBy('id');
+    }
 }

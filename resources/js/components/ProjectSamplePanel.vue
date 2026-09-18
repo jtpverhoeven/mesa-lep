@@ -8,6 +8,7 @@ import Tabs from 'openvue/tabs';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
 import ProjectSampleFields from './ProjectSampleFields.vue';
 import ProjectSampleResults from './ProjectSampleResults.vue';
+import SampleMetadataEditor from './SampleMetadataEditor.vue';
 
 defineProps({ canUpdate: { type: Boolean, required: true } });
 
@@ -23,7 +24,7 @@ const store = useProjectSearchStore();
             <Tabs value="details">
                 <TabPanels>
                     <TabPanel value="details"><ProjectSampleFields :can-update="canUpdate" /></TabPanel>
-                    <TabPanel value="metadata"><p class="empty-state">Geen metadata beschikbaar in deze fase.</p></TabPanel>
+                    <TabPanel value="metadata" class="project-sample-metadata-panel"><SampleMetadataEditor v-model:metadata="store.sampleData.metadata" :sample-id="store.sampleData.sample.id" :endpoint="store.endpoints.metadata" :read-only="!canUpdate || store.sampleReadOnly" /></TabPanel>
                     <TabPanel value="files"><p class="empty-state">Bestanden worden in een latere fase toegevoegd.</p></TabPanel>
                 </TabPanels>
                 <TabList>
@@ -47,5 +48,6 @@ const store = useProjectSearchStore();
 :deep([data-pc-name='tab']) { display:flex; align-items:center; justify-content:center; gap:5px; min-height:31px; padding:4px 6px; border:0; border-top:2px solid transparent; background:var(--surface-alt); color:var(--muted); font:inherit; font-size:11px; cursor:pointer; }
 :deep([data-pc-name='tab'][data-p-active='true']) { border-top-color:var(--accent); background:var(--accent-faint); color:var(--accent); font-weight:700; }
 :deep([data-pc-name='tabpanel']) { padding:12px; }
+:deep(.project-sample-metadata-panel) { padding:6px; }
 :deep([data-pc-section='prevbutton']),:deep([data-pc-section='nextbutton']) { display:none; }
 </style>

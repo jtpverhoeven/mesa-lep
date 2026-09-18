@@ -7,6 +7,7 @@ import { useSampleLookupStore } from '../stores/sampleLookupStore';
 import SampleLookupResearch from './SampleLookupResearch.vue';
 import SampleLookupResults from './SampleLookupResults.vue';
 import SampleLookupPlaceholder from './SampleLookupPlaceholder.vue';
+import SampleMetadataEditor from './SampleMetadataEditor.vue';
 import ConfirmationDecisionDialog from './ConfirmationDecisionDialog.vue';
 import ConfirmationDialog from './ConfirmationDialog.vue';
 import { useConfirmationStore } from '../stores/confirmationStore';
@@ -160,7 +161,7 @@ onBeforeUnmount(() => {
                                 <template v-for="field in store.data.sample_fields" :key="field.name"><dt>{{ field.label }}</dt><dd>{{ display(field.value) }}</dd></template>
                                 <template v-for="field in store.data.sample_extra" :key="field.name"><dt>{{ field.label }}</dt><dd>{{ display(field.value) }}</dd></template>
                             </dl>
-                            <SampleLookupPlaceholder v-else-if="store.tab === 'metadata'" feature="Portalmetadata" :details="{ portal_sample_id: store.data.sample.portal_sample_id, source: store.data.sample.source }" />
+                            <SampleMetadataEditor v-else-if="store.tab === 'metadata'" v-model:metadata="store.data.metadata" :sample-id="store.data.sample.id" :endpoint="endpoints.sampleMetadata" :read-only="store.readOnly || !permissions.updateMetadata" />
                             <SampleLookupPlaceholder v-else-if="store.tab === 'product'" feature="Productgroep / THT" :details="{ tht_code: store.data.sample.tht_code, portal_product_group_id: store.data.sample.portal_product_group_id }" />
                             <SampleLookupPlaceholder v-else feature="Documenten" />
                         </template>

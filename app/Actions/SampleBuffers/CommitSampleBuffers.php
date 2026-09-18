@@ -2,6 +2,7 @@
 
 namespace App\Actions\SampleBuffers;
 
+use App\Actions\Metadata\HydrateSampleMetadata;
 use App\Actions\Samples\CreateSampleWithAnalyses;
 use App\Models\SampleBuffer;
 use Illuminate\Support\Collection;
@@ -9,6 +10,11 @@ use Illuminate\Support\Facades\DB;
 
 class CommitSampleBuffers
 {
+    public function __construct(
+        private CreateSampleWithAnalyses $createSampleWithAnalyses,
+        private HydrateSampleMetadata $hydrateSampleMetadata,
+    ) {}
+
     public function handle(array $ids, int $registeredBy, array $receipt): Collection
     {
         return DB::transaction(function () use ($ids, $registeredBy, $receipt): Collection {
@@ -20,7 +26,7 @@ class CommitSampleBuffers
                 $stored = $buffer->portal_order_info ?? [];
                 $groupKey = $buffer->project.($buffer->tht ? '|'.$buffer->tht_date?->format('Y-m-d') : '');
                 $projectId = $stored['project_id'] ?? $createdProjects[$groupKey] ?? null;
-                $sample = app(CreateSampleWithAnalyses::class)->handle([
+                $sample = $this->createSampleWithAnalyses->handle([
                     'client' => $buffer->client,
                     'project' => $projectId,
                     'project_name' => $buffer->project_name,
@@ -28,7 +34,7 @@ class CommitSampleBuffers
                     'description' => $buffer->sample_name,
                     'sampling_method' => $buffer->sampling_method,
                     'sample_note' => $stored['sample_note'] ?? null,
-                    'custom_fields' => $buffer->meta ?? [],
+                    'custom_fields' => [],
                     'analyses' => $buffer->analyses_selected ?? [],
                     'registered_by' => $registeredBy,
                 ]);
@@ -43,6 +49,11 @@ class CommitSampleBuffers
                     'portal_project_id' => $buffer->portal_project,
                     'portal_analyses' => $buffer->portal_analyses ? json_encode($buffer->portal_analyses) : null,
                 ]);
+                $this->hydrateSampleMetadata->handle(
+                    $sample,
+                    $buffer->meta ?? [],
+                    (int) $buffer->source === 3 ? ($buffer->portal_meta ?? []) : [],
+                );
                 $project = $sample->project()->firstOrFail();
                 $projectExtra = json_decode($project->project_extra ?: '{}', true) ?: [];
                 $project->update([

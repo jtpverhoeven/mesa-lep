@@ -19,6 +19,7 @@ use App\Http\Controllers\SampleBufferController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SampleFieldController;
 use App\Http\Controllers\SampleLookupController;
+use App\Http\Controllers\SampleMetadataController;
 use App\Http\Controllers\SampleProcedureController;
 use App\Http\Controllers\SampleProcedureFieldController;
 use App\Http\Controllers\SampleRegisterController;
@@ -55,6 +56,12 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
     Route::get('/data', [SampleLookupController::class, 'show'])->name('samples.lookup.data');
     Route::get('/{sample}/options', [SampleLookupController::class, 'options'])->middleware('can:samples.assign-research')->name('samples.lookup.options');
     Route::post('/{sample}/research', [SampleLookupController::class, 'update'])->name('samples.lookup.research');
+});
+
+Route::middleware(['auth', 'can:samples.update'])->prefix('laboratory/samples/{sample}/metadata')->group(function () {
+    Route::post('/', [SampleMetadataController::class, 'store'])->name('samples.metadata.store');
+    Route::patch('/{metadata}', [SampleMetadataController::class, 'update'])->name('samples.metadata.update');
+    Route::delete('/{metadata}', [SampleMetadataController::class, 'destroy'])->name('samples.metadata.destroy');
 });
 
 Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects/search')->group(function () {

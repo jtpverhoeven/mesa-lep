@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'glass' => [
+        'base_url' => env('GLASS_API_URL', 'http://glass-api:81/api/v1'),
+    ],
+
 ];

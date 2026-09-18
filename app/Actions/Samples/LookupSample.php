@@ -14,7 +14,7 @@ class LookupSample
     {
         $sample = Sample::query()->where('barcode', $barcode)->with([
             'client', 'project', 'analyses.assayRecord', 'analyses.researchProfile',
-            'analyses.assayProfile', 'analyses.roamingAnalysis',
+            'analyses.assayProfile', 'analyses.roamingAnalysis', 'metadata',
         ])->firstOrFail();
         $project = $sample->getRelation('project');
         $client = $sample->getRelation('client');
@@ -34,6 +34,9 @@ class LookupSample
                 (object) ['name' => 'location', 'alias' => 'Ruimte'],
                 (object) ['name' => 'filter_volume', 'alias' => 'Onderzocht volume in ml.'],
             ])))->reject(fn ($field) => $field['name'] === 'follow')->values()->all(),
+            'metadata' => $sample->metadata->map->only([
+                'id', 'sample', 'name', 'value', 'meta_data_key_id', 'meta_order',
+            ])->values()->all(),
             'project_follow_number' => $projectSamples->search(fn ($item) => $item->id === $sample->id) + 1,
             'sampling_method' => SampleProcedure::query()->whereKey($sample->sampling_method)->value('name'),
             'registered_by' => User::query()->whereKey($sample->registered_by)->value('name'),

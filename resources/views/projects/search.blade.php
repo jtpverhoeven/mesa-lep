@@ -7,6 +7,7 @@
             'search' => route('projects.search.data'),
             'project' => route('projects.search.show', ['project' => '__PROJECT__']),
             'sample' => route('projects.search.samples.show', ['project' => '__PROJECT__', 'sample' => '__SAMPLE__']),
+            'metadata' => route('samples.metadata.store', ['sample' => '__SAMPLE__']),
             'results' => route('projects.search.samples.results.show', [
                 'project' => '__PROJECT__',
                 'sample' => '__SAMPLE__',

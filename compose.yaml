@@ -20,7 +20,10 @@ services:
         volumes:
             - '.:/var/www/html'
         networks:
-            - sail
+            sail:
+            shared-dev:
+                aliases:
+                    - mesa-lep-app
         depends_on:
             - pgsql
             - memcached
@@ -59,7 +62,10 @@ services:
             - 'sail-pgsql:/var/lib/postgresql'
             - './vendor/laravel/sail/database/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
         networks:
-            - sail
+            sail:
+            shared-dev:
+                aliases:
+                    - mesa-lep-pgsql
         healthcheck:
             test:
                 - CMD
@@ -87,6 +93,9 @@ services:
 networks:
     sail:
         driver: bridge
+    shared-dev:
+        external: true
+        name: mesa-glass
 volumes:
     sail-pgsql:
         driver: local
