@@ -2,11 +2,10 @@
 
 namespace App\Models;
 
-use App\Models\ReferenceSource;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'reference', 'name', 'title', 'fname', 'mname', 'lname', 'street_name',
@@ -22,7 +21,7 @@ class Client extends Model
 
     public function categories(): BelongsToMany
     {
-        return $this->belongsToMany(\App\Models\ClientCategory::class, 'categories_clients', 'client_id', 'clientcategory_id')
+        return $this->belongsToMany(ClientCategory::class, 'categories_clients', 'client_id', 'clientcategory_id')
             ->withPivot('id');
     }
 
@@ -34,6 +33,11 @@ class Client extends Model
     public function samples(): HasMany
     {
         return $this->hasMany(Sample::class, 'client');
+    }
+
+    public function sampleBuffers(): HasMany
+    {
+        return $this->hasMany(SampleBuffer::class, 'client');
     }
 
     public function referenceSources(): HasMany

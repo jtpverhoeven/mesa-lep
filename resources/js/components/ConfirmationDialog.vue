@@ -3,20 +3,15 @@ import { computed, ref } from 'vue';
 import { LoaderCircle, MessageSquare, Plus, Save, X } from '@lucide/vue';
 import Dialog from 'openvue/dialog';
 import { useConfirmationStore } from '../stores/confirmationStore';
+import AppDialog from './AppDialog.vue';
 import ConfirmationRacetrack from './ConfirmationRacetrack.vue';
+import { createAppDialogPassThrough } from '../dialogPassThrough';
 
 const store = useConfirmationStore();
 const noteDialogOpen = ref(false);
 const noteDraft = ref('');
 const applicableScopes = computed(() => store.data?.scopes?.filter((scope) => scope.applicable) ?? []);
-const dialogPassThrough = {
-    mask: { class: 'p-[18px] bg-[rgba(20,35,45,.48)]' },
-    root: { class: 'w-[min(980px,100%)] max-h-[calc(100vh-36px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]', 'aria-labelledby': 'confirmation-title' },
-    header: { class: 'flex items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-[14px] py-[11px]' },
-    headerActions: { class: 'hidden' },
-    content: { class: 'p-0' },
-    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-[14px] py-2.5' },
-};
+const dialogPassThrough = createAppDialogPassThrough({ width: '980px', titleId: 'confirmation-title' });
 
 function openNoteDialog() {
     noteDraft.value = store.data?.note ?? '';
@@ -84,13 +79,13 @@ function scopeLabel(scope) {
                 <button class="button primary" type="button" :disabled="store.loading" @click="store.close"><Save :size="15" />Sluiten</button>
         </template>
     </Dialog>
-    <Dialog v-model:visible="noteDialogOpen" modal header="Notitie" :draggable="false" :dismissable-mask="true" :block-scroll="true" :style="{ width: 'min(520px, calc(100vw - 32px))' }">
+    <AppDialog v-model:visible="noteDialogOpen" title="Notitie">
         <textarea v-model="noteDraft" class="confirmation-note-editor" :disabled="store.readOnly" rows="7" autofocus aria-label="Notitie"></textarea>
         <template #footer>
             <button class="button" type="button" @click="noteDialogOpen = false">Annuleren</button>
             <button class="button primary" type="button" :disabled="store.readOnly || store.pendingMutationCount > 0" @click="saveNote"><Save :size="15" />Opslaan</button>
         </template>
-    </Dialog>
+    </AppDialog>
 </template>
 
 <style scoped>

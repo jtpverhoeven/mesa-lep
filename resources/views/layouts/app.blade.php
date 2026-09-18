@@ -40,7 +40,7 @@
         <div class="workspace">
             @auth
                 <aside class="sidebar">
-                    <div class="sidebar-heading"><span class="eyebrow">Werkruimte</span><strong>{{ request()->is('admin*') ? 'Beheer' : 'LIMS' }}</strong></div>
+                    {{-- <div class="sidebar-heading"><span class="eyebrow">Werkruimte</span><strong>{{ request()->is('admin*') ? 'Beheer' : 'LIMS' }}</strong></div> --}}
                     <nav aria-label="Werkruimtenavigatie">
                         @if(request()->is('admin*'))
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>Client Portal</span>
@@ -66,16 +66,19 @@
                             @can('settings.advanced')<a href="{{ route('cvars.index') }}" @class(['selected' => request()->is('admin/cvars*')])>Geavanceerde instellingen</a>@endcan
                         @else
                             <span class="nav-group">Overzicht</span>
-                            <a href="{{ route('dashboard') }}" class="selected">Dashboard</a>
+                            <a href="{{ route('dashboard') }}" class="">Dashboard</a>
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><path d="M12 13v8"></path><path d="m16 17-4 4-4-4"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path></svg>Klant import</span>
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><path d="M9 3h6"></path><path d="M10 9V3"></path><path d="M14 9V3"></path><path d="M7 21h10"></path><path d="M7 21a2 2 0 0 1-1.66-3.12L10 9h4l4.66 8.88A2 2 0 0 1 17 21Z"></path><path d="M6.5 15h11"></path></svg>Monsters</span>
-                            @can('samples.create')<a href="{{ route('samples.create') }}" @class(['selected' => request()->routeIs('samples.create')])>Aanmelden</a>@endcan
+                            @can('portal.access')<a href="{{ route('sample-buffers.index') }}" @class(['selected' => request()->routeIs('sample-buffers.index')])>Voorportaal</a>@endcan
+                            @can('samples.create')<a href="{{ route('samples.create') }}" @class(['selected' => request()->routeIs('samples.create')])>Aanmelden</a>@endcan                            
                             @can('samples.view')<a href="{{ route('samples.lookup') }}" @class(['selected' => request()->routeIs('samples.lookup*')])>Resultaten invoeren</a>@endcan
+                            @can('shelf-life-studies.view')<a href="{{ route('sample-buffers.tht') }}" @class(['selected' => request()->routeIs('sample-buffers.tht')])>THT onderzoeken</a>@endcan
+                            
                             @can('samples.list')<a href="{{ route('samples.register') }}" @class(['selected' => request()->routeIs('samples.register*')])>Monsterlijst</a>@endcan
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><rect width="20" height="14" x="2" y="7" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path><path d="M2 12h20"></path></svg>Projecten</span>
                             @can('projects.view')<a href="{{ route('projects.search') }}" @class(['selected' => request()->routeIs('projects.search*')])>Projecten zoeken</a>@endcan
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"></path></svg>Borging</span>
-                                @can('assurance-form.view')<a href="{{ route('assurance-forms.index') }}" @class(['selected' => request()->is('laboratory/assurance-forms*')])>Borgingsformulier</a>@endcan
+                            @can('assurance-form.view')<a href="{{ route('assurance-forms.index') }}" @class(['selected' => request()->is('laboratory/assurance-forms*')])>Borgingsformulier</a>@endcan
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><path d="M18 21a8 8 0 0 0-16 0"></path><circle cx="10" cy="7" r="4"></circle><path d="M22 21a8 8 0 0 0-6-7.75"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Klanten</span>
                             @can('clients.view')<a href="{{ route('clients.index') }}" @class(['selected' => request()->is('laboratory/clients*')])>Klantenoverzicht</a>@endcan
                             @can('clients.view')<a href="{{ route('client-categories.index') }}" @class(['selected' => request()->is('laboratory/client-categories*')])>Klantcategorieen</a>@endcan

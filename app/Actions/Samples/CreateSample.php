@@ -30,9 +30,9 @@ class CreateSample
             return Sample::create([
                 'barcode' => $barcode,
                 'follow_no' => $followNumber,
-                'description' => $data['description'],
+                'description' => $data['description'] ?? '',
                 'client_description' => 'Geen omschrijving beschikbaar',
-                'sampling_method' => $data['sampling_method'],
+                'sampling_method' => $data['sampling_method'] ?? 0,
                 'date_registered' => (string) $now->timestamp,
                 'registered_by' => $data['registered_by'],
                 'client' => $data['client'],

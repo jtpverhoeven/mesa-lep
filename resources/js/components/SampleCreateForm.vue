@@ -31,9 +31,9 @@ function editRoaming(entry) {
 }
 
 async function submit() {
-    const sample = await store.submit();
-    if (!sample) return;
-    toast.add({ severity: 'success', summary: `Sample was saved as ${sample.barcode}`, life: 3500 });
+    const result = await store.submit();
+    if (!result) return;
+    toast.add({ severity: 'success', summary: result.message, life: 3500 });
     await nextTick();
     sampleInputFields.value?.focusDescription();
 }

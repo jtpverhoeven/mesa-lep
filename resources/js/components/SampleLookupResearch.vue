@@ -6,27 +6,15 @@ import { useSampleLookupStore } from '../stores/sampleLookupStore';
 import { useSampleResearchStore } from '../stores/sampleResearchStore';
 import SampleResearchSelector from './SampleResearchSelector.vue';
 import SelectedSampleResearch from './SelectedSampleResearch.vue';
+import { createAppDialogPassThrough } from '../dialogPassThrough';
 
 defineProps({ permissions: { type: Object, required: true } });
 const store = useSampleLookupStore();
 const research = useSampleResearchStore();
 const selector = ref(null);
 const removing = ref(null);
-const addDialogPassThrough = {
-    mask: { class: 'p-3 bg-[rgba(20,35,45,.45)]' },
-    root: { class: 'w-[min(760px,calc(100vw-24px))] max-h-[calc(100vh-24px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]', 'aria-labelledby': 'lookup-add-title' },
-    header: { class: 'flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-3 py-[9px]' },
-    headerActions: { class: 'hidden' },
-    content: { class: 'p-0' },
-    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2.5' },
-};
-const removeDialogPassThrough = {
-    mask: { class: 'p-[18px] bg-[rgba(20,35,45,.45)]' },
-    root: { class: 'w-[min(620px,100%)] max-h-[calc(100vh-36px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]', role: 'alertdialog', 'aria-labelledby': 'lookup-remove-title' },
-    header: { class: 'flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-3 py-[9px]' },
-    content: { class: 'p-0' },
-    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2.5' },
-};
+const addDialogPassThrough = createAppDialogPassThrough({ width: '760px', titleId: 'lookup-add-title' });
+const removeDialogPassThrough = createAppDialogPassThrough({ width: '620px', titleId: 'lookup-remove-title', role: 'alertdialog' });
 const groups = computed(() => {
     const groups = [];
     for (const analysis of store.data?.analyses ?? []) {

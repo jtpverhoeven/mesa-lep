@@ -21,6 +21,7 @@ import ResearchProfileBulkEditor from './components/ResearchProfileBulkEditor.vu
 import ResearchProfileDirectory from './components/ResearchProfileDirectory.vue';
 import ResearchProfileEditor from './components/ResearchProfileEditor.vue';
 import SampleCreateForm from './components/SampleCreateForm.vue';
+import SampleBufferPortal from './components/SampleBufferPortal.vue';
 import SampleLookup from './components/SampleLookup.vue';
 import SampleRegister from './components/SampleRegister.vue';
 import UserMenu from './components/UserMenu.vue';
@@ -50,6 +51,7 @@ app.component('research-profile-bulk-editor', ResearchProfileBulkEditor);
 app.component('research-profile-directory', ResearchProfileDirectory);
 app.component('research-profile-editor', ResearchProfileEditor);
 app.component('sample-create-form', SampleCreateForm);
+app.component('sample-buffer-portal', SampleBufferPortal);
 app.component('sample-lookup', SampleLookup);
 app.component('sample-register', SampleRegister);
 app.component('user-menu', UserMenu);

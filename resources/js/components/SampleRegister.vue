@@ -2,10 +2,11 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Archive, Barcode, Beaker, ChevronDown, ChevronUp, CircleAlert, FlaskConical, LoaderCircle, Pencil, RefreshCw, Save, Scale, Search, X } from '@lucide/vue';
 import ConfirmDialog from 'openvue/confirmdialog';
-import Dialog from 'openvue/dialog';
 import Toast from 'openvue/toast';
 import { useConfirm } from 'openvue/useconfirm';
 import { useToast } from 'openvue/usetoast';
+import AppDialog from './AppDialog.vue';
+import { createAppDialogPassThrough } from '../dialogPassThrough';
 
 const props = defineProps({
     endpoints: { type: Object, required: true },
@@ -47,32 +48,7 @@ const standardList = computed(() => listType.value === '1');
 const columnCount = computed(() => standardList.value ? 13 : 5);
 const locationDialogTitle = computed(() => locationKind.value === 'storage' ? 'Monster opslag' : 'Afweegstation');
 const locationDialogLabel = computed(() => locationKind.value === 'storage' ? 'Vriezer bak' : 'Afweegstation');
-const locationDialogPassThrough = {
-    mask: { class: 'p-[18px] bg-[rgba(20,35,45,.45)]' },
-    root: { class: 'w-[min(560px,100%)] max-h-[calc(100vh-36px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]', 'aria-labelledby': 'sample-register-location-title' },
-    header: { class: 'flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-3 py-[9px]' },
-    headerActions: { class: 'hidden' },
-    content: { class: 'p-0' },
-    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2.5' },
-};
-const conditionsDialogPassThrough = {
-    mask: { class: 'p-[18px] bg-[rgba(20,35,45,.45)]' },
-    root: { class: 'w-[min(520px,100%)] max-h-[calc(100vh-36px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]', 'aria-labelledby': 'sample-register-conditions-title' },
-    header: { class: 'flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-3 py-[9px]' },
-    headerActions: { class: 'hidden' },
-    content: { class: 'p-0' },
-    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2.5' },
-};
-const overwriteConfirmPassThrough = {
-    mask: { class: 'p-[18px] bg-[rgba(20,35,45,.45)]' },
-    root: { class: 'w-[min(520px,100%)] max-h-[calc(100vh-36px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]' },
-    header: { class: 'flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-3 py-[9px]' },
-    title: { class: 'm-0 text-[15px]', id: 'sample-register-overwrite-title' },
-    headerActions: { class: 'hidden' },
-    content: { class: 'p-0' },
-    message: { class: 'm-0 block p-[14px] text-[var(--ink)]' },
-    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2.5' },
-};
+const overwriteConfirmPassThrough = createAppDialogPassThrough({ titleId: 'sample-register-overwrite-title' });
 
 function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -390,37 +366,25 @@ onBeforeUnmount(() => observer?.disconnect());
             </aside>
         </div>
         <ConfirmDialog :draggable="false" :unstyled="true" :pt="overwriteConfirmPassThrough" />
-        <Dialog v-model:visible="locationDialogOpen" modal :draggable="false" :dismissable-mask="true" :closable="false" :block-scroll="true" :unstyled="true" :pt="locationDialogPassThrough">
-            <template #header>
-                <h2 id="sample-register-location-title" class="m-0 text-[15px]">{{ locationDialogTitle }}</h2>
-                <button class="icon-button" type="button" title="Sluiten" aria-label="Dialoog sluiten" @click="locationDialogOpen = false"><X :size="16" /></button>
-            </template>
-            <div class="sample-register-dialog-body p-[14px]">
-                <p>Bij registreren van een monster wordt {{ locationDialogLabel.toLowerCase() }} ingesteld op:</p>
-                <label class="field" for="sample-register-location"><span>{{ locationDialogLabel }}</span><input id="sample-register-location" v-model="locationDraft" type="text" maxlength="5" autocomplete="off" autofocus></label>
-                <div class="sample-register-location-choices"><button v-for="choice in locationChoices" :key="choice" class="button" type="button" @click="appendLocationChoice(choice)">{{ choice }}</button></div>
-            </div>
+        <AppDialog v-model:visible="locationDialogOpen" :title="locationDialogTitle" width="560px">
+            <p>Bij registreren van een monster wordt {{ locationDialogLabel.toLowerCase() }} ingesteld op:</p>
+            <label class="field" for="sample-register-location"><span>{{ locationDialogLabel }}</span><input id="sample-register-location" v-model="locationDraft" type="text" maxlength="5" autocomplete="off" autofocus></label>
+            <div class="sample-register-location-choices"><button v-for="choice in locationChoices" :key="choice" class="button" type="button" @click="appendLocationChoice(choice)">{{ choice }}</button></div>
             <template #footer>
                 <button class="button" type="button" @click="clearLocationDraft"><X :size="15" />Geen</button>
                 <button class="button" type="button" @click="locationDialogOpen = false">Annuleren</button>
                 <button class="button primary" type="button" :disabled="savingSettings" @click="saveLocationSettings"><LoaderCircle v-if="savingSettings" class="spin" :size="15" /><Save v-else :size="15" />Opslaan</button>
             </template>
-        </Dialog>
-        <Dialog v-model:visible="conditionsDialogOpen" modal :draggable="false" :dismissable-mask="true" :closable="false" :block-scroll="true" :unstyled="true" :pt="conditionsDialogPassThrough">
-            <template #header>
-                <h2 id="sample-register-conditions-title" class="m-0 text-[15px]">Monster opslag wijzigen</h2>
-                <button class="icon-button" type="button" title="Sluiten" aria-label="Dialoog sluiten" @click="conditionsDialogOpen = false"><X :size="16" /></button>
-            </template>
-            <div class="sample-register-dialog-body sample-register-condition-form p-[14px]">
-                <label class="field" for="sample-register-innoc"><span>Inzetdatum en tijd</span><input id="sample-register-innoc" v-model="conditionsDraft.innoc" type="text" inputmode="numeric" placeholder="dd-mm-jjjj uu:mm" autocomplete="off"></label>
-                <label class="field" for="sample-register-storage"><span>Vriezer bak</span><input id="sample-register-storage" v-model="conditionsDraft.storage" type="text" maxlength="5" autocomplete="off"></label>
-                <label class="field" for="sample-register-diluted-at"><span>Afweegstation</span><input id="sample-register-diluted-at" v-model="conditionsDraft.diluted_at" type="text" maxlength="5" autocomplete="off"></label>
-            </div>
+        </AppDialog>
+        <AppDialog v-model:visible="conditionsDialogOpen" title="Monster opslag wijzigen">
+            <label class="field" for="sample-register-innoc"><span>Inzetdatum en tijd</span><input id="sample-register-innoc" v-model="conditionsDraft.innoc" type="text" inputmode="numeric" placeholder="dd-mm-jjjj uu:mm" autocomplete="off"></label>
+            <label class="field" for="sample-register-storage"><span>Vriezer bak</span><input id="sample-register-storage" v-model="conditionsDraft.storage" type="text" maxlength="5" autocomplete="off"></label>
+            <label class="field" for="sample-register-diluted-at"><span>Afweegstation</span><input id="sample-register-diluted-at" v-model="conditionsDraft.diluted_at" type="text" maxlength="5" autocomplete="off"></label>
             <template #footer>
                 <button class="button" type="button" @click="conditionsDialogOpen = false">Annuleren</button>
                 <button class="button primary" type="button" :disabled="savingConditions" @click="saveConditions"><LoaderCircle v-if="savingConditions" class="spin" :size="15" /><Save v-else :size="15" />Opslaan</button>
             </template>
-        </Dialog>
+        </AppDialog>
     </div>
 </template>
 
@@ -463,11 +427,8 @@ onBeforeUnmount(() => observer?.disconnect());
 .sample-register-rail-button { display:grid; place-items:center; width:70px; height:68px; margin:0; padding:0; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--accent); cursor:pointer; }
 .sample-register-rail-button:hover { background:var(--accent-faint); }
 .sample-register-rail-button:disabled { cursor:not-allowed; opacity:.5; }
-.sample-register-dialog-body { display:grid; gap:14px; }
-.sample-register-dialog-body p { margin:0; color:var(--muted); }
 .sample-register-location-choices { display:grid; grid-template-columns:repeat(10,minmax(0,1fr)); gap:4px; }
 .sample-register-location-choices .button { min-height:30px; padding:4px; font-size:11px; }
-.sample-register-condition-form { gap:12px; }
 @media (max-width:1200px) { .sample-register-controls { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:700px) { .sample-register-controls { grid-template-columns:1fr; } .sample-register-panel-body { align-items:stretch; flex-direction:column; } .sample-register-table-wrap { max-height:calc(100vh - 480px); } .sample-register-list-layout { grid-template-columns:1fr; } .sample-register-action-rail { position:static; width:auto; flex-direction:row; flex-wrap:wrap; justify-content:flex-end; gap:10px; } .sample-register-rail-button { width:62px; height:60px; } }
 </style>

@@ -5,7 +5,9 @@ import { useProjectSelectorStore } from './projectSelectorStore';
 import { useSampleResearchStore } from './sampleResearchStore';
 
 function emptyForm() {
-    return { description: '', sampling_method: '', sample_note: '', custom_fields: {} };
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return { description: '', sampling_method: '', sample_note: '', custom_fields: {}, register_as: 'standard', sampling_date: today, receive_date: today, receive_time: new Date().toTimeString().slice(0, 5), tht_date: '', tht_storage: '4' };
 }
 
 export const useCreateSampleStore = defineStore('createSample', {
@@ -100,10 +102,12 @@ export const useCreateSampleStore = defineStore('createSample', {
                 this.barcode = data.next_barcode;
                 this.form = { ...emptyForm(), custom_fields: legacyFieldValues(this.sampleFields) };
                 useSampleResearchStore().clearSelections();
-                await projectStore.loadForClient(clientStore.selected.id);
-                await projectStore.selectProject(String(data.sample.project_id), clientStore.selected.id);
-                projectStore.form.project_name = data.sample.project_name;
-                return data.sample;
+                if (data.destination === 'standard') {
+                    await projectStore.loadForClient(clientStore.selected.id);
+                    await projectStore.selectProject(String(data.sample.project_id), clientStore.selected.id);
+                    projectStore.form.project_name = data.sample.project_name;
+                }
+                return data;
             } catch {
                 this.error = 'Het monster kon niet worden aangemeld.';
             } finally {

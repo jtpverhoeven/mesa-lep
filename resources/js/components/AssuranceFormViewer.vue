@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { ChevronLeft, ChevronRight, LoaderCircle, MessageSquare, Printer, RefreshCw, Save } from '@lucide/vue';
 import DatePicker from 'openvue/datepicker';
-import Dialog from 'openvue/dialog';
+import AppDialog from './AppDialog.vue';
 
 const props = defineProps({
     formDate: { type: String, required: true },
@@ -317,11 +317,11 @@ load();
                 </div>
             </section>
         </template>
-        <Dialog :visible="explanationField !== null" modal :header="explanationField ? `Uitleg: ${explanationField.label}` : 'Uitleg'" :draggable="false" :dismissable-mask="true" :block-scroll="true" :style="{ width: 'min(520px, calc(100vw - 32px))' }" @update:visible="explanationField = null">
+        <AppDialog :visible="explanationField !== null" :title="explanationField ? `Uitleg: ${explanationField.label}` : 'Uitleg'" @update:visible="explanationField = null">
             <p v-if="explanationField?.out_of_date_text" class="assurance-dialog-warning">Gebruikt na THT bij monster(s): {{ explanationField.out_of_date_text }}</p>
             <textarea v-model="explanation" class="assurance-explanation-editor" rows="7" autofocus aria-label="Uitleg"></textarea>
             <template #footer><button class="button" type="button" @click="explanationField = null">Annuleren</button><button class="button primary" type="button" :disabled="saving" @click="saveExplanation"><Save :size="15" />Opslaan</button></template>
-        </Dialog>
+        </AppDialog>
     </section>
 </template>
 

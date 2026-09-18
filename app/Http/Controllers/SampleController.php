@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Clients\SearchClients;
 use App\Actions\SampleAnalyses\GetSampleAnalysisOptions;
+use App\Actions\SampleBuffers\CreateSampleBuffer;
 use App\Actions\Samples\BarcodeGenerator;
 use App\Actions\Samples\CreateSampleWithAnalyses;
 use App\Http\Requests\StoreSampleRequest;
@@ -66,12 +67,31 @@ class SampleController extends Controller
         return response()->json(['data' => $options->handle($client->id)]);
     }
 
-    public function store(StoreSampleRequest $request, CreateSampleWithAnalyses $createSample, BarcodeGenerator $barcodeGenerator): JsonResponse
-    {
-        $sample = $createSample->handle([
+    public function store(
+        StoreSampleRequest $request,
+        CreateSampleWithAnalyses $createSample,
+        CreateSampleBuffer $createSampleBuffer,
+        BarcodeGenerator $barcodeGenerator,
+    ): JsonResponse {
+        $data = [
             ...$request->validated(),
             'registered_by' => $request->user()->id,
-        ]);
+        ];
+
+        if ($data['register_as'] !== 'standard') {
+            $buffer = $createSampleBuffer->handle($data);
+
+            return response()->json([
+                'message' => $buffer->tht
+                    ? 'THT-monster "'.$buffer->tht_code.'" is in de THT-lijst geplaatst.'
+                    : 'Monster is in het voorportaal geplaatst.',
+                'destination' => $buffer->tht ? 'tht' : 'buffer',
+                'buffer' => ['id' => $buffer->id, 'code' => $buffer->tht_code],
+                'next_barcode' => $barcodeGenerator->predict(),
+            ], 201);
+        }
+
+        $sample = $createSample->handle($data);
 
         return response()->json([
             'message' => 'Monster "'.$sample->barcode.'" is aangemeld.',
@@ -81,6 +101,7 @@ class SampleController extends Controller
                 'project_id' => $sample->project,
                 'project_name' => Project::query()->whereKey($sample->project)->value('project_name'),
             ],
+            'destination' => 'standard',
             'next_barcode' => $barcodeGenerator->predict(),
         ], 201);
     }

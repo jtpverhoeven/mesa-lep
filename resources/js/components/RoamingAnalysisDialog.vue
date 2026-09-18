@@ -2,6 +2,7 @@
 import { reactive, ref, watch } from 'vue';
 import { Code2, ListChecks, Save, X } from '@lucide/vue';
 import Dialog from 'openvue/dialog';
+import { createAppDialogPassThrough } from '../dialogPassThrough';
 
 const props = defineProps({
     open: { type: Boolean, default: false },
@@ -26,14 +27,7 @@ const dilutionOptions = [
     { key: '-9', value: '0.000000001', label: '-9' },
     { key: '-10', value: '0.0000000001', label: '-10' },
 ];
-const dialogPassThrough = {
-    mask: { class: 'p-[20px] bg-[rgba(20,35,45,.45)]' },
-    root: { class: 'w-[min(620px,100%)] max-h-[calc(100vh-40px)] overflow-auto border border-[#8e9ba2] bg-[var(--surface)] shadow-[0_18px_45px_rgba(20,35,45,.3)]', 'aria-labelledby': 'roaming-title' },
-    header: { class: 'flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-3 py-[9px]' },
-    headerActions: { class: 'hidden' },
-    content: { class: 'p-0' },
-    footer: { class: 'flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2.5' },
-};
+const dialogPassThrough = createAppDialogPassThrough({ width: '620px', titleId: 'roaming-title' });
 
 function toText(value) {
     return Object.entries(value ?? {}).map(([key, setting]) => `${key}=${setting}`).join('\n');

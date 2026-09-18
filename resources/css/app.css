@@ -89,6 +89,16 @@ body {
 .field label { font-weight:600; }
 .field input:not([type=checkbox]),.field select,.field textarea { width:100%; min-height:35px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); padding:8px 10px; font:inherit; }
 .field textarea { min-height:90px; resize:vertical; }
+.app-dialog-mask { padding:18px; background:rgba(20,35,45,.45); }
+.app-dialog { width:min(var(--app-dialog-width),100%); max-height:calc(100vh - 36px); overflow:auto; border:1px solid #8e9ba2; background:var(--surface); color:var(--ink); box-shadow:0 18px 45px rgba(20,35,45,.3); }
+.app-dialog-header { display:flex; min-height:56px; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; border-bottom:1px solid var(--line); background:var(--surface-alt); }
+.app-dialog-header-actions { display:none; }
+.app-dialog-title { margin:0; font-size:15px; }
+.app-dialog-content { padding:0; }
+.app-dialog-body { display:grid; gap:14px; padding:14px; }
+.app-dialog-body > p { margin:0; color:var(--muted); }
+.app-dialog-message { display:block; margin:0; padding:14px; color:var(--ink); }
+.app-dialog-footer { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; padding:10px 12px; border-top:1px solid var(--line); background:var(--surface-alt); }
 .check-grid { display:flex; gap:14px 24px; flex-wrap:wrap; }
 .check-grid label { display:flex; align-items:center; gap:8px; min-height:30px; }
 .lims-shell input[type=checkbox] { accent-color:var(--accent); width:16px; height:16px; }

@@ -15,6 +15,7 @@ use App\Http\Controllers\ProjectSearchController;
 use App\Http\Controllers\ReferenceSourceController;
 use App\Http\Controllers\ResearchProfileController;
 use App\Http\Controllers\ResultController;
+use App\Http\Controllers\SampleBufferController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SampleFieldController;
 use App\Http\Controllers\SampleLookupController;
@@ -71,6 +72,13 @@ Route::middleware(['auth', 'can:samples.list'])->prefix('laboratory/samples/regi
     Route::patch('/settings', [SampleRegisterController::class, 'settings'])->name('samples.register.settings');
     Route::post('/inoculation', [SampleRegisterController::class, 'inoculate'])->name('samples.register.inoculation');
     Route::patch('/{sample}/conditions', [SampleRegisterController::class, 'updateConditions'])->name('samples.register.conditions');
+});
+
+Route::middleware('auth')->prefix('laboratory/sample-buffers')->group(function () {
+    Route::get('/', [SampleBufferController::class, 'index'])->middleware('can:portal.access')->name('sample-buffers.index');
+    Route::get('/tht', [SampleBufferController::class, 'tht'])->middleware('can:shelf-life-studies.view')->name('sample-buffers.tht');
+    Route::get('/data', [SampleBufferController::class, 'data'])->name('sample-buffers.data');
+    Route::post('/batch', [SampleBufferController::class, 'batch'])->name('sample-buffers.batch');
 });
 
 Route::middleware(['auth', 'can:assurance-form.view'])->prefix('laboratory/assurance-forms')->group(function () {
