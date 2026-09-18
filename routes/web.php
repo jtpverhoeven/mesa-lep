@@ -11,6 +11,7 @@ use App\Http\Controllers\CvarController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProjectFieldController;
+use App\Http\Controllers\ProjectSearchController;
 use App\Http\Controllers\ReferenceSourceController;
 use App\Http\Controllers\ResearchProfileController;
 use App\Http\Controllers\ResultController;
@@ -53,6 +54,15 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
     Route::get('/data', [SampleLookupController::class, 'show'])->name('samples.lookup.data');
     Route::get('/{sample}/options', [SampleLookupController::class, 'options'])->middleware('can:samples.assign-research')->name('samples.lookup.options');
     Route::post('/{sample}/research', [SampleLookupController::class, 'update'])->name('samples.lookup.research');
+});
+
+Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects/search')->group(function () {
+    Route::get('/', [ProjectSearchController::class, 'index'])->name('projects.search');
+    Route::get('/data', [ProjectSearchController::class, 'search'])->name('projects.search.data');
+    Route::get('/{project}/samples/{sample}', [ProjectSearchController::class, 'showSample'])->scopeBindings()->name('projects.search.samples.show');
+    Route::patch('/{project}/samples/{sample}', [ProjectSearchController::class, 'updateSample'])->scopeBindings()->name('projects.search.samples.update');
+    Route::get('/{project}/samples/{sample}/analyses/{analysis}/results', [ProjectSearchController::class, 'showSampleAnalysisResults'])->scopeBindings()->name('projects.search.samples.results.show');
+    Route::get('/{project}', [ProjectSearchController::class, 'show'])->name('projects.search.show');
 });
 
 Route::middleware(['auth', 'can:samples.list'])->prefix('laboratory/samples/register')->group(function () {

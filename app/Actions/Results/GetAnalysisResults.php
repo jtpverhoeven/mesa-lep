@@ -32,6 +32,9 @@ class GetAnalysisResults
             ->findOrFail($analysis->getKey());
         $results = app(CreateAnalysisResults::class)->handle($analysis);
         $calculationState = $this->calculationState($analysis);
+        $reportIn = $calculationState['calculation']['reportIn'] ?? null;
+        $references = $analysis->calculationSettings()?->reference ?? [];
+        $assayFields = json_decode($analysis->assayRecord?->custom_fields ?: '{}', true);
 
         if ($calculationState['queued']) {
             CalculateAnalysisResultJob::dispatch($analysis->id)->afterCommit();
@@ -56,6 +59,8 @@ class GetAnalysisResults
             'calculation' => $calculationState['calculation'],
             'calculation_queued' => $calculationState['queued'],
             'calculation_unavailable' => $calculationState['unavailable'],
+            'unit' => is_array($assayFields) ? ($assayFields['resultin'] ?? null) : null,
+            'reference' => $reportIn === null ? null : ($references['ref_'.$reportIn] ?? null),
             'confirmation' => $this->confirmation->handle($analysis),
         ];
     }

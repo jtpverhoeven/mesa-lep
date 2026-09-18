@@ -10,7 +10,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
     },
     actions: {
         async lookup(barcode = this.barcode) {
-            if (this.saving) return;
+            if (this.saving) return null;
             const requestId = ++this.requestId;
             const scannedBarcode = String(barcode ?? '').trim();
             const [sampleBarcode, analysisFollowNumber, plateFollowNumber] = scannedBarcode.split('.');
@@ -29,7 +29,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                 replaceBarcodeUrl();
                 if (this.selectedId === selectedId) this.plateFocusRevision++;
                 else this.selectedId = selectedId;
-                return;
+                return true;
             }
             this.data = null;
             this.selectedId = null;
@@ -40,18 +40,21 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
             this.tab = 'general';
             useSampleResearchStore().reset();
             this.loading = false;
-            if (!sampleBarcode) return;
+            if (!sampleBarcode) return false;
             this.loading = true;
             try {
                 const response = await fetch(`${this.endpoints.lookup}?${new URLSearchParams({ barcode: sampleBarcode })}`, { headers: { Accept: 'application/json' } });
                 if (!response.ok) throw new Error(response.status === 404 ? 'Geen monster gevonden met deze barcode.' : 'Monster kon niet worden geladen.');
                 const { data } = await response.json();
-                if (requestId !== this.requestId) return;
+                if (requestId !== this.requestId) return null;
                 this.data = data;
                 this.selectedId = data.analyses.find((analysis) => String(analysis.follow_number) === analysisFollowNumber)?.id ?? data.analyses[0]?.id ?? null;
                 replaceBarcodeUrl();
+                return true;
             } catch (error) {
-                if (requestId === this.requestId) this.error = error.message;
+                if (requestId !== this.requestId) return null;
+                this.error = error.message;
+                return false;
             } finally {
                 if (requestId === this.requestId) this.loading = false;
             }

@@ -2,6 +2,7 @@
 import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ArrowLeft, ArrowRight, Barcode, FileClock, Pencil, Search } from '@lucide/vue';
 import { getEcho } from '../echo.js';
+import { sfx } from '../sfx.js';
 import { useSampleLookupStore } from '../stores/sampleLookupStore';
 import SampleLookupResearch from './SampleLookupResearch.vue';
 import SampleLookupResults from './SampleLookupResults.vue';
@@ -45,6 +46,11 @@ function openConfirmation() {
 function focusBarcodeInput() {
     barcodeInput.value?.focus();
     barcodeInput.value?.select();
+}
+async function scanBarcode() {
+    const loaded = await store.lookup();
+
+    if (loaded !== null) void sfx.play(loaded ? 'do' : 'warning').catch(() => {});
 }
 onMounted(() => {
     const barcode = new URLSearchParams(window.location.search).get('barcode');
@@ -129,7 +135,7 @@ onBeforeUnmount(() => {
             <div class="sample-create-column">
                 <section class="sample-panel">
                     <h2><Barcode :size="16" />Monster opzoeken<span class="lookup-tools"><button class="icon-button" title="Vorig monster" :disabled="!store.data?.previous || store.saving" @click="store.lookup(store.data.previous)"><ArrowLeft :size="16" /></button><button class="icon-button" title="Volgend monster" :disabled="!store.data?.next || store.saving" @click="store.lookup(store.data.next)"><ArrowRight :size="16" /></button></span></h2>
-                    <form class="sample-panel-body lookup-search" @submit.prevent="store.lookup()"><label class="sr-only" for="lookup-barcode">Barcode</label><div class="lookup-barcode-control"><Barcode :size="16" aria-hidden="true" /><input id="lookup-barcode" ref="barcodeInput" v-model="store.barcode" autofocus autocomplete="off" placeholder="Barcode" maxlength="32" :disabled="store.saving" @focus="$event.target.select()" @keydown.enter="$event.target.select()"></div><button class="button primary" title="Monster zoeken" :disabled="store.saving || !store.barcode.trim()"><Search :size="18" /></button></form>
+                    <form class="sample-panel-body lookup-search" @submit.prevent="scanBarcode"><label class="sr-only" for="lookup-barcode">Barcode</label><div class="lookup-barcode-control"><Barcode :size="16" aria-hidden="true" /><input id="lookup-barcode" ref="barcodeInput" v-model="store.barcode" autofocus autocomplete="off" placeholder="Barcode" maxlength="32" :disabled="store.saving" @focus="$event.target.select()" @keydown.enter="$event.target.select()"></div><button class="button primary" title="Monster zoeken" :disabled="store.saving || !store.barcode.trim()"><Search :size="18" /></button></form>
                     <p v-if="store.loading" class="sample-panel-body" role="status">Monster laden...</p>
                 </section>
                 <section class="sample-panel">

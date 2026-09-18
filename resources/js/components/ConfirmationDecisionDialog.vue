@@ -1,6 +1,8 @@
 <script setup>
 import { Check, X } from '@lucide/vue';
 import Dialog from 'openvue/dialog';
+import { watch } from 'vue';
+import { sfx } from '../sfx.js';
 import { useConfirmationStore } from '../stores/confirmationStore';
 
 const store = useConfirmationStore();
@@ -13,6 +15,14 @@ const dialogPassThrough = {
 async function decide(value) {
     await store.setDecision(value);
 }
+
+watch(
+    () => Boolean(store.decisionPrompt && !store.readOnly),
+    (isVisible, wasVisible) => {
+        if (isVisible && !wasVisible) void sfx.play('confirmations').catch(() => {});
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
