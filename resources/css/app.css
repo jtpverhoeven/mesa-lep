@@ -37,6 +37,7 @@ body {
 .lims-shell * { box-sizing:border-box; letter-spacing:0; }
 .topbar { position:fixed; top:0; right:0; left:0; z-index:20; display:flex; align-items:stretch; min-height:44px; background:var(--surface); border-bottom:1px solid #9eabb2; }
 .brand { display:flex; align-items:center; gap:8px; padding:0 14px; font-weight:700; border-right:1px solid var(--line); white-space:nowrap; }
+.brand-logo { display:block; flex:0 0 auto; height:24px; width:auto; }
 .brand-mark,.avatar { display:grid; place-items:center; width:24px; height:24px; background:var(--accent); color:white; flex-shrink:0; }
 .avatar { background:#e3eee6; color:#28734e; font-weight:bold; }
 .muted { color:var(--muted); font-weight:400; }

@@ -22,7 +22,7 @@
         <div id="app">
         {{-- <a class="skip-link" href="#content">Naar inhoud</a> --}}
         <header class="topbar">
-            <a href="{{ route('dashboard') }}" class="brand"><span>mesa<span class="muted mr-12">LIMS</span></span></a>
+            <a href="{{ route('dashboard') }}" class="brand"><img src="{{ asset('images/smallLogoMain.svg') }}" alt="" class="brand-logo"><span>mesa<span class="muted mr-12">LIMS</span></span></a>
             @auth
                 <nav class="topnav" aria-label="Hoofdnavigatie">
                     <a href="{{ route('dashboard') }}" @class(['selected' => request()->routeIs('dashboard') || request()->is('laboratory*')])>LIMS</a>
@@ -44,6 +44,7 @@
                     <nav aria-label="Werkruimtenavigatie">
                         @if(request()->is('admin*'))
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>Client Portal</span>
+                            @can('settings.advanced')<a href="{{ route('portal.connection.index') }}" @class(['selected' => request()->routeIs('portal.connection.*')])>Connection</a>@endcan
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.828 8.828a2 2 0 0 0 2.828 0l6.172-6.172a2 2 0 0 0 0-2.828z"></path><circle cx="7.5" cy="7.5" r=".5"></circle></svg>Labels</span>
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><circle cx="6" cy="5" r="3"></circle><circle cx="18" cy="12" r="3"></circle><circle cx="6" cy="19" r="3"></circle><path d="m8.7 6.5 6.6 4"></path><path d="m8.7 17.5 6.6-4"></path></svg>Aanalyse stroom</span>
                             @can('research-profiles.manage')<a href="{{ route('research-profiles.index') }}" @class(['selected' => request()->is('admin/research-profiles*')])>Onderzoeksprofielen</a>@endcan

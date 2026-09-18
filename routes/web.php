@@ -10,6 +10,7 @@ use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CvarController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\PortalConnectionController;
 use App\Http\Controllers\ProjectFieldController;
 use App\Http\Controllers\ProjectSearchController;
 use App\Http\Controllers\ReferenceSourceController;
@@ -229,6 +230,9 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
     });
 
     Route::middleware('can:settings.advanced')->group(function () {
+        Route::get('/portal/connection', [PortalConnectionController::class, 'index'])->name('portal.connection.index');
+        Route::put('/portal/connection', [PortalConnectionController::class, 'update'])->name('portal.connection.update');
+        Route::post('/portal/connection/test', [PortalConnectionController::class, 'test'])->name('portal.connection.test');
         Route::get('/reference-sources', [ReferenceSourceController::class, 'index'])->name('reference-sources.index');
         Route::get('/reference-sources/create', [ReferenceSourceController::class, 'create'])->name('reference-sources.create');
         Route::post('/reference-sources', [ReferenceSourceController::class, 'store'])->name('reference-sources.store');
