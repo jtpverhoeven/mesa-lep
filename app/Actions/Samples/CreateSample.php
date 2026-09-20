@@ -2,6 +2,7 @@
 
 namespace App\Actions\Samples;
 
+use App\Actions\ProductGroups\FindClientDefaultProductGroup;
 use App\Actions\Projects\CreateProject;
 use App\Actions\Projects\UpdateProjectFromRegistration;
 use App\Models\Project;
@@ -48,6 +49,7 @@ class CreateSample
                 'isEmpty' => 1,
                 'source' => 0,
                 'analyses_data' => '[]',
+                'portal_product_group_id' => app(FindClientDefaultProductGroup::class)->handle((int) $data['client'])?->portal_id,
             ]);
         });
     }

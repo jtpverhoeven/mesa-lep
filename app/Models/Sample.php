@@ -31,6 +31,11 @@ class Sample extends Model
         return $this->belongsTo(Project::class, 'project');
     }
 
+    public function productGroup(): BelongsTo
+    {
+        return $this->belongsTo(ProductGroup::class, 'portal_product_group_id', 'portal_id');
+    }
+
     public function analyses(): HasMany
     {
         return $this->hasMany(SampleAnalysis::class, 'sample')

@@ -13,7 +13,7 @@ class LookupSample
     public function handle(string $barcode): array
     {
         $sample = Sample::query()->where('barcode', $barcode)->with([
-            'client', 'project', 'analyses.assayRecord', 'analyses.researchProfile',
+            'client', 'project', 'productGroup', 'analyses.assayRecord', 'analyses.researchProfile',
             'analyses.assayProfile', 'analyses.roamingAnalysis', 'metadata',
         ])->firstOrFail();
         $project = $sample->getRelation('project');
@@ -41,6 +41,7 @@ class LookupSample
             'sampling_method' => SampleProcedure::query()->whereKey($sample->sampling_method)->value('name'),
             'registered_by' => User::query()->whereKey($sample->registered_by)->value('name'),
             'client' => $client?->only(['id', 'name']),
+            'product_group' => $sample->productGroup?->only(['portal_id', 'name', 'default', 'visible']),
             'project' => $project?->only(['id', 'project_name', 'reference', 'project_date', 'project_notes', 'auth_status', 'is_ready', 'locked', 'lock_message']),
             'project_fields' => $this->fields($project?->custom_fields, ProjectField::query()->orderBy('position')->get()),
             'project_samples' => $projectSamples,

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ProductGroups\UpdateSampleProductGroup;
 use App\Actions\SampleAnalyses\GetSampleAnalysisOptions;
 use App\Actions\Samples\LookupSample;
 use App\Actions\Samples\UpdateLookupResearch;
 use App\Http\Requests\StoreSampleRequest;
+use App\Models\ProductGroup;
 use App\Models\Sample;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,6 +31,33 @@ class SampleLookupController extends Controller
     public function options(Sample $sample, GetSampleAnalysisOptions $options): JsonResponse
     {
         return response()->json(['data' => $options->handle($sample->client)]);
+    }
+
+    public function productGroups(Sample $sample): JsonResponse
+    {
+        return response()->json(['data' => ProductGroup::query()
+            ->where('client_id', $sample->client)
+            ->orderByDesc('default')
+            ->orderBy('name')
+            ->get(['portal_id', 'name', 'default', 'visible'])]);
+    }
+
+    public function updateProductGroup(
+        Request $request,
+        Sample $sample,
+        UpdateSampleProductGroup $updateProductGroup,
+    ): JsonResponse {
+        abort_unless($request->user()->can('samples.update'), 403);
+        $data = $request->validate(['product_group_id' => ['required', 'integer']]);
+        $productGroup = ProductGroup::query()
+            ->where('client_id', $sample->client)
+            ->where('portal_id', $data['product_group_id'])
+            ->firstOrFail();
+        $sample = $updateProductGroup->handle($sample, $productGroup);
+
+        return response()->json([
+            'data' => $sample->productGroup?->only(['portal_id', 'name', 'default', 'visible']),
+        ]);
     }
 
     public function update(Request $request, Sample $sample, UpdateLookupResearch $update, LookupSample $lookup): JsonResponse

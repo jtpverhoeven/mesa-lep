@@ -40,6 +40,11 @@ class Client extends Model
         return $this->hasMany(SampleBuffer::class, 'client');
     }
 
+    public function productGroups(): HasMany
+    {
+        return $this->hasMany(ProductGroup::class, 'client_id');
+    }
+
     public function referenceSources(): HasMany
     {
         return $this->hasMany(ReferenceSource::class, 'client');

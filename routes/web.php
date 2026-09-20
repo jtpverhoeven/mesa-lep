@@ -11,6 +11,7 @@ use App\Http\Controllers\CvarController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PortalConnectionController;
+use App\Http\Controllers\ProductGroupController;
 use App\Http\Controllers\ProjectFieldController;
 use App\Http\Controllers\ProjectSearchController;
 use App\Http\Controllers\ReferenceSourceController;
@@ -56,6 +57,8 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
     Route::get('/', [SampleLookupController::class, 'index'])->name('samples.lookup');
     Route::get('/data', [SampleLookupController::class, 'show'])->name('samples.lookup.data');
     Route::get('/{sample}/options', [SampleLookupController::class, 'options'])->middleware('can:samples.assign-research')->name('samples.lookup.options');
+    Route::get('/{sample}/product-groups', [SampleLookupController::class, 'productGroups'])->name('samples.lookup.product-groups');
+    Route::patch('/{sample}/product-group', [SampleLookupController::class, 'updateProductGroup'])->name('samples.lookup.product-group.update');
     Route::post('/{sample}/research', [SampleLookupController::class, 'update'])->name('samples.lookup.research');
 });
 
@@ -231,6 +234,8 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
 
     Route::middleware('can:settings.advanced')->group(function () {
         Route::get('/portal/connection', [PortalConnectionController::class, 'index'])->name('portal.connection.index');
+        Route::get('/portal/product-groups', [ProductGroupController::class, 'index'])->name('portal.product-groups.index');
+        Route::get('/portal/product-groups/data', [ProductGroupController::class, 'data'])->name('portal.product-groups.data');
         Route::put('/portal/connection', [PortalConnectionController::class, 'update'])->name('portal.connection.update');
         Route::post('/portal/connection/test', [PortalConnectionController::class, 'test'])->name('portal.connection.test');
         Route::get('/reference-sources', [ReferenceSourceController::class, 'index'])->name('reference-sources.index');

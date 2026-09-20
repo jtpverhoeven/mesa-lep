@@ -7,6 +7,7 @@ import { useSampleLookupStore } from '../stores/sampleLookupStore';
 import SampleLookupResearch from './SampleLookupResearch.vue';
 import SampleLookupResults from './SampleLookupResults.vue';
 import SampleLookupPlaceholder from './SampleLookupPlaceholder.vue';
+import SampleProductGroup from './SampleProductGroup.vue';
 import SampleMetadataEditor from './SampleMetadataEditor.vue';
 import ConfirmationDecisionDialog from './ConfirmationDecisionDialog.vue';
 import ConfirmationDialog from './ConfirmationDialog.vue';
@@ -162,7 +163,7 @@ onBeforeUnmount(() => {
                                 <template v-for="field in store.data.sample_extra" :key="field.name"><dt>{{ field.label }}</dt><dd>{{ display(field.value) }}</dd></template>
                             </dl>
                             <SampleMetadataEditor v-else-if="store.tab === 'metadata'" v-model:metadata="store.data.metadata" :sample-id="store.data.sample.id" :endpoint="endpoints.sampleMetadata" :read-only="store.readOnly || !permissions.updateMetadata" />
-                            <SampleLookupPlaceholder v-else-if="store.tab === 'product'" feature="Productgroep / THT" :details="{ tht_code: store.data.sample.tht_code, portal_product_group_id: store.data.sample.portal_product_group_id }" />
+                            <SampleProductGroup v-else-if="store.tab === 'product'" :sample="store.data.sample" :product-group="store.data.product_group" :groups-endpoint="endpoints.productGroups" :update-endpoint="endpoints.updateProductGroup" :read-only="store.readOnly || !permissions.updateProductGroup" @updated="store.data.product_group = $event; store.data.sample.portal_product_group_id = $event.portal_id" />
                             <SampleLookupPlaceholder v-else feature="Documenten" />
                         </template>
                     </div>
