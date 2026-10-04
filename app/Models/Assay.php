@@ -62,4 +62,10 @@ class Assay extends Model
     {
         return $this->hasMany(RoamingAnalysis::class, 'assay');
     }
+
+    public function portalAssays(): BelongsToMany
+    {
+        return $this->belongsToMany(PortalAssay::class, 'portalassaycontent', 'assay_id', 'common_id')
+            ->withPivot(['id', 'original_id']);
+    }
 }

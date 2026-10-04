@@ -36,11 +36,6 @@ class CreateSampleBuffer
                 'misc_directions' => $isTht && isset($data['tht_storage']) ? 'Opslag: '.$this->storageLabel($data['tht_storage']) : null,
                 'authorized' => $isTht,
                 'project_name' => $projectName,
-                'portal_order_info' => [
-                    'project_id' => $data['project'] ?? null,
-                    'project_custom_fields' => $data['project_custom_fields'] ?? [],
-                    'sample_note' => $data['sample_note'] ?? null,
-                ],
                 'receive_time' => $data['receive_time'] ?? null,
                 'receive_date' => $receiveDate?->format('d-m-Y'),
                 'tht_code' => $isTht ? app(ThtCodeGenerator::class)->next() : null,

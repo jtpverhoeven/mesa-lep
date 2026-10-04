@@ -40,6 +40,14 @@ const actions = computed(() => {
 });
 const showTht = computed(() => ['tht', 'staged_tht'].includes(store.tab));
 const title = computed(() => store.tab === 'staged_tht' ? 'THT onderzoeken' : 'Voorportaal');
+const tableColumnCount = computed(() => {
+    let columns = 11;
+    if (store.tab === 'staged_tht') columns += 3;
+    else if (showTht.value) columns += 1;
+    if (['legionella', 'rodac'].includes(store.tab)) columns += 1;
+
+    return columns;
+});
 let searchTimer = null;
 
 function runSelectedAction() {
@@ -129,9 +137,28 @@ onMounted(() => store.load());
                     <tbody>
                         <tr v-if="store.loading"><td :colspan="15" class="empty-state"><LoaderCircle class="spin" :size="18" /> Laden</td></tr>
                         <tr v-else-if="!store.rows.length"><td :colspan="15" class="empty-state">Geen bufferregels gevonden.</td></tr>
-                        <tr v-for="row in store.rows" v-else :key="row.id" :class="{ 'selected-row': store.selected.includes(row.id) }">
-                            <td><input type="checkbox" :checked="store.selected.includes(row.id)" :aria-label="`${row.project} selecteren`" @change="store.toggle(row.id)"></td><td><span class="source-badge" :title="({ 1: 'CSV import', 2: 'LIMS', 3: 'Portal' })[row.source]">{{ ({ 1: 'CSV', 2: 'LIMS', 3: 'Portal' })[row.source] ?? row.source }}</span></td><td v-if="store.tab === 'staged_tht'"><strong>{{ row.tht_code }}</strong></td><td>{{ row.client_name }}</td><td>{{ row.project }}</td><td>{{ row.project_name || '-' }}</td><td>{{ row.portal_follow_no || '-' }}</td><td>{{ row.sampling_date }}</td><td>{{ row.sampling_method_name }}</td><td>{{ row.sample_name }}</td><td v-if="store.tab === 'rodac'">{{ row.room || '-' }}</td><td v-if="store.tab === 'legionella'">{{ [row.water_type, row.matrix_type].filter(Boolean).join(' / ') || '-' }}</td><td>{{ row.sample_details || '-' }}</td><td v-if="store.tab === 'staged_tht'">{{ row.receive_date || '-' }}<br><small>{{ row.receive_time || '-' }}</small></td><td v-if="showTht" :class="`tht-${row.tht_day_type || 'weekday'}`">{{ row.tht_date || '-' }}</td><td><button class="icon-button" type="button" title="Metadata bekijken en wijzigen" @click="editMetadata(row)"><FlaskConical :size="15" /></button></td>
-                        </tr>
+                        <template v-for="row in store.rows" v-else :key="row.id">
+                            <tr :class="{ 'selected-row': store.selected.includes(row.id) }">
+                                <td><input type="checkbox" :checked="store.selected.includes(row.id)" :aria-label="`${row.project} selecteren`" @change="store.toggle(row.id)"></td><td><span class="source-badge" :title="({ 1: 'CSV import', 2: 'LIMS', 3: 'Portal' })[row.source]">{{ ({ 1: 'CSV', 2: 'LIMS', 3: 'Portal' })[row.source] ?? row.source }}</span></td><td v-if="store.tab === 'staged_tht'"><strong>{{ row.tht_code }}</strong></td><td>{{ row.client_name }}</td><td>{{ row.project }}</td><td>{{ row.project_name || '-' }}</td><td>{{ row.portal_follow_no || '-' }}</td><td>{{ row.sampling_date }}</td><td>{{ row.sampling_method_name }}</td><td>{{ row.sample_name }}</td><td v-if="store.tab === 'rodac'">{{ row.room || '-' }}</td><td v-if="store.tab === 'legionella'">{{ [row.water_type, row.matrix_type].filter(Boolean).join(' / ') || '-' }}</td><td>{{ row.sample_details || '-' }}</td><td v-if="store.tab === 'staged_tht'">{{ row.receive_date || '-' }}<br><small>{{ row.receive_time || '-' }}</small></td><td v-if="showTht" :class="`tht-${row.tht_day_type || 'weekday'}`">{{ row.tht_date || '-' }}</td><td><button class="icon-button" type="button" title="Metadata bekijken en wijzigen" @click="editMetadata(row)"><FlaskConical :size="15" /></button></td>
+                            </tr>
+                            <tr class="buffer-detail-row" :class="{ 'selected-row': store.selected.includes(row.id) }">
+                                <td :colspan="tableColumnCount">
+                                    <div class="buffer-detail-grid">
+                                        <div class="buffer-detail-block">
+                                            <strong>Analyses</strong>
+                                            <div class="analysis-list">
+                                                <span v-if="!row.analysis_summary?.length" class="buffer-detail-empty">Geen opgegeven</span>
+                                                <span v-for="(analysis, index) in row.analysis_summary" v-else :key="`${analysis.kind}-${analysis.label}-${index}`" class="analysis-label" :class="`analysis-${analysis.kind}`"><span v-if="analysis.kind === 'added'" aria-hidden="true">+</span><span v-else-if="analysis.kind === 'removed'" aria-hidden="true">&minus;</span>{{ analysis.label }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="buffer-detail-block">
+                                            <strong>Overige informatie</strong>
+                                            <span class="buffer-directions">{{ row.misc_directions || 'Geen opgegeven' }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
                     </tbody>
                 </table>
             </div>
@@ -182,6 +209,18 @@ onMounted(() => store.load());
 .buffer-table th,.buffer-table td { padding:8px 9px; vertical-align:top; }
 .buffer-table tbody tr.selected-row { background:var(--accent-faint); }
 .source-badge { display:inline-block; padding:2px 5px; border:1px solid var(--line); background:var(--surface-alt); font-size:10px; }
+.buffer-detail-row td { padding:0 9px 9px; border-top:0; }
+.buffer-detail-row + tr:not(.buffer-detail-row) td { border-top:2px solid var(--line); }
+.buffer-detail-grid { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(240px,1fr); gap:18px; padding:8px 10px; border-left:3px solid #9eabb2; background:var(--surface-alt); }
+.buffer-detail-block { display:flex; align-items:flex-start; gap:9px; min-width:0; }
+.buffer-detail-block > strong { flex:0 0 auto; padding-top:2px; font-size:10px; text-transform:uppercase; color:var(--muted); }
+.analysis-list { display:flex; flex-wrap:wrap; gap:5px; min-width:0; }
+.analysis-label { display:inline-flex; align-items:center; gap:4px; padding:2px 6px; border:1px solid #aab7bd; border-radius:2px; background:var(--surface); color:var(--ink); font-size:10px; overflow-wrap:anywhere; }
+.analysis-profile { border-color:#d09a3d; background:#fff3d8; color:#5a3b08; }
+.analysis-added { border-color:#70a882; background:#e5f4e9; color:#245c35; }
+.analysis-removed { border-color:#c5954c; background:#fff0d7; color:#6b4308; }
+.buffer-detail-empty { color:var(--muted); font-size:11px; font-style:italic; }
+.buffer-directions { min-width:0; color:var(--ink); font-size:11px; white-space:pre-wrap; overflow-wrap:anywhere; }
 .tht-saturday { background:#f4b95f; color:#422b05; font-weight:700; }.tht-sunday { background:#b84b41; color:white; font-weight:700; }
 .buffer-footer { display:flex; justify-content:space-between; padding:9px 11px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; }.buffer-footer button { display:inline-flex; align-items:center; gap:5px; }
 .metadata-table-wrap { border:1px solid var(--line); }
@@ -193,5 +232,5 @@ onMounted(() => store.load());
 .metadata-value { white-space:pre-wrap; }
 .metadata-cell-editor { display:grid; grid-template-columns:minmax(0,1fr) 32px 32px; gap:6px; align-items:start; }
 .metadata-cell-editor input,.metadata-cell-editor textarea { width:100%; min-height:32px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); padding:6px 8px; font:inherit; resize:vertical; }
-@media (max-width:760px) { .buffer-sort { margin-left:0; flex-wrap:wrap; }.buffer-toolbar > label:first-child { flex:1 1 100%; }.buffer-toolbar > label:first-child select { flex:1; }.buffer-table-wrap { max-height:calc(100vh - 340px); } }
+@media (max-width:760px) { .buffer-sort { margin-left:0; flex-wrap:wrap; }.buffer-toolbar > label:first-child { flex:1 1 100%; }.buffer-toolbar > label:first-child select { flex:1; }.buffer-table-wrap { max-height:calc(100vh - 340px); }.buffer-detail-grid { grid-template-columns:1fr; gap:8px; } }
 </style>

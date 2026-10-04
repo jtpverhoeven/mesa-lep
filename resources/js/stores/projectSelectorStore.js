@@ -7,12 +7,13 @@ let activeProjectRequest;
 export const useProjectSelectorStore = defineStore('sampleProjectSelector', {
     state: () => ({
         projectsEndpoint: '', projectEndpoint: '', fieldDefinitions: [], projects: [], selectedId: '',
-        form: { project_name: '', custom_fields: {} }, lockedFields: [], loadingProjects: false, loadingProject: false, error: '',
+        form: { project_name: '', custom_fields: {} }, lockedFields: [], loadingProjects: false, loadingProject: false, error: '', refreshCurrentTime: false,
     }),
     actions: {
-        configure(projectsEndpoint, projectEndpoint) {
+        configure(projectsEndpoint, projectEndpoint, refreshCurrentTime = false) {
             this.projectsEndpoint = projectsEndpoint;
             this.projectEndpoint = projectEndpoint;
+            this.refreshCurrentTime = refreshCurrentTime;
         },
         setFieldDefinitions(fields) {
             this.fieldDefinitions = fields;
@@ -21,6 +22,11 @@ export const useProjectSelectorStore = defineStore('sampleProjectSelector', {
         resetForm() {
             const previousValues = this.form.custom_fields;
             const defaults = legacyFieldValues(this.fieldDefinitions);
+            if (this.refreshCurrentTime) {
+                this.fieldDefinitions.filter((field) => Number(field.keep_current) === 1).forEach((field) => {
+                    defaults[field.name] = new Date().toTimeString().slice(0, 5);
+                });
+            }
             this.form = {
                 project_name: '',
                 custom_fields: Object.fromEntries(Object.entries(defaults).map(([name, value]) => [

@@ -5,23 +5,35 @@ namespace App\Actions\Samples;
 use App\Models\Cvar;
 use App\Models\Sample;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 
 class BarcodeGenerator
 {
-    public function predict(int $offset = 0, ?CarbonInterface $at = null): string
+    public function predict(int $offset = 0, ?CarbonInterface $at = null, ?string $matrix = null): string
     {
         $at ??= now();
-        $lastSample = Sample::query()
-            ->where('sample_type', '!=', 'L')
-            ->latest('id')
+        $lastSample = $this->sequence($matrix)
             ->first(['follow_no', 'date_registered']);
 
-        return $this->forLastSample($lastSample, $at, $offset);
+        return $this->forLastSample($lastSample, $at, $offset, $matrix);
     }
 
-    public function forLastSample(?Sample $lastSample, CarbonInterface $at, int $offset = 0): string
+    public function sequence(?string $matrix = null): Builder
     {
-        return $this->format($this->nextFollowNumber($lastSample, $at, $offset), $at);
+        return Sample::query()
+            ->when($matrix === null,
+                fn (Builder $query) => $query->where('sample_type', '!=', 'L'),
+                fn (Builder $query) => $query->where('sample_type', 'L')->when(
+                    in_array($matrix, ['A', 'B', 'C'], true),
+                    fn (Builder $query) => $query->where('leg_type', $matrix),
+                ),
+            )
+            ->latest('id');
+    }
+
+    public function forLastSample(?Sample $lastSample, CarbonInterface $at, int $offset = 0, ?string $matrix = null): string
+    {
+        return ($matrix === null ? '' : 'L'.$matrix).$this->format($this->nextFollowNumber($lastSample, $at, $offset), $at);
     }
 
     public function followNumberForLastSample(?Sample $lastSample, CarbonInterface $at, int $offset = 0): int

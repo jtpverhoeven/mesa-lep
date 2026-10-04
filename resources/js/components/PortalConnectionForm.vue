@@ -23,10 +23,14 @@ const validationErrors = ref({});
 const formattedLastSync = computed(() => {
     if (!lastSync.value) return 'Nog niet gesynchroniseerd';
 
+    const date = new Date(lastSync.value);
+
+    if (Number.isNaN(date.getTime())) return 'Onbekende synchronisatiedatum';
+
     return new Intl.DateTimeFormat('nl-NL', {
         dateStyle: 'medium',
         timeStyle: 'medium',
-    }).format(new Date(lastSync.value));
+    }).format(date);
 });
 
 async function updateSettings(showConfirmation = true) {

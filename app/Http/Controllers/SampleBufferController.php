@@ -162,11 +162,79 @@ class SampleBufferController extends Controller
             'tht_code' => $buffer->tht_code,
             'receive_date' => $buffer->receive_date,
             'receive_time' => $buffer->receive_time,
+            'analysis_summary' => $this->analysisSummary($buffer),
             'misc_directions' => $buffer->misc_directions,
             'meta' => $buffer->meta ?? [],
             'water_type' => $properties->get('waterType')['value'] ?? null,
             'matrix_type' => $properties->get('matrixType')['value'] ?? null,
             'room' => $properties->get('rodacRoom')['value'] ?? null,
         ];
+    }
+
+    private function analysisSummary(SampleBuffer $buffer): array
+    {
+        if ((int) $buffer->source === 3) {
+            $portalAnalyses = json_decode((string) $buffer->getRawOriginal('portal_analyses'), true);
+
+            if (is_array($portalAnalyses)) {
+                $summary = [];
+
+                if (empty($portalAnalyses['profile_id'])) {
+                    foreach ($portalAnalyses['assays_all'] ?? [] as $assay) {
+                        $summary[] = ['label' => (string) $assay, 'kind' => 'requested'];
+                    }
+                } else {
+                    if (filled($portalAnalyses['profile'] ?? null)) {
+                        $summary[] = ['label' => (string) $portalAnalyses['profile'], 'kind' => 'profile'];
+                    }
+
+                    foreach ($portalAnalyses['assays_addition'] ?? [] as $assay) {
+                        $summary[] = ['label' => (string) $assay, 'kind' => 'added'];
+                    }
+
+                    foreach ($portalAnalyses['assays_substraction'] ?? [] as $assay) {
+                        $summary[] = ['label' => (string) $assay, 'kind' => 'removed'];
+                    }
+                }
+
+                return $summary;
+            }
+        }
+
+        $rawAnalyses = $buffer->getRawOriginal('analyses_selected');
+
+        if (! filled($rawAnalyses)) {
+            return [];
+        }
+
+        $decoded = json_decode((string) $rawAnalyses, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return [['label' => (string) $rawAnalyses, 'kind' => 'requested']];
+        }
+
+        if (is_string($decoded)) {
+            return [['label' => $decoded, 'kind' => 'requested']];
+        }
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return collect($decoded)->map(function (mixed $analysis): ?array {
+            if (is_string($analysis)) {
+                return ['label' => $analysis, 'kind' => 'requested'];
+            }
+
+            if (! is_array($analysis)) {
+                return null;
+            }
+
+            $type = $analysis['type'] ?? null;
+            $id = $type === 'profile' ? ($analysis['profile_id'] ?? null) : ($analysis['assay_id'] ?? null);
+            $label = $analysis['label'] ?? $analysis['name'] ?? ($id ? ($type === 'profile' ? 'Profiel #'.$id : 'Analyse #'.$id) : null);
+
+            return filled($label) ? ['label' => (string) $label, 'kind' => $type === 'profile' ? 'profile' : 'requested'] : null;
+        })->filter()->values()->all();
     }
 }

@@ -1,46 +1,43 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { LoaderCircle, Search, X } from '@lucide/vue';
+import AutoComplete from 'openvue/autocomplete';
 import { useClientSelectorStore } from '../stores/clientSelectorStore';
 import { useCreateSampleStore } from '../stores/createSampleStore';
 
+const props = defineProps({ registrationStore: { type: Object, default: null } });
 const clientStore = useClientSelectorStore();
-const sampleStore = useCreateSampleStore();
+const sampleStore = props.registrationStore ?? useCreateSampleStore();
 const searchInput = ref(null);
-const open = ref(false);
-const activeIndex = ref(-1);
-let searchTimer;
+const autocompleteValue = computed({
+    get: () => clientStore.selected ?? clientStore.query,
+    set: (value) => {
+        if (value && typeof value === 'object') {
+            selectClient(value);
+            return;
+        }
 
-const activeResultId = computed(() => activeIndex.value >= 0 ? `client-result-${clientStore.results[activeIndex.value]?.id}` : undefined);
+        const query = String(value ?? '');
+        if (clientStore.selected && query !== clientStore.selected.name) sampleStore.clearClient();
+        clientStore.query = query;
 
-function inputChanged(event) {
-    const query = event.target.value;
-    if (clientStore.selected && query !== clientStore.selected.name) sampleStore.clearClient();
-    clientStore.query = query;
-    open.value = true;
-    activeIndex.value = -1;
-    window.clearTimeout(searchTimer);
-    searchTimer = window.setTimeout(() => clientStore.search(query), 350);
+        if (query.trim().length < 2) clientStore.search(query);
+    },
+});
+
+function complete({ query }) {
+    clientStore.search(query);
 }
 
-function select(client) {
-    open.value = false;
-    activeIndex.value = -1;
-    sampleStore.selectClient(client);
+function selectClient(client) {
+    if (clientStore.selected?.id !== client.id) sampleStore.selectClient(client);
 }
 
-function move(direction) {
-    if (!clientStore.results.length) return;
-    open.value = true;
-    activeIndex.value = (activeIndex.value + direction + clientStore.results.length) % clientStore.results.length;
+function focus() {
+    searchInput.value?.$el?.querySelector('input')?.focus();
 }
 
-function selectActive() {
-    if (activeIndex.value >= 0) select(clientStore.results[activeIndex.value]);
-}
-
-onBeforeUnmount(() => window.clearTimeout(searchTimer));
-defineExpose({ focus: () => searchInput.value?.focus() });
+defineExpose({ focus });
 </script>
 
 <template>
@@ -48,15 +45,42 @@ defineExpose({ focus: () => searchInput.value?.focus() });
         <label for="sample-client">Klant</label>
         <div class="client-search-control">
             <Search :size="16" aria-hidden="true" />
-            <input id="sample-client" ref="searchInput" :value="clientStore.query" type="search" autocomplete="off" placeholder="Typ minimaal 2 tekens" role="combobox" aria-autocomplete="list" aria-controls="client-results" :aria-expanded="open && clientStore.query.trim().length >= 2" :aria-activedescendant="activeResultId" @input="inputChanged" @focus="open = true" @blur="open = false" @keydown.down.prevent="move(1)" @keydown.up.prevent="move(-1)" @keydown.enter.prevent="selectActive" @keydown.esc="open = false">
-            <LoaderCircle v-if="clientStore.loading" class="spin" :size="16" aria-label="Klanten laden" />
-            <button v-else-if="clientStore.query" class="client-clear" type="button" title="Klant wissen" aria-label="Klant wissen" @mousedown.prevent="sampleStore.clearClient"><X :size="16" aria-hidden="true" /></button>
+            <AutoComplete
+                ref="searchInput"
+                v-model="autocompleteValue"
+                input-id="sample-client"
+                :suggestions="clientStore.results"
+                option-label="name"
+                data-key="id"
+                placeholder="Typ minimaal 2 tekens"
+                :delay="350"
+                :min-length="2"
+                :auto-option-focus="true"
+                :complete-on-focus="clientStore.query.trim().length >= 2"
+                :loading="clientStore.loading"
+                :show-empty-message="!clientStore.loading"
+                show-clear
+                append-to="self"
+                panel-class="client-results"
+                unstyled
+                @complete="complete"
+                @option-select="selectClient($event.value)"
+            >
+                <template #option="{ option }">
+                    <strong>{{ option.name }}</strong>
+                    <small v-if="option.reference">{{ option.reference }}</small>
+                </template>
+                <template #empty>
+                    <span v-if="clientStore.error" class="client-results-empty error-text">{{ clientStore.error }}</span>
+                    <span v-else class="client-results-empty">Geen klanten gevonden.</span>
+                </template>
+                <template #loader>
+                    <LoaderCircle class="spin client-loader" :size="16" aria-label="Klanten laden" />
+                </template>
+                <template #clearicon="{ clearCallback }">
+                    <button class="client-clear" type="button" title="Klant wissen" aria-label="Klant wissen" @mousedown.prevent @click="clearCallback"><X :size="16" aria-hidden="true" /></button>
+                </template>
+            </AutoComplete>
         </div>
-        <div v-if="open && clientStore.query.trim().length >= 2" id="client-results" class="client-results" role="listbox">
-            <button v-for="(client, index) in clientStore.results" :id="`client-result-${client.id}`" :key="client.id" type="button" role="option" :aria-selected="activeIndex === index" :class="{ active: activeIndex === index }" @mousedown.prevent="select(client)" @mouseenter="activeIndex = index"><strong>{{ client.name }}</strong><small v-if="client.reference">{{ client.reference }}</small></button>
-            <p v-if="!clientStore.loading && !clientStore.results.length && !clientStore.error" class="client-results-empty">Geen klanten gevonden.</p>
-            <p v-if="clientStore.error" class="client-results-empty error-text">{{ clientStore.error }}</p>
-        </div>
-        <p v-if="clientStore.selected" class="selected-client">Geselecteerd: <strong>{{ clientStore.selected.name }}</strong></p>
     </div>
 </template>

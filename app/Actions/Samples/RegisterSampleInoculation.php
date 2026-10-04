@@ -19,6 +19,7 @@ class RegisterSampleInoculation
         private QueueAssuranceFormSynchronization $queueAssuranceSync,
         private ResolveAssuranceDay $resolveDay,
         private SynchronizeAssuranceForm $synchronizeForm,
+        private EstimateRegisteredSampleEndpoints $estimate,
     ) {}
 
     public function handle(Sample $sample, bool $overwrite = false, ?string $storedIn = null, ?string $dilutedAt = null): Sample
@@ -56,6 +57,11 @@ class RegisterSampleInoculation
             }
 
             $lockedSample->save();
+
+            if (in_array($lockedSample->sample_type, ['L', 'R'], true)) {
+                $this->estimate->handle($lockedSample);
+                $project?->update(['started' => 1]);
+            }
 
             return $lockedSample->fresh();
         });

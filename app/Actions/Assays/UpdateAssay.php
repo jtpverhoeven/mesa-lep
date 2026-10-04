@@ -2,6 +2,7 @@
 
 namespace App\Actions\Assays;
 
+use App\Actions\PortalAssays\AssociateAssayRevisionWithPortalAssays;
 use App\Confirmations\AssayConfirmationConfiguration;
 use App\Models\Assay;
 use App\Models\AssayField;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class UpdateAssay
 {
+    public function __construct(private AssociateAssayRevisionWithPortalAssays $associateAssayRevisionWithPortalAssays) {}
+
     public function handle(Assay $assay, array $data): Assay
     {
         return DB::transaction(function () use ($assay, $data) {
@@ -23,6 +26,7 @@ class UpdateAssay
                 $updatedAssay = $assay->replicate();
                 $updatedAssay->fill($attributes);
                 $updatedAssay->save();
+                $this->associateAssayRevisionWithPortalAssays->handle($assay, $updatedAssay);
                 $assay->update(['active' => 0]);
             }
 

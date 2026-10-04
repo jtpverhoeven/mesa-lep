@@ -4,12 +4,14 @@ use App\Http\Controllers\AssayController;
 use App\Http\Controllers\AssayFieldController;
 use App\Http\Controllers\AssayTypeController;
 use App\Http\Controllers\AssuranceFormController;
+use App\Http\Controllers\BulkSampleController;
 use App\Http\Controllers\ClientCategoryController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CvarController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\PortalAssayController;
 use App\Http\Controllers\PortalConnectionController;
 use App\Http\Controllers\ProductGroupController;
 use App\Http\Controllers\ProjectFieldController;
@@ -124,6 +126,14 @@ Route::middleware(['auth', 'can:samples.create'])->prefix('laboratory')->group(f
     Route::get('/samples/projects/{project}', [SampleController::class, 'project'])->name('samples.projects.show');
     Route::post('/samples', [SampleController::class, 'store'])->name('samples.store');
     Route::get('/samples/next-barcode', [SampleController::class, 'nextBarcode'])->name('samples.next-barcode');
+    Route::prefix('samples/{registrationType}')->whereIn('registrationType', ['legionella', 'rodac'])->group(function () {
+        Route::get('/create', [BulkSampleController::class, 'create'])->name('samples.bulk.create');
+        Route::get('/create/data', [BulkSampleController::class, 'formData'])->name('samples.bulk.form-data');
+        Route::get('/clients/{client}/projects', [BulkSampleController::class, 'clientProjects'])->name('samples.bulk.projects');
+        Route::get('/clients/{client}/details', [BulkSampleController::class, 'clientDetails'])->name('samples.bulk.client-details');
+        Route::post('/preview', [BulkSampleController::class, 'preview'])->name('samples.bulk.preview');
+        Route::post('/', [BulkSampleController::class, 'store'])->name('samples.bulk.store');
+    });
 });
 
 Route::middleware(['auth', 'can:research-profiles.manage'])->prefix('admin/research-profiles')->group(function () {
@@ -233,6 +243,15 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
     });
 
     Route::middleware('can:settings.advanced')->group(function () {
+        Route::get('/portal/assays', [PortalAssayController::class, 'index'])->name('portal-assays.index');
+        Route::get('/portal/assays/create', [PortalAssayController::class, 'create'])->name('portal-assays.create');
+        Route::post('/portal/assays', [PortalAssayController::class, 'store'])->name('portal-assays.store');
+        Route::get('/portal/assays/{portalAssay}/edit', [PortalAssayController::class, 'edit'])->name('portal-assays.edit');
+        Route::put('/portal/assays/{portalAssay}', [PortalAssayController::class, 'update'])->name('portal-assays.update');
+        Route::patch('/portal/assays/{portalAssay}/assays/toggle', [PortalAssayController::class, 'toggleAssay'])->name('portal-assays.assays.toggle');
+        Route::get('/portal/assays/{portalAssay}/clients', [PortalAssayController::class, 'clients'])->name('portal-assays.clients');
+        Route::put('/portal/assays/{portalAssay}/clients', [PortalAssayController::class, 'updateClients'])->name('portal-assays.clients.update');
+        Route::post('/portal/assays/{portalAssay}/clients/copy', [PortalAssayController::class, 'copyClients'])->name('portal-assays.clients.copy');
         Route::get('/portal/connection', [PortalConnectionController::class, 'index'])->name('portal.connection.index');
         Route::get('/portal/product-groups', [ProductGroupController::class, 'index'])->name('portal.product-groups.index');
         Route::get('/portal/product-groups/data', [ProductGroupController::class, 'data'])->name('portal.product-groups.data');

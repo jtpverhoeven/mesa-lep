@@ -40,13 +40,13 @@ class CreateSampleAnalyses
                     'profile' => $definition['profile'],
                     'assay' => $definition['assay'],
                     'assay_base' => $definition['assay_base'],
-                    'roaming_id' => null,
+                    'roaming_id' => $definition['roaming_id'] ?? null,
                     'predicted_end' => $sample->predicted_end,
                     'original_assay_base' => $definition['original_assay_base'],
                     'conf_requested' => 0,
                     'is_ready' => 0,
                     'project' => $sample->project,
-                    'project_order' => ++$projectOrder,
+                    'project_order' => $definition['project_order'] ?? ++$projectOrder,
                     'storedResult' => null,
                 ]);
 

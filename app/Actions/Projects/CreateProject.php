@@ -17,7 +17,8 @@ class CreateProject
             'project_date' => (string) $at->timestamp,
             'custom_fields' => json_encode($this->customFields($data['custom_fields'] ?? [], $at), JSON_FORCE_OBJECT),
             'revision' => 1,
-            'special_type' => 0,
+            'special_type' => $data['special_type'] ?? 0,
+            'project_extra' => isset($data['project_extra']) ? json_encode($data['project_extra'], JSON_FORCE_OBJECT) : null,
             'predicted_end' => $at->timestamp,
             'added_by' => $data['added_by'],
         ]);

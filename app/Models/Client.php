@@ -49,4 +49,10 @@ class Client extends Model
     {
         return $this->hasMany(ReferenceSource::class, 'client');
     }
+
+    public function portalAssays(): BelongsToMany
+    {
+        return $this->belongsToMany(PortalAssay::class, 'client_portal_assay', 'client_id', 'portal_assay_id')
+            ->withPivot('id');
+    }
 }

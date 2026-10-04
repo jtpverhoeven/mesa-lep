@@ -12,13 +12,13 @@ use Illuminate\Validation\ValidationException;
 
 class AddResearchProfileToSample
 {
-    public function handle(Sample $sample, ResearchProfile $profile, array $excludedAssayProfileIds = []): Collection
+    public function handle(Sample $sample, ResearchProfile $profile, array $excludedAssayProfileIds = [], bool $legacyRegistration = false): Collection
     {
-        return DB::transaction(function () use ($sample, $profile, $excludedAssayProfileIds) {
+        return DB::transaction(function () use ($sample, $profile, $excludedAssayProfileIds, $legacyRegistration) {
             $sample = Sample::query()->findOrFail($sample->getKey());
             $profile = ResearchProfile::query()
                 ->whereKey($profile->getKey())
-                ->where('active', 1)
+                ->when(! $legacyRegistration, fn ($query) => $query->where('active', 1))
                 ->where(function ($query) use ($sample) {
                     $query->where('global', 1)->orWhere('client', $sample->client);
                 })
@@ -37,7 +37,11 @@ class AddResearchProfileToSample
                 ->with('assayRecord')
                 ->get();
 
-            $definitions = $assayProfiles->map(function (AssayProfile $assayProfile) {
+            if ($legacyRegistration) {
+                $assayProfiles = $assayProfiles->filter(fn (AssayProfile $assayProfile) => $assayProfile->assayRecord !== null);
+            }
+
+            $definitions = $assayProfiles->map(function (AssayProfile $assayProfile) use ($legacyRegistration) {
                 if ($assayProfile->assayRecord === null) {
                     throw ValidationException::withMessages([
                         'profile' => "Analyse {$assayProfile->assay} uit het onderzoeksprofiel bestaat niet.",
@@ -45,12 +49,17 @@ class AddResearchProfileToSample
                 }
 
                 return [
+                    ...($legacyRegistration ? ['project_order' => (int) $assayProfile->project_order, 'roaming_id' => 0] : []),
                     'profile' => $assayProfile->research_profile,
                     'assay' => $assayProfile->id,
                     'assay_base' => $assayProfile->assay,
                     'original_assay_base' => $assayProfile->assayRecord->original_id,
                 ];
             })->all();
+
+            if ($legacyRegistration && $definitions === []) {
+                return new Collection;
+            }
 
             $analyses = app(CreateSampleAnalyses::class)->handle($sample, $definitions);
             $analyses->each(fn ($analysis) => app(CreateAnalysisResults::class)->handle($analysis));

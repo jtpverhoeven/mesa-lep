@@ -4,27 +4,30 @@ namespace App\Console\Commands;
 
 use App\Models\Assay;
 use App\Models\AssayField;
+use App\Models\AssayProfile;
 use App\Models\AssayType;
 use App\Models\AssayTypeField;
+use App\Models\Client;
 use App\Models\ClientCategory;
 use App\Models\ClientCategoryAssignment;
-use App\Models\Client;
+use App\Models\ClientPortalAssay;
 use App\Models\Cvar;
-use App\Models\Media;
 use App\Models\Matrix;
 use App\Models\MatrixContent;
+use App\Models\Media;
+use App\Models\PortalAssay;
+use App\Models\PortalAssayContent;
 use App\Models\ProjectField;
 use App\Models\ReferenceSource;
 use App\Models\ResearchProfile;
-use App\Models\AssayProfile;
 use App\Models\SampleField;
 use App\Models\SampleProcedure;
 use App\Models\SampleProcedureField;
+use Faker\Generator;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Faker\Generator;
 use RuntimeException;
 use Throwable;
 
@@ -49,11 +52,14 @@ class ImportLegacyCsvDirectoryCommand extends Command
         'assayfields.csv' => AssayField::class,
         'media.csv' => Media::class,
         'assays.csv' => Assay::class,
+        'portalassays.csv' => PortalAssay::class,
+        'portalassaycontent.csv' => PortalAssayContent::class,
         'matrix.csv' => Matrix::class,
         'matrixcontent.csv' => MatrixContent::class,
         'clientcategories.csv' => ClientCategory::class,
         'clients.csv' => Client::class,
         'categories_clients.csv' => ClientCategoryAssignment::class,
+        'client_portal_assay.csv' => ClientPortalAssay::class,
         'referencesources.csv' => ReferenceSource::class,
         'researchprofiles.csv' => ResearchProfile::class,
         'assayprofiles.csv' => AssayProfile::class,
@@ -79,6 +85,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
         $imported = 0;
         $failures = 0;
         $foundFiles = 0;
+        $importedModelClasses = [];
 
         foreach (self::IMPORTS as $filename => $modelClass) {
             $path = $directory.DIRECTORY_SEPARATOR.$filename;
@@ -88,6 +95,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
             }
 
             $foundFiles++;
+            $importedModelClasses[] = $modelClass;
             [$fileImported, $fileFailures] = $this->importFile($path, $modelClass);
             $imported += $fileImported;
             $failures += $fileFailures;
@@ -98,6 +106,8 @@ class ImportLegacyCsvDirectoryCommand extends Command
 
             return self::FAILURE;
         }
+
+        $this->resetPrimaryKeySequences($importedModelClasses);
 
         $this->info("Imported {$imported} row(s) from {$foundFiles} file(s).");
 
@@ -111,7 +121,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
     }
 
     /**
-     * @param class-string<Model> $modelClass
+     * @param  class-string<Model>  $modelClass
      * @return array{int, int}
      */
     private function importFile(string $path, string $modelClass): array
@@ -207,7 +217,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
     }
 
     /**
-     * @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $attributes
      * @return array<string, mixed>
      */
     private function decodeJsonAttributes(Model $model, array $attributes): array
@@ -230,8 +240,8 @@ class ImportLegacyCsvDirectoryCommand extends Command
     }
 
     /**
-     * @param class-string<Model> $modelClass
-     * @param array<string, mixed> $attributes
+     * @param  class-string<Model>  $modelClass
+     * @param  array<string, mixed>  $attributes
      * @return array<string, mixed>
      */
     private function anonymizeClient(string $modelClass, array $attributes): array
@@ -264,6 +274,36 @@ class ImportLegacyCsvDirectoryCommand extends Command
         foreach (array_reverse(self::IMPORTS) as $modelClass) {
             $model = new $modelClass;
             $model->newQuery()->truncate();
+        }
+    }
+
+    /**
+     * @param  list<class-string<Model>>  $modelClasses
+     */
+    private function resetPrimaryKeySequences(array $modelClasses): void
+    {
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
+
+        foreach (array_unique($modelClasses) as $modelClass) {
+            $model = new $modelClass;
+            $sequence = DB::selectOne(
+                'SELECT pg_get_serial_sequence(?, ?) AS sequence_name',
+                [$model->getTable(), 'id'],
+            )?->sequence_name;
+
+            if ($sequence === null) {
+                continue;
+            }
+
+            $maximumId = $model->newQuery()->max('id');
+
+            DB::statement('SELECT setval(?::regclass, ?, ?)', [
+                $sequence,
+                $maximumId ?? 1,
+                $maximumId !== null,
+            ]);
         }
     }
 
