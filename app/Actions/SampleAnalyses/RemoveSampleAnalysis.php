@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class RemoveSampleAnalysis
 {
+    public function __construct(private RefreshSampleIsEmpty $refreshSampleIsEmpty) {}
+
     public function handle(SampleAnalysis $analysis): void
     {
         DB::transaction(function () use ($analysis) {
@@ -29,9 +31,7 @@ class RemoveSampleAnalysis
                     'project_order' => $index + 1,
                 ]));
 
-            $sample->update([
-                'isEmpty' => SampleAnalysis::query()->where('sample', $sample->id)->doesntExist() ? 1 : 0,
-            ]);
+            $this->refreshSampleIsEmpty->handle($sample);
         });
     }
 }

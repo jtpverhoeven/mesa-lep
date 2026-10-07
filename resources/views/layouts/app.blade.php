@@ -76,6 +76,7 @@
                             @can('samples.create')<a href="{{ route('samples.create') }}" @class(['selected' => request()->routeIs('samples.create')])>Aanmelden</a>@endcan
                             @can('samples.create')<a href="{{ route('samples.bulk.create', ['registrationType' => 'legionella']) }}" @class(['selected' => request()->routeIs('samples.bulk.*') && request()->route('registrationType') === 'legionella'])>Legionella aanmelden</a>@endcan
                             @can('samples.create')<a href="{{ route('samples.bulk.create', ['registrationType' => 'rodac']) }}" @class(['selected' => request()->routeIs('samples.bulk.*') && request()->route('registrationType') === 'rodac'])>RODAC aanmelden</a>@endcan
+                            @can('samples.assign-research')<a href="{{ route('samples.assign-analyses') }}" @class(['selected' => request()->routeIs('samples.assign-analyses*')])>Analyses toevoegen</a>@endcan
                             @can('samples.view')<a href="{{ route('samples.lookup') }}" @class(['selected' => request()->routeIs('samples.lookup*')])>Resultaten invoeren</a>@endcan
                             @can('shelf-life-studies.view')<a href="{{ route('sample-buffers.tht') }}" @class(['selected' => request()->routeIs('sample-buffers.tht')])>THT onderzoeken</a>@endcan
                             

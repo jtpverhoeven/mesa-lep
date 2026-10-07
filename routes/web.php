@@ -19,6 +19,7 @@ use App\Http\Controllers\ProjectSearchController;
 use App\Http\Controllers\ReferenceSourceController;
 use App\Http\Controllers\ResearchProfileController;
 use App\Http\Controllers\ResultController;
+use App\Http\Controllers\SampleAnalysisAssignmentController;
 use App\Http\Controllers\SampleBufferController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SampleFieldController;
@@ -62,6 +63,13 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
     Route::get('/{sample}/product-groups', [SampleLookupController::class, 'productGroups'])->name('samples.lookup.product-groups');
     Route::patch('/{sample}/product-group', [SampleLookupController::class, 'updateProductGroup'])->name('samples.lookup.product-group.update');
     Route::post('/{sample}/research', [SampleLookupController::class, 'update'])->name('samples.lookup.research');
+});
+
+Route::middleware(['auth', 'can:samples.assign-research'])->prefix('laboratory/samples/assign-analyses')->group(function () {
+    Route::get('/', [SampleAnalysisAssignmentController::class, 'index'])->name('samples.assign-analyses');
+    Route::get('/data', [SampleAnalysisAssignmentController::class, 'data'])->name('samples.assign-analyses.data');
+    Route::get('/clients/{client}/options', [SampleAnalysisAssignmentController::class, 'options'])->name('samples.assign-analyses.options');
+    Route::post('/', [SampleAnalysisAssignmentController::class, 'store'])->name('samples.assign-analyses.store');
 });
 
 Route::middleware(['auth', 'can:samples.update'])->prefix('laboratory/samples/{sample}/metadata')->group(function () {

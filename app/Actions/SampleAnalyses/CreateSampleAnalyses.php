@@ -11,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 class CreateSampleAnalyses
 {
+    public function __construct(private RefreshSampleIsEmpty $refreshSampleIsEmpty) {}
+
     public function handle(Sample $sample, array $definitions): Collection
     {
         if ($definitions === []) {
@@ -60,7 +62,7 @@ class CreateSampleAnalyses
                 $analyses->add($analysis);
             }
 
-            $sample->update(['isEmpty' => 0]);
+            $this->refreshSampleIsEmpty->handle($sample);
 
             return $analyses;
         });

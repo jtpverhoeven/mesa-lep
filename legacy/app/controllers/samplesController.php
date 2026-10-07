@@ -1387,7 +1387,7 @@ class samplesController extends Controller
         global $lang;
         $this->render = False;
         $limit = 150;
-        $retObj = array();
+        $retObj = array();        
 
         $this->Sample->where('isEmpty', 1);
 

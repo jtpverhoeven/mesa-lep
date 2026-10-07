@@ -31,6 +31,7 @@ import BulkSampleCreateForm from './components/BulkSampleCreateForm.vue';
 import SampleBufferPortal from './components/SampleBufferPortal.vue';
 import SampleLookup from './components/SampleLookup.vue';
 import SampleRegister from './components/SampleRegister.vue';
+import SampleAnalysisAssignment from './components/SampleAnalysisAssignment.vue';
 import UserMenu from './components/UserMenu.vue';
 import { SfxPlugin } from './sfx';
 
@@ -68,5 +69,6 @@ app.component('bulk-sample-create-form', BulkSampleCreateForm);
 app.component('sample-buffer-portal', SampleBufferPortal);
 app.component('sample-lookup', SampleLookup);
 app.component('sample-register', SampleRegister);
+app.component('sample-analysis-assignment', SampleAnalysisAssignment);
 app.component('user-menu', UserMenu);
 app.mount('#app');

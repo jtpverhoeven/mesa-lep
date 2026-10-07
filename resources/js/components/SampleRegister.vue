@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Archive, Barcode, Beaker, ChevronDown, ChevronUp, CircleAlert, FlaskConical, LoaderCircle, Pencil, RefreshCw, Save, Scale, Search, X } from '@lucide/vue';
 import ConfirmDialog from 'openvue/confirmdialog';
+import ContextMenu from 'openvue/contextmenu';
 import Toast from 'openvue/toast';
 import { useConfirm } from 'openvue/useconfirm';
 import { useToast } from 'openvue/usetoast';
@@ -34,6 +35,8 @@ const error = ref('');
 const listViewport = ref(null);
 const sentinel = ref(null);
 const barcodeInput = ref(null);
+const sampleContextMenu = ref(null);
+const contextMenuBarcode = ref('');
 const locationDialogOpen = ref(false);
 const locationKind = ref('storage');
 const locationDraft = ref('');
@@ -49,6 +52,12 @@ const columnCount = computed(() => standardList.value ? 13 : 5);
 const locationDialogTitle = computed(() => locationKind.value === 'storage' ? 'Monster opslag' : 'Afweegstation');
 const locationDialogLabel = computed(() => locationKind.value === 'storage' ? 'Vriezer bak' : 'Afweegstation');
 const overwriteConfirmPassThrough = createAppDialogPassThrough({ titleId: 'sample-register-overwrite-title' });
+const sampleContextMenuItems = [
+    { label: 'Monster openen', command: () => openSample(contextMenuBarcode.value) },
+    { label: 'Barcode kopiëren', command: () => copyBarcode(contextMenuBarcode.value) },
+    { label: 'Inzetten', command: () => registerSample(contextMenuBarcode.value) },
+];
+const sampleContextMenuPassThrough = { rootList: { style: { outline: 'none' } } };
 
 function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -140,8 +149,10 @@ async function clearSearch() {
     await loadPage(true);
 }
 
-async function registerSample() {
-    if (!barcode.value.trim() || registering.value) return;
+async function registerSample(sampleBarcode) {
+    const fromBarcodeInput = sampleBarcode === undefined;
+    const submittedBarcode = (sampleBarcode ?? barcode.value).trim();
+    if (!submittedBarcode || registering.value) return;
 
     registering.value = true;
     error.value = '';
@@ -153,7 +164,7 @@ async function registerSample() {
                 const result = await request(props.endpoints.inoculate, {
                     method: 'POST',
                     body: JSON.stringify({
-                        barcode: barcode.value.trim(),
+                        barcode: submittedBarcode,
                         overwrite,
                         storage: standardList.value ? registerSettings.value.storage : '',
                         dilution_at: registerSettings.value.dilution_at,
@@ -168,11 +179,11 @@ async function registerSample() {
                 }
 
                 selectedId.value = result.sample.id;
-                barcode.value = '';
+                if (fromBarcodeInput) barcode.value = '';
                 toast.add({ severity: 'success', summary: result.message, life: 3500 });
                 await nextTick();
                 document.getElementById(`sample-register-row-${result.sample.id}`)?.scrollIntoView({ block: 'nearest' });
-                barcodeInput.value?.focus();
+                if (fromBarcodeInput) barcodeInput.value?.focus();
                 break;
             } catch (requestError) {
                 if (requestError.status === 409 && requestError.payload?.code === 'already_started') {
@@ -189,6 +200,24 @@ async function registerSample() {
     } finally {
         registering.value = false;
     }
+}
+
+function openSample(sampleBarcode) {
+    window.location.assign(lookupUrl(sampleBarcode));
+}
+
+async function copyBarcode(sampleBarcode) {
+    try {
+        await navigator.clipboard.writeText(sampleBarcode);
+        toast.add({ severity: 'success', summary: 'Barcode gekopieerd.', life: 2500 });
+    } catch {
+        toast.add({ severity: 'error', summary: 'Barcode kon niet worden gekopieerd.', life: 3500 });
+    }
+}
+
+function showSampleContextMenu(event, sample) {
+    contextMenuBarcode.value = sample.barcode;
+    sampleContextMenu.value?.show(event);
 }
 
 function lookupUrl(sampleBarcode) {
@@ -304,7 +333,7 @@ onBeforeUnmount(() => observer?.disconnect());
         <div class="sample-register-controls">
             <section class="sample-panel">
                 <h2><Barcode :size="16" aria-hidden="true" />Registreer inzetdatum en tijd monster</h2>
-                <form class="sample-register-panel-body" @submit.prevent="registerSample">
+                <form class="sample-register-panel-body" @submit.prevent="registerSample()">
                     <label class="sr-only" for="register-barcode">Barcode</label>
                     <div class="sample-register-input">
                         <Barcode :size="16" aria-hidden="true" />
@@ -346,7 +375,7 @@ onBeforeUnmount(() => observer?.disconnect());
                         <tbody>
                             <tr v-if="!samples.length && !loading"><td :colspan="columnCount" class="empty-state">Geen monsters gevonden.</td></tr>
                             <tr v-for="sample in samples" :id="`sample-register-row-${sample.id}`" :key="sample.id" :class="{ 'selected-row': selectedId === sample.id }" @click="selectSample(sample)">
-                                <td><span v-if="sample.has_note" class="sample-register-warning" title="Monster heeft een notitie"><CircleAlert :size="14" /></span><strong>{{ sample.barcode }}</strong><a class="icon-button sample-register-row-link" :href="lookupUrl(sample.barcode)" title="Monster opzoeken" aria-label="Monster opzoeken" @click.stop><Beaker :size="14" /></a></td>
+                                <td><span v-if="sample.has_note" class="sample-register-warning" title="Monster heeft een notitie"><CircleAlert :size="14" /></span><strong @contextmenu.prevent="showSampleContextMenu($event, sample)">{{ sample.barcode }}</strong><a class="icon-button sample-register-row-link" :href="lookupUrl(sample.barcode)" title="Monster opzoeken" aria-label="Monster opzoeken" @click.stop><Beaker :size="14" /></a></td>
                                 <td>{{ sample.received_date }}</td><td>{{ sample.received_time }}</td>
                                 <td :class="{ 'sample-register-started': sample.started }">{{ sample.inoculation_date }}</td><td :class="{ 'sample-register-started': sample.started }">{{ sample.inoculation_time }}</td>
                                 <template v-if="standardList"><td>{{ sample.client }}</td><td class="sample-register-description" :title="sample.description">{{ sample.description }}</td><td class="sample-register-flag">{{ sample.flags.listeria ? 'X' : '' }}</td><td class="sample-register-flag">{{ sample.flags.salmonella ? 'X' : '' }}</td><td class="sample-register-flag">{{ sample.flags.campylobacter ? 'X' : '' }}</td><td class="sample-register-flag">{{ sample.flags.stec ? 'X' : '' }}</td><td>{{ sample.stored_in }}</td><td>{{ sample.diluted_at }}</td></template>
@@ -365,6 +394,7 @@ onBeforeUnmount(() => observer?.disconnect());
                 <button class="sample-register-rail-button" type="button" title="Verder scrollen" aria-label="Verder scrollen" :disabled="loading && !hasMore" @click="scrollList('down')"><ChevronDown :size="25" /></button>
             </aside>
         </div>
+        <ContextMenu ref="sampleContextMenu" :model="sampleContextMenuItems" :pt="sampleContextMenuPassThrough" />
         <ConfirmDialog :draggable="false" :unstyled="true" :pt="overwriteConfirmPassThrough" />
         <AppDialog v-model:visible="locationDialogOpen" :title="locationDialogTitle" width="560px">
             <p>Bij registreren van een monster wordt {{ locationDialogLabel.toLowerCase() }} ingesteld op:</p>
