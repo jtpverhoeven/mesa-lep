@@ -14,6 +14,7 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PortalAssayController;
 use App\Http\Controllers\PortalConnectionController;
 use App\Http\Controllers\ProductGroupController;
+use App\Http\Controllers\ProjectAuthorizationController;
 use App\Http\Controllers\ProjectFieldController;
 use App\Http\Controllers\ProjectSearchController;
 use App\Http\Controllers\ReferenceSourceController;
@@ -85,6 +86,13 @@ Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects/se
     Route::patch('/{project}/samples/{sample}', [ProjectSearchController::class, 'updateSample'])->scopeBindings()->name('projects.search.samples.update');
     Route::get('/{project}/samples/{sample}/analyses/{analysis}/results', [ProjectSearchController::class, 'showSampleAnalysisResults'])->scopeBindings()->name('projects.search.samples.results.show');
     Route::get('/{project?}', [ProjectSearchController::class, 'index'])->whereNumber('project')->name('projects.search');
+});
+
+Route::middleware(['auth', 'can:projects.authorisation.manage'])->prefix('laboratory/projects')->group(function () {
+    Route::post('/{project}/authorization', [ProjectAuthorizationController::class, 'store'])
+        ->whereNumber('project')->name('projects.authorization.store');
+    Route::delete('/{project}/authorization', [ProjectAuthorizationController::class, 'destroy'])
+        ->whereNumber('project')->name('projects.authorization.destroy');
 });
 
 Route::middleware(['auth', 'can:samples.list'])->prefix('laboratory/samples/register')->group(function () {

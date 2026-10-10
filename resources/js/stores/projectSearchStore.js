@@ -15,13 +15,16 @@ export const useProjectSearchStore = defineStore('projectSearch', {
         endpoints: {}, mode: 'barcode', query: '', projects: [], projectData: null,
         selectedProjectId: null, selectedSampleId: null, searching: false, loadingProject: false,
         sampleData: null, analysisResults: {}, loadingSample: false, savingSample: {},
+        projectActionLoading: false, projectActionError: '',
         searched: false, error: '', sampleError: '',
     }),
     getters: {
         selectedSample: (state) => state.projectData?.samples.find(
             (sample) => Number(sample.id) === Number(state.selectedSampleId),
         ) ?? null,
-        sampleReadOnly: (state) => Boolean(state.sampleData?.read_only),
+        sampleReadOnly: (state) => state.projectActionLoading || (state.projectData?.project
+            ? Boolean(Number(state.projectData.project.auth_status) || Number(state.projectData.project.locked))
+            : Boolean(state.sampleData?.read_only)),
         showsResults: (state) => state.mode === 'reference'
             && (state.searching || state.searched)
             && state.selectedProjectId === null,
@@ -82,6 +85,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
             this.selectedProjectId = Number(projectId);
             this.selectedSampleId = sampleId ? Number(sampleId) : null;
             this.projectData = null;
+            this.projectActionError = '';
             this.clearSample();
             this.loadingProject = true;
             this.error = '';
@@ -179,6 +183,80 @@ export const useProjectSearchStore = defineStore('projectSearch', {
                 delete this.savingSample[key];
             }
         },
+        async authorizeProject({ quiet = false, overrideIncomplete = false } = {}) {
+            return this.updateProjectAuthorization('POST', {
+                quiet,
+                override_incomplete: overrideIncomplete,
+            });
+        },
+        async deauthorizeProject({ origin, reason }) {
+            return this.updateProjectAuthorization('DELETE', { origin, reason });
+        },
+        async updateProjectAuthorization(method, payload) {
+            if (this.selectedProjectId === null || !this.projectData || this.projectActionLoading) return null;
+
+            const projectId = this.selectedProjectId;
+            this.projectActionLoading = true;
+            this.projectActionError = '';
+
+            try {
+                const response = await fetch(this.endpoints.authorization.replace('__PROJECT__', projectId), {
+                    method,
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const result = await responseData(response);
+                if (Number(this.selectedProjectId) === Number(projectId) && this.projectData?.project && result.project) {
+                    Object.assign(this.projectData.project, result.project);
+
+                    if (result.authorized || result.deauthorized) {
+                        await this.refreshProject(projectId);
+
+                        if (Number(this.selectedProjectId) === Number(projectId) && this.selectedSampleId !== null) {
+                            if (this.selectedSample) {
+                                await this.selectSample(this.selectedSampleId);
+                            } else {
+                                activeSampleRequest?.abort();
+                                this.selectedSampleId = null;
+                                this.clearSample();
+                            }
+                        }
+                    }
+                }
+
+                return result;
+            } catch (error) {
+                this.projectActionError = error.message;
+                return null;
+            } finally {
+                this.projectActionLoading = false;
+            }
+        },
+        async refreshProject(projectId) {
+            activeProjectRequest?.abort();
+            const request = new AbortController();
+            activeProjectRequest = request;
+
+            try {
+                const response = await fetch(this.endpoints.project.replace('__PROJECT__', projectId), {
+                    headers: { Accept: 'application/json' },
+                    signal: request.signal,
+                });
+                const data = await responseData(response);
+
+                if (activeProjectRequest === request && Number(this.selectedProjectId) === Number(projectId)) {
+                    this.projectData = data;
+                }
+            } catch (error) {
+                if (error.name !== 'AbortError' && Number(this.selectedProjectId) === Number(projectId)) {
+                    this.projectActionError = `De projectstatus is gewijzigd, maar de projectgegevens konden niet worden vernieuwd: ${error.message}`;
+                }
+            }
+        },
         sampleEndpoint(sampleId) {
             return this.endpoints.sample
                 .replace('__PROJECT__', this.selectedProjectId)
@@ -198,6 +276,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
             this.selectedProjectId = null;
             this.selectedSampleId = null;
             this.loadingProject = false;
+            this.projectActionError = '';
             this.clearSample();
             if (this.mode === 'barcode') {
                 this.projects = [];

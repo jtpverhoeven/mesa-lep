@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 #[Fillable([
     'profile_group', 'sample', 'follow_number', 'profile', 'assay', 'assay_base',
     'roaming_id', 'predicted_end', 'original_assay_base', 'conf_requested',
-    'is_ready', 'project', 'project_order', 'storedResult',
+    'is_ready', 'project', 'project_order', 'storedResult', 'auth_status', 'auth_by',
 ])]
 class SampleAnalysis extends Model
 {
@@ -23,6 +23,7 @@ class SampleAnalysis extends Model
     {
         return [
             'is_ready' => 'boolean',
+            'auth_status' => 'integer',
             'storedResult' => 'array',
         ];
     }

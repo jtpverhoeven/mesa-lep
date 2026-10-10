@@ -23,6 +23,7 @@ class ProjectSearchController extends Controller
             'initialProjectId' => $project?->id,
             'permissions' => [
                 'updateSample' => $request->user()->can('samples.update'),
+                'manageAuthorization' => $request->user()->can('projects.authorisation.manage'),
             ],
         ]);
     }

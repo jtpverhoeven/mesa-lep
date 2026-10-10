@@ -34,7 +34,7 @@ function displayDate(value) {
                 <ProjectSearchPanel />
                 <ProjectDetailsPanel v-if="store.selectedProjectId" />
             </div>
-            <ProjectSamplesPanel v-if="store.selectedProjectId" />
+            <ProjectSamplesPanel v-if="store.selectedProjectId" :can-manage-authorization="permissions.manageAuthorization" />
             <ProjectSamplePanel v-if="store.selectedProjectId" :can-update="permissions.updateSample" />
         </div>
         <section v-if="store.showsResults" class="sample-panel project-results-panel">

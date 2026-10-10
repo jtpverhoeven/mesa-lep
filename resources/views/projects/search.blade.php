@@ -8,6 +8,7 @@
             'page' => route('projects.search'),
             'search' => route('projects.search.data'),
             'project' => route('projects.search.show', ['project' => '__PROJECT__']),
+            'authorization' => route('projects.authorization.store', ['project' => '__PROJECT__']),
             'sample' => route('projects.search.samples.show', ['project' => '__PROJECT__', 'sample' => '__SAMPLE__']),
             'metadata' => route('samples.metadata.store', ['sample' => '__SAMPLE__']),
             'results' => route('projects.search.samples.results.show', [
