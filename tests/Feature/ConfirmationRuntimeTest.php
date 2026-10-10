@@ -14,6 +14,7 @@ use App\Models\Assay;
 use App\Models\Media;
 use App\Models\Result;
 use App\Models\SampleAnalysis;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -99,6 +100,7 @@ class ConfirmationRuntimeTest extends TestCase
 
     public function test_changing_a_plate_count_to_zero_removes_that_confirmation_scope(): void
     {
+        $this->actingAs(User::factory()->create(['enabled' => 1]));
         Queue::fake();
         [$analysis, $media] = $this->analysis();
 
@@ -132,6 +134,7 @@ class ConfirmationRuntimeTest extends TestCase
 
     public function test_changing_a_plate_count_from_zero_initializes_that_confirmation_scope(): void
     {
+        $this->actingAs(User::factory()->create(['enabled' => 1]));
         Queue::fake();
         [$analysis] = $this->analysis();
         $result = $analysis->results()->firstOrFail();
@@ -153,6 +156,7 @@ class ConfirmationRuntimeTest extends TestCase
 
     public function test_changing_a_plate_count_to_zero_preserves_other_dilution_tracks(): void
     {
+        $this->actingAs(User::factory()->create(['enabled' => 1]));
         Queue::fake();
         [$analysis] = $this->analysis();
         Result::create([
@@ -184,6 +188,7 @@ class ConfirmationRuntimeTest extends TestCase
 
     public function test_saving_the_same_count_keeps_the_existing_decision(): void
     {
+        $this->actingAs(User::factory()->create(['enabled' => 1]));
         Queue::fake();
         [$analysis] = $this->analysis();
 
@@ -198,6 +203,7 @@ class ConfirmationRuntimeTest extends TestCase
 
     public function test_changing_a_plate_count_does_not_expand_started_confirmation_tracks(): void
     {
+        $this->actingAs(User::factory()->create(['enabled' => 1]));
         Queue::fake();
         [$analysis, $media] = $this->analysis();
         $analysis->assayRecord()->update(['confirmation_init' => 1]);
@@ -221,6 +227,7 @@ class ConfirmationRuntimeTest extends TestCase
 
     public function test_decreasing_a_plate_count_does_not_contract_started_confirmation_tracks(): void
     {
+        $this->actingAs(User::factory()->create(['enabled' => 1]));
         Queue::fake();
         [$analysis] = $this->analysis();
         $result = $analysis->results()->firstOrFail();
@@ -257,6 +264,9 @@ class ConfirmationRuntimeTest extends TestCase
     /** @return array{SampleAnalysis, Media} */
     private function analysis(): array
     {
+        if (! auth()->check()) {
+            $this->actingAs(User::factory()->create(['enabled' => 1]));
+        }
         $media = Media::create([
             'name' => 'Confirmation medium',
             'hasDate' => 0,

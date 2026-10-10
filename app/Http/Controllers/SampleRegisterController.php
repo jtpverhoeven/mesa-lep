@@ -2,18 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\AssuranceForms\GetOrCreateAssuranceForm;
-use App\Actions\AssuranceForms\QueueAssuranceFormSynchronization;
-use App\Actions\AssuranceForms\ResolveAssuranceDay;
 use App\Actions\Samples\RegisterSampleInoculation;
+use App\Actions\Samples\UpdateSampleInoculationConditions;
 use App\Models\Cvar;
-use App\Models\Project;
 use App\Models\Sample;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -119,9 +115,7 @@ class SampleRegisterController extends Controller
     public function updateConditions(
         Request $request,
         Sample $sample,
-        ResolveAssuranceDay $resolveDay,
-        GetOrCreateAssuranceForm $getOrCreateForm,
-        QueueAssuranceFormSynchronization $queueAssuranceSync,
+        UpdateSampleInoculationConditions $updateConditions,
     ): JsonResponse {
         $validated = $request->validate([
             'innoc' => ['required', 'date_format:d-m-Y H:i'],
@@ -129,39 +123,8 @@ class SampleRegisterController extends Controller
             'diluted_at' => ['nullable', 'string', 'max:5'],
         ]);
         $inoculatedAt = $this->parseInoculationDate((string) $validated['innoc']);
-        $previousInoculation = '';
-
-        $updated = DB::transaction(function () use ($sample, $inoculatedAt, $validated, &$previousInoculation): Sample {
-            $lockedSample = Sample::query()->lockForUpdate()->findOrFail($sample->getKey());
-            $project = (int) $lockedSample->project > 0
-                ? Project::query()->lockForUpdate()->find($lockedSample->project)
-                : null;
-
-            if ($project?->locked || $project?->auth_status) {
-                throw ValidationException::withMessages([
-                    'sample' => 'Dit project is vergrendeld of geautoriseerd.',
-                ]);
-            }
-
-            $previousInoculation = (string) ($lockedSample->sample_innoculated ?? '');
-
-            if (! $this->hasInoculation($previousInoculation)) {
-                throw ValidationException::withMessages([
-                    'sample' => 'Kan niet wijzigen. Dit monster is nog niet gescand.',
-                ]);
-            }
-
-            $lockedSample->sample_innoculated = (string) $inoculatedAt->timestamp;
-            $lockedSample->stored_in = (string) ($validated['storage'] ?? '');
-            $lockedSample->diluted_at = (string) ($validated['diluted_at'] ?? '');
-            $lockedSample->save();
-
-            return $lockedSample->fresh();
-        });
-
-        $newFormDate = $resolveDay->handle($updated->sample_innoculated)['form_date'];
-        $getOrCreateForm->handle($newFormDate);
-        $queueAssuranceSync->handleMany([$previousInoculation, $updated->sample_innoculated]);
+        $updated = $updateConditions->handle($sample, $inoculatedAt,
+            (string) ($validated['storage'] ?? ''), (string) ($validated['diluted_at'] ?? ''));
 
         return response()->json(['data' => [
             'message' => 'Monster '.$updated->barcode.' is bijgewerkt.',

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Projects;
 
+use App\ChangeTracking\ChangeTracker;
 use App\ClientPortal\ClientPortalService;
 use App\Models\Project;
 use Illuminate\Support\Facades\DB;
@@ -10,7 +11,7 @@ use Throwable;
 
 class DeauthorizeProject
 {
-    public function __construct(private ClientPortalService $clientPortal) {}
+    public function __construct(private ClientPortalService $clientPortal, private ChangeTracker $changeTracker) {}
 
     /** @return array<string, mixed> */
     public function handle(Project $project, int $userId, string $origin, string $reason): array
@@ -47,15 +48,9 @@ class DeauthorizeProject
                 'storedResult' => null,
             ]);
 
-            DB::table('changetracker')->insert([
-                'user_id' => $userId,
-                'timestamp' => (string) $updatedAt,
-                'type' => '9',
-                'project' => $lockedProject->id,
-                'event' => 'Project authorisatie ingetrokken, bron wijziging: '.$origin.', reden:'.$reason,
-                'from' => $from,
-                'to' => '0',
-            ]);
+            $this->changeTracker->changed(9, project: $lockedProject->id,
+                event: 'Project authorisatie ingetrokken, bron wijziging: '.$origin.', reden:'.$reason,
+                from: $from, to: '0', userId: $userId);
 
             return [
                 'deauthorized' => true,

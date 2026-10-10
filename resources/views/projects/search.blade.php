@@ -7,9 +7,11 @@
         'endpoints' => [
             'page' => route('projects.search'),
             'search' => route('projects.search.data'),
+            'revisions' => route('revisions.index'),
             'project' => route('projects.search.show', ['project' => '__PROJECT__']),
             'authorization' => route('projects.authorization.store', ['project' => '__PROJECT__']),
             'sample' => route('projects.search.samples.show', ['project' => '__PROJECT__', 'sample' => '__SAMPLE__']),
+            'sampleLookup' => route('samples.lookup', ['barcode' => '__BARCODE__']),
             'metadata' => route('samples.metadata.store', ['sample' => '__SAMPLE__']),
             'results' => route('projects.search.samples.results.show', [
                 'project' => '__PROJECT__',

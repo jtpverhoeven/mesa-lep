@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SampleRegisterTest extends TestCase
@@ -73,6 +74,44 @@ class SampleRegisterTest extends TestCase
         $this->assertSame('T', $sample->fresh()->stored_in);
         $this->assertSame('DIL', $sample->fresh()->diluted_at);
         $this->assertNotSame('', $sample->fresh()->sample_innoculated);
+    }
+
+    #[DataProvider('sampleTypes')]
+    public function test_inoculating_one_sample_moves_its_project_from_received_to_running(string $sampleType): void
+    {
+        $this->freezeTime();
+        Gate::define('projects.view', fn (): bool => true);
+        $sample = $this->sample('26091010');
+        $sample->update(['sample_type' => $sampleType]);
+        $otherSample = $this->sample('26091011', $sample->project);
+        $unrelatedSample = $this->sample('26091012');
+        Queue::fake();
+
+        $this->getJson(route('projects.overview.received.data'))->assertOk()
+            ->assertJsonPath('total', 2)->assertJsonPath('data.0.id', $sample->project);
+        $this->getJson(route('projects.overview.running.data'))->assertOk()->assertJsonPath('total', 0);
+
+        $this->postJson(route('samples.register.inoculation'), ['barcode' => $sample->barcode])
+            ->assertOk()->assertJsonPath('data.sample.id', $sample->id);
+
+        $this->assertSame((string) now()->timestamp, $sample->fresh()->sample_innoculated);
+        $this->assertSame('', $otherSample->fresh()->sample_innoculated);
+        $this->assertDatabaseHas('projects', ['id' => $sample->project, 'started' => 1]);
+        $this->assertDatabaseHas('projects', ['id' => $unrelatedSample->project, 'started' => 0]);
+        $this->getJson(route('projects.overview.received.data'))->assertOk()
+            ->assertJsonPath('total', 1)->assertJsonPath('data.0.id', $unrelatedSample->project);
+        $this->getJson(route('projects.overview.running.data'))->assertOk()
+            ->assertJsonPath('total', 1)->assertJsonPath('data.0.id', $sample->project)
+            ->assertJsonPath('data.0.status', 'Lopend');
+    }
+
+    public static function sampleTypes(): array
+    {
+        return [
+            'standard' => ['S'],
+            'legionella' => ['L'],
+            'rodac' => ['R'],
+        ];
     }
 
     public function test_started_sample_conditions_can_be_updated(): void

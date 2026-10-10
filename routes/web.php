@@ -1,10 +1,12 @@
 <?php
 
+use App\Actions\Projects\GetProjectOverview;
 use App\Http\Controllers\AssayController;
 use App\Http\Controllers\AssayFieldController;
 use App\Http\Controllers\AssayTypeController;
 use App\Http\Controllers\AssuranceFormController;
 use App\Http\Controllers\BulkSampleController;
+use App\Http\Controllers\ChangeRevisionController;
 use App\Http\Controllers\ClientCategoryController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConfirmationController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\PortalConnectionController;
 use App\Http\Controllers\ProductGroupController;
 use App\Http\Controllers\ProjectAuthorizationController;
 use App\Http\Controllers\ProjectFieldController;
+use App\Http\Controllers\ProjectOverviewController;
 use App\Http\Controllers\ProjectSearchController;
 use App\Http\Controllers\ReferenceSourceController;
 use App\Http\Controllers\ResearchProfileController;
@@ -39,6 +42,9 @@ Route::redirect('/', '/dashboard')->name('welcome');
 Route::view('/dashboard', 'dashboard')
     ->middleware('auth')
     ->name('dashboard');
+
+Route::get('/laboratory/revisions', [ChangeRevisionController::class, 'index'])
+    ->middleware('auth')->name('revisions.index');
 
 Route::middleware(['auth', 'can:clients.view'])->prefix('laboratory')->group(function () {
     Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
@@ -84,6 +90,7 @@ Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects/se
     Route::get('/data/{project}', [ProjectSearchController::class, 'show'])->whereNumber('project')->name('projects.search.show');
     Route::get('/{project}/samples/{sample}', [ProjectSearchController::class, 'showSample'])->scopeBindings()->name('projects.search.samples.show');
     Route::patch('/{project}/samples/{sample}', [ProjectSearchController::class, 'updateSample'])->scopeBindings()->name('projects.search.samples.update');
+    Route::delete('/{project}/samples/{sample}', [ProjectSearchController::class, 'destroySample'])->middleware('can:projects.samples.remove')->scopeBindings()->name('projects.search.samples.destroy');
     Route::get('/{project}/samples/{sample}/analyses/{analysis}/results', [ProjectSearchController::class, 'showSampleAnalysisResults'])->scopeBindings()->name('projects.search.samples.results.show');
     Route::get('/{project?}', [ProjectSearchController::class, 'index'])->whereNumber('project')->name('projects.search');
 });
@@ -93,6 +100,15 @@ Route::middleware(['auth', 'can:projects.authorisation.manage'])->prefix('labora
         ->whereNumber('project')->name('projects.authorization.store');
     Route::delete('/{project}/authorization', [ProjectAuthorizationController::class, 'destroy'])
         ->whereNumber('project')->name('projects.authorization.destroy');
+});
+
+Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects')->group(function () {
+    foreach (GetProjectOverview::STATUSES as $status => $label) {
+        Route::get('/'.$status, [ProjectOverviewController::class, 'index'])
+            ->defaults('status', $status)->name('projects.overview.'.$status);
+        Route::get('/'.$status.'/data', [ProjectOverviewController::class, 'data'])
+            ->defaults('status', $status)->name('projects.overview.'.$status.'.data');
+    }
 });
 
 Route::middleware(['auth', 'can:samples.list'])->prefix('laboratory/samples/register')->group(function () {

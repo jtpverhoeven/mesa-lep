@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SampleLookupTest extends TestCase
@@ -67,6 +68,39 @@ class SampleLookupTest extends TestCase
             ->assertOk()->assertJsonPath('data.project_follow_number', 2);
         $this->getJson(route('samples.lookup.data', ['barcode' => 'unknown']))->assertNotFound();
         $this->getJson(route('samples.lookup.data'))->assertUnprocessable();
+    }
+
+    #[DataProvider('sampleExtraFields')]
+    public function test_lookup_only_shows_extra_fields_for_its_sample_type(string $sampleType, array $expected): void
+    {
+        $sample = $this->sample('26091000');
+        $sample->update([
+            'sample_type' => $sampleType,
+            'sample_extra' => json_encode([
+                'follow' => '7', 'type' => 'Warm', 'temperature' => '42',
+                'location' => 'Cleanroom', 'filter_volume' => '1000', 'unrelated' => 'hidden',
+            ]),
+        ]);
+
+        $this->getJson(route('samples.lookup.data', ['barcode' => $sample->barcode]))
+            ->assertOk()
+            ->assertJsonPath('data.sample_extra', $expected)
+            ->assertJsonPath('data.project_follow_number', 1);
+    }
+
+    public static function sampleExtraFields(): array
+    {
+        return [
+            'normal has no extras' => ['S', []],
+            'legionella has water fields only' => ['L', [
+                ['name' => 'type', 'label' => 'Tappunt type', 'value' => 'Warm'],
+                ['name' => 'temperature', 'label' => 'Temperatuur', 'value' => '42'],
+                ['name' => 'filter_volume', 'label' => 'Onderzocht volume in ml.', 'value' => '1000'],
+            ]],
+            'rodac has room only' => ['R', [
+                ['name' => 'location', 'label' => 'Ruimte', 'value' => 'Cleanroom'],
+            ]],
+        ];
     }
 
     public function test_lookup_and_mutations_require_their_own_permissions(): void

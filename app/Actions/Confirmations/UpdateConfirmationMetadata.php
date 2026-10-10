@@ -5,9 +5,11 @@ namespace App\Actions\Confirmations;
 use App\Actions\AssuranceForms\UpdateAssuranceExpiryEvidence;
 use App\Actions\AssuranceForms\UpdateConfirmationAssuranceValue;
 use App\AssuranceForms\AssuranceValueRepository;
+use App\ChangeTracking\ChangeTracker;
 use App\Confirmations\AssayConfirmationConfiguration;
 use App\Models\Confirmation;
 use App\Models\ConfKeyStore;
+use App\Models\Media;
 use App\Models\SampleAnalysis;
 use Illuminate\Validation\ValidationException;
 
@@ -19,6 +21,7 @@ class UpdateConfirmationMetadata
         private UpdateConfirmationAssuranceValue $assurance,
         private UpdateAssuranceExpiryEvidence $updateEvidence,
         private AssuranceValueRepository $assuranceValues,
+        private ChangeTracker $changeTracker,
     ) {}
 
     public function handle(SampleAnalysis $analysis, string $df, int $rep, string $key, ?string $value): SampleAnalysis
@@ -40,6 +43,7 @@ class UpdateConfirmationMetadata
             }
 
             $metadata = is_array($confirmation->metadata) ? $confirmation->metadata : [];
+            $previous = $metadata[$df][$rep][$stepIndex][$key] ?? false;
             $metadata[$df][$rep][$stepIndex][$key] = $value;
             $metadata[$df][$rep][$stepIndex][$key.'_user'] = auth()->id();
 
@@ -74,6 +78,15 @@ class UpdateConfirmationMetadata
 
             $this->recalculate->handle($analysis, $confirmation, true);
             $this->mutation->invalidate($analysis);
+
+            $medium = Media::query()->find($mediaId);
+            $isControl = ! in_array($field, ['inzet', 'aflees'], true);
+            $this->changeTracker->changed($isControl ? 16 : 15,
+                project: $analysis->project, sample: $analysis->sample, said: $analysis->id,
+                event: 'Bevestiging aangepast: '.$analysis->sampleRecord?->barcode.', analyse: '.$analysis->assayRecord?->name
+                    .', test:'.$medium?->short_name.' verdunning: '.$df.', replica: '.$rep
+                    .($isControl ? ', controle:'.$field : ', veld:'.$key),
+                from: $isControl ? false : $previous, to: $value);
 
             return $analysis;
         });

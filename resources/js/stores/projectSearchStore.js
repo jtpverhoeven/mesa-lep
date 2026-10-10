@@ -15,7 +15,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
         endpoints: {}, mode: 'barcode', query: '', projects: [], projectData: null,
         selectedProjectId: null, selectedSampleId: null, searching: false, loadingProject: false,
         sampleData: null, analysisResults: {}, loadingSample: false, savingSample: {},
-        projectActionLoading: false, projectActionError: '',
+        projectActionLoading: false, projectActionError: '', deletingSample: false,
         searched: false, error: '', sampleError: '',
     }),
     getters: {
@@ -152,6 +152,31 @@ export const useProjectSearchStore = defineStore('projectSearch', {
                 return false;
             } finally {
                 if (activeSampleRequest === request) this.loadingSample = false;
+            }
+        },
+        async deleteSample() {
+            if (!this.sampleData || this.sampleReadOnly || this.deletingSample) return false;
+
+            const projectId = this.selectedProjectId;
+            const sampleId = this.selectedSampleId;
+            this.deletingSample = true;
+            this.sampleError = '';
+            try {
+                const response = await fetch(this.sampleEndpoint(sampleId), {
+                    method: 'DELETE',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                    },
+                });
+                await responseData(response);
+                if (this.selectedProjectId === projectId) await this.selectProject(projectId);
+                return true;
+            } catch (error) {
+                this.sampleError = error.message;
+                return false;
+            } finally {
+                this.deletingSample = false;
             }
         },
         async updateSampleField(source, field, value) {

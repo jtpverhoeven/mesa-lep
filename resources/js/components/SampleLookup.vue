@@ -12,12 +12,14 @@ import SampleMetadataEditor from './SampleMetadataEditor.vue';
 import ConfirmationDecisionDialog from './ConfirmationDecisionDialog.vue';
 import ConfirmationDialog from './ConfirmationDialog.vue';
 import { useConfirmationStore } from '../stores/confirmationStore';
+import ShowRevisions from './ShowRevisions.vue';
 
 const props = defineProps({ endpoints: { type: Object, required: true }, permissions: { type: Object, required: true }, initialBarcode: { type: String, default: '' } });
 const store = useSampleLookupStore();
 const confirmationStore = useConfirmationStore();
 const EndResultDisplay = defineAsyncComponent(() => import('./EndResultDisplay.vue'));
 const barcodeInput = ref(null);
+const revisionScope = ref(null);
 let realtimeClient = null;
 let subscribedSampleId = null;
 let subscriptionRevision = 0;
@@ -140,7 +142,7 @@ onBeforeUnmount(() => {
                     <p v-if="store.loading" class="sample-panel-body" role="status">Monster laden...</p>
                 </section>
                 <section class="sample-panel">
-                    <h2>Gescand monster<span class="lookup-tools"><button class="icon-button" title="Monsterrevisies" :disabled="!store.data" @click="store.placeholder('Monsterrevisies')"><FileClock :size="15" /></button><button class="icon-button" title="Monsterdetails wijzigen" :disabled="!store.data" @click="store.placeholder('Monsterdetails wijzigen')"><Pencil :size="15" /></button></span></h2>
+                    <h2>Gescand monster<span class="lookup-tools"><button class="icon-button" title="Monsterrevisies" aria-label="Monsterrevisies" :disabled="!store.data" @click="revisionScope = 'sample'"><FileClock :size="15" /></button><button class="icon-button" title="Monsterdetails wijzigen" :disabled="!store.data" @click="store.placeholder('Monsterdetails wijzigen')"><Pencil :size="15" /></button></span></h2>
                     <div class="sample-panel-body">
                         <p v-if="!store.data" class="empty-state">Geen monster geselecteerd.</p>
                         <template v-else>
@@ -222,13 +224,14 @@ onBeforeUnmount(() => {
             </div>
             <div class="sample-create-column lookup-results-column">
                 <section class="sample-panel"><h2>Resultaat uitgedrukt in</h2><div class="sample-panel-body"><EndResultDisplay :calculation="store.calculation" :confirmation="confirmationStore.data" :confirmation-busy="confirmationStore.pendingMutationCount > 0" :confirmation-error="confirmationStore.error" :can-reset-confirmation="permissions.resetConfirmation" :read-only="store.readOnly || confirmationStore.readOnly" :loading="store.calculationLoading" :error="store.calculationError" empty-text="Selecteer een analyse om het eindresultaat te bekijken." @confirmation-decision="setConfirmationDecision" @open-confirmation="openConfirmation" /></div></section>
-                <section class="sample-panel"><h2>Laboratoriumresultaten<span class="lookup-tools"><button class="icon-button" title="Resultaatrevisies" :disabled="!store.selected" @click="store.placeholder('Resultaatrevisies')"><FileClock :size="15" /></button><button class="icon-button" title="Verdunningen wijzigen" :disabled="!store.selected" @click="store.placeholder('Verdunningen wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body"><SampleLookupResults @finished-entry="focusBarcodeInput" /></div></section>
+                <section class="sample-panel"><h2>Laboratoriumresultaten<span class="lookup-tools"><button class="icon-button" title="Resultaatrevisies" aria-label="Resultaatrevisies" :disabled="!store.selected" @click="revisionScope = 'analysis'"><FileClock :size="15" /></button><button class="icon-button" title="Verdunningen wijzigen" :disabled="!store.selected" @click="store.placeholder('Verdunningen wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body"><SampleLookupResults @finished-entry="focusBarcodeInput" /></div></section>
                 <section class="sample-panel"><h2>Monster notities<span class="lookup-tools"><button class="icon-button" title="Notities wijzigen" :disabled="!store.data" @click="store.placeholder('Monsternotities wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body lookup-note">{{ store.data?.sample.sample_note || 'Geen notities.' }}</div></section>
                 <section v-if="store.debug" class="sample-panel" aria-live="polite"><h2>{{ store.debug.feature }}</h2><div class="sample-panel-body"><SampleLookupPlaceholder :feature="store.debug.feature" :details="store.debug" /></div></section>
             </div>
         </div>
         <ConfirmationDialog />
         <ConfirmationDecisionDialog />
+        <ShowRevisions :visible="revisionScope !== null" :endpoint="endpoints.revisions" :scope="revisionScope ?? 'sample'" :scope-id="revisionScope === 'analysis' ? store.selectedId : (store.data?.sample.id ?? null)" :sample-id="store.data?.sample.id ?? null" :title="revisionScope === 'analysis' ? 'Resultaatrevisies' : 'Monsterrevisies'" @update:visible="revisionScope = $event ? revisionScope : null" />
     </div>
 </template>
 

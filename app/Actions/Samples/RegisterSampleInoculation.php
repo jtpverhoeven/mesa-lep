@@ -6,6 +6,7 @@ use App\Actions\AssuranceForms\GetOrCreateAssuranceForm;
 use App\Actions\AssuranceForms\QueueAssuranceFormSynchronization;
 use App\Actions\AssuranceForms\ResolveAssuranceDay;
 use App\Actions\AssuranceForms\SynchronizeAssuranceForm;
+use App\ChangeTracking\ChangeTracker;
 use App\Models\AssuranceForm;
 use App\Models\Project;
 use App\Models\Sample;
@@ -20,6 +21,7 @@ class RegisterSampleInoculation
         private ResolveAssuranceDay $resolveDay,
         private SynchronizeAssuranceForm $synchronizeForm,
         private EstimateRegisteredSampleEndpoints $estimate,
+        private ChangeTracker $changeTracker,
     ) {}
 
     public function handle(Sample $sample, bool $overwrite = false, ?string $storedIn = null, ?string $dilutedAt = null): Sample
@@ -60,8 +62,13 @@ class RegisterSampleInoculation
 
             if (in_array($lockedSample->sample_type, ['L', 'R'], true)) {
                 $this->estimate->handle($lockedSample);
-                $project?->update(['started' => 1]);
             }
+
+            $project?->update(['started' => 1]);
+
+            $this->changeTracker->changed(4, project: $lockedSample->project, sample: $lockedSample->id,
+                event: 'Inzet datum / tijd en opslag bak geregistreerd: '.now()->format('d-m-Y/H:i').' Opslag:'.$lockedSample->stored_in,
+                from: false, to: false);
 
             return $lockedSample->fresh();
         });

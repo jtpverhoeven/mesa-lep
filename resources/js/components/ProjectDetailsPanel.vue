@@ -1,8 +1,11 @@
 <script setup>
+import { ref } from 'vue';
 import { ArrowLeft, FileClock, FileText, Pencil, Printer, Star } from '@lucide/vue';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
+import ShowRevisions from './ShowRevisions.vue';
 
 const store = useProjectSearchStore();
+const revisionsVisible = ref(false);
 
 function displayDate(value) {
     if (!value) return '-';
@@ -16,7 +19,7 @@ function displayDate(value) {
         <h2>
             Project
             <span class="lookup-tools">
-                <button class="icon-button" title="Projectrevisies (nog niet beschikbaar)" disabled><FileClock :size="15" /></button>
+                <button class="icon-button" title="Projectrevisies" aria-label="Projectrevisies" :disabled="!store.projectData || store.loadingProject" @click="revisionsVisible = true"><FileClock :size="15" /></button>
                 <button class="icon-button" title="Rapportages (nog niet beschikbaar)" disabled><Printer :size="15" /></button>
                 <button class="icon-button" title="Project volgen (nog niet beschikbaar)" disabled><Star :size="15" /></button>
                 <button class="icon-button" title="Project wijzigen (nog niet beschikbaar)" disabled><Pencil :size="15" /></button>
@@ -37,5 +40,6 @@ function displayDate(value) {
             <div class="project-detail-actions"><button class="button primary" type="button" @click="store.backToResults()"><ArrowLeft :size="15" />Terug naar zoeken</button></div>
         </div>
         <p v-else class="empty-state">Selecteer een gevonden project.</p>
+        <ShowRevisions v-model:visible="revisionsVisible" :endpoint="store.endpoints.revisions" scope="project" :scope-id="store.selectedProjectId" title="Projectrevisies" />
     </section>
 </template>

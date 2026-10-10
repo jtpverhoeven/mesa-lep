@@ -26,7 +26,7 @@ class ResolveSampleRegistrationProject
             $project = $this->update->handle($project, [
                 'project_name' => $data['project_name'] ?? $project->project_name,
                 'custom_fields' => $data['project_custom_fields'] ?? [],
-            ], $at->timestamp);
+            ], $at->timestamp, (int) $data['registered_by']);
 
             if (($data['special_type'] ?? 0) === 2) {
                 $extra = json_decode($project->project_extra ?: '{}', true) ?: [];

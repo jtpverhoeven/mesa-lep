@@ -2,6 +2,7 @@
 
 namespace App\Actions\Confirmations;
 
+use App\ChangeTracking\ChangeTracker;
 use App\Models\Confirmation;
 use App\Models\SampleAnalysis;
 
@@ -10,6 +11,7 @@ class SetConfirmationDecision
     public function __construct(
         private ConfirmationMutation $mutation,
         private RecalculateConfirmation $recalculate,
+        private ChangeTracker $changeTracker,
     ) {}
 
     public function handle(SampleAnalysis $analysis, string $decision): SampleAnalysis
@@ -27,6 +29,8 @@ class SetConfirmationDecision
             }
 
             $this->mutation->invalidate($analysis);
+            $this->changeTracker->changed(8, project: $analysis->project, sample: $analysis->sample, said: $analysis->id,
+                event: 'Bevestiging aangevraagd: '.$decision, from: false, to: (int) $analysis->conf_requested);
 
             return $analysis;
         });

@@ -7,6 +7,7 @@
         'endpoints' => [
             'page' => route('samples.lookup'),
             'lookup' => route('samples.lookup.data'),
+            'revisions' => route('revisions.index'),
             'options' => route('samples.lookup.options', ['sample' => '__SAMPLE__']),
             'research' => route('samples.lookup.research', ['sample' => '__SAMPLE__']),
             'productGroups' => route('samples.lookup.product-groups', ['sample' => '__SAMPLE__']),

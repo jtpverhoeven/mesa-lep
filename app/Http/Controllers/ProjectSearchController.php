@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Projects\DeleteProjectSearchSample;
 use App\Actions\Projects\GetProjectSearchDetails;
 use App\Actions\Projects\GetProjectSearchSample;
 use App\Actions\Projects\SearchProjects;
@@ -23,6 +24,7 @@ class ProjectSearchController extends Controller
             'initialProjectId' => $project?->id,
             'permissions' => [
                 'updateSample' => $request->user()->can('samples.update'),
+                'deleteSample' => $request->user()->can('projects.samples.remove'),
                 'manageAuthorization' => $request->user()->can('projects.authorisation.manage'),
             ],
         ]);
@@ -62,6 +64,13 @@ class ProjectSearchController extends Controller
         );
 
         return response()->json(['data' => $results->handle($analysis)]);
+    }
+
+    public function destroySample(Project $project, Sample $sample, DeleteProjectSearchSample $delete): JsonResponse
+    {
+        $delete->handle($project, $sample);
+
+        return response()->json(['data' => ['deleted' => true]]);
     }
 
     public function updateSample(

@@ -19,6 +19,11 @@ class LookupSample
         $project = $sample->getRelation('project');
         $client = $sample->getRelation('client');
         $projectSamples = $project?->samples()->orderBy('id')->get(['id', 'barcode', 'description']) ?? collect();
+        $extraFieldNames = match ($sample->sample_type) {
+            'L' => ['type', 'temperature', 'filter_volume'],
+            'R' => ['location'],
+            default => [],
+        };
 
         return [
             'sample' => $sample->only([
@@ -33,7 +38,7 @@ class LookupSample
                 (object) ['name' => 'temperature', 'alias' => 'Temperatuur'],
                 (object) ['name' => 'location', 'alias' => 'Ruimte'],
                 (object) ['name' => 'filter_volume', 'alias' => 'Onderzocht volume in ml.'],
-            ])))->reject(fn ($field) => $field['name'] === 'follow')->values()->all(),
+            ])))->filter(fn (array $field): bool => in_array($field['name'], $extraFieldNames, true))->values()->all(),
             'metadata' => $sample->metadata->map->only([
                 'id', 'sample', 'name', 'value', 'meta_data_key_id', 'meta_order',
             ])->values()->all(),

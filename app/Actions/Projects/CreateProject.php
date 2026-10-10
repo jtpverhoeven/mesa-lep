@@ -2,26 +2,37 @@
 
 namespace App\Actions\Projects;
 
+use App\ChangeTracking\ChangeTracker;
 use App\Models\Project;
 use App\Models\ProjectField;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
 
 class CreateProject
 {
+    public function __construct(private ChangeTracker $changeTracker) {}
+
     public function handle(array $data, CarbonInterface $at): Project
     {
-        return Project::create([
-            'client' => $data['client'],
-            'subclient' => 0,
-            'project_name' => $data['project_name'],
-            'project_date' => (string) $at->timestamp,
-            'custom_fields' => json_encode($this->customFields($data['custom_fields'] ?? [], $at), JSON_FORCE_OBJECT),
-            'revision' => 1,
-            'special_type' => $data['special_type'] ?? 0,
-            'project_extra' => isset($data['project_extra']) ? json_encode($data['project_extra'], JSON_FORCE_OBJECT) : null,
-            'predicted_end' => $at->timestamp,
-            'added_by' => $data['added_by'],
-        ]);
+        return DB::transaction(function () use ($data, $at): Project {
+            $project = Project::create([
+                'client' => $data['client'],
+                'subclient' => 0,
+                'project_name' => $data['project_name'],
+                'project_date' => (string) $at->timestamp,
+                'custom_fields' => json_encode($this->customFields($data['custom_fields'] ?? [], $at), JSON_FORCE_OBJECT),
+                'revision' => 1,
+                'special_type' => $data['special_type'] ?? 0,
+                'project_extra' => isset($data['project_extra']) ? json_encode($data['project_extra'], JSON_FORCE_OBJECT) : null,
+                'predicted_end' => $at->timestamp,
+                'added_by' => $data['added_by'],
+            ]);
+
+            $this->changeTracker->changed(3, project: $project->id, event: 'Project aangemaakt',
+                from: false, to: false, userId: (int) $data['added_by']);
+
+            return $project;
+        });
     }
 
     private function customFields(array $values, CarbonInterface $at): array

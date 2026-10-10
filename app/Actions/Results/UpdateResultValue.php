@@ -2,6 +2,7 @@
 
 namespace App\Actions\Results;
 
+use App\ChangeTracking\ChangeTracker;
 use App\Models\AssayTypeField;
 use App\Models\Project;
 use App\Models\Result;
@@ -11,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateResultValue
 {
+    public function __construct(private ChangeTracker $changeTracker) {}
+
     public function handle(SampleAnalysis $analysis, Result $result, string $field, string $value): Result
     {
         return DB::transaction(function () use ($analysis, $result, $field, $value) {
@@ -45,6 +48,7 @@ class UpdateResultValue
                 ]);
             }
 
+            $previous = $values[$field] ?? '';
             $values[$field] = $value;
             $result->data = $values;
             $result->save();
@@ -52,6 +56,11 @@ class UpdateResultValue
             $analysis->is_ready = false;
             $analysis->storedResult = null;
             $analysis->save();
+
+            $alias = AssayTypeField::query()->where('test_id', $analysis->assayRecord?->type_base)->where('name', $field)->value('alias') ?: $field;
+            $this->changeTracker->changed(1, project: $analysis->project, sample: $analysis->sample, said: $analysis->id,
+                event: $alias.' ['.$analysis->assayRecord?->name.'] Df: '.$result->df.' Rep: '.$result->rep,
+                from: $previous, to: $value);
 
             return $result->fresh();
         });

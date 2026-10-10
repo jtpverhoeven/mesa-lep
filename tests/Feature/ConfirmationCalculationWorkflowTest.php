@@ -12,6 +12,7 @@ use App\Models\Confirmation;
 use App\Models\Result;
 use App\Models\RoamingAnalysis;
 use App\Models\SampleAnalysis;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -83,6 +84,7 @@ class ConfirmationCalculationWorkflowTest extends TestCase
 
     public function test_changing_a_positive_result_preserves_an_existing_confirmation(): void
     {
+        $this->actingAs(User::factory()->create(['enabled' => 1]));
         [$analysis] = $this->roamingAnalysis(0);
         $analysis->update(['conf_requested' => 1]);
         $confirmation = Confirmation::create([

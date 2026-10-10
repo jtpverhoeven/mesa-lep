@@ -21,6 +21,11 @@ class GetProjectSearchSample
 
         $sampleIds = $project->samples()->orderBy('id')->pluck('id');
         $sampleFields = SampleField::query()->orderBy('position')->orderBy('id')->get(['name', 'alias', 'type']);
+        $extraFieldNames = match ($sample->sample_type) {
+            'L' => ['type', 'temperature', 'filter_volume'],
+            'R' => ['location'],
+            default => [],
+        };
 
         return [
             'sample' => $sample->only([
@@ -38,7 +43,7 @@ class GetProjectSearchSample
                 (object) ['name' => 'location', 'alias' => 'Ruimte', 'type' => 'text'],
                 (object) ['name' => 'filter_volume', 'alias' => 'Onderzocht volume in ml.', 'type' => 'number'],
             ])))
-                ->reject(fn (array $field): bool => $field['name'] === 'follow')
+                ->filter(fn (array $field): bool => in_array($field['name'], $extraFieldNames, true))
                 ->values()
                 ->all(),
             'metadata' => $sample->metadata->map->only([

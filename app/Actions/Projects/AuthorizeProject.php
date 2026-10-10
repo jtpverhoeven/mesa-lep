@@ -3,6 +3,7 @@
 namespace App\Actions\Projects;
 
 use App\Actions\Results\CalculateAnalysisResult;
+use App\ChangeTracking\ChangeTracker;
 use App\ClientPortal\ClientPortalService;
 use App\Models\Project;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,7 @@ class AuthorizeProject
         private CheckProjectAuthorization $checkProjectAuthorization,
         private CalculateAnalysisResult $calculateAnalysisResult,
         private ClientPortalService $clientPortal,
+        private ChangeTracker $changeTracker,
     ) {}
 
     /** @return array<string, mixed> */
@@ -102,15 +104,8 @@ class AuthorizeProject
                 'auth_by' => $userId,
             ]);
 
-            DB::table('changetracker')->insert([
-                'user_id' => $userId,
-                'timestamp' => (string) $authorizedAt,
-                'type' => '9',
-                'project' => $lockedProject->id,
-                'event' => 'Project authorisatie gewijzigd',
-                'from' => $from,
-                'to' => '1',
-            ]);
+            $this->changeTracker->changed(9, project: $lockedProject->id,
+                event: 'Project authorisatie gewijzigd', from: $from, to: '1', userId: $userId);
 
             return [
                 'authorized' => true,

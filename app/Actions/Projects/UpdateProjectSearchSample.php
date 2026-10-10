@@ -2,6 +2,7 @@
 
 namespace App\Actions\Projects;
 
+use App\ChangeTracking\ChangeTracker;
 use App\Models\Project;
 use App\Models\Sample;
 use App\Models\SampleField;
@@ -11,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateProjectSearchSample
 {
+    public function __construct(private ChangeTracker $changeTracker) {}
+
     public function handle(Project $project, Sample $sample, array $data): Sample
     {
         abort_unless((int) $sample->project === (int) $project->id, 404);
@@ -43,7 +46,15 @@ class UpdateProjectSearchSample
             throw ValidationException::withMessages(['value' => 'Selecteer een geldige monsternameprocedure.']);
         }
 
+        $previous = $sample->getAttribute($field);
         $sample->update([$field => $value]);
+        $label = $field === 'description' ? 'Omschrijving' : 'Bemonster methode';
+        if ($field === 'sampling_method') {
+            $previous = SampleProcedure::query()->find($previous)?->name ?? $previous;
+            $value = SampleProcedure::query()->find($value)?->name ?? $value;
+        }
+        $this->changeTracker->changed(5, project: $sample->project, sample: $sample->id,
+            event: 'Monster info gewijzigd: '.$label, from: $previous, to: $value);
     }
 
     private function updateJsonField(Sample $sample, string $attribute, string $field, string $value, array $allowedFields): void
@@ -54,8 +65,11 @@ class UpdateProjectSearchSample
 
         $values = json_decode($sample->{$attribute} ?: '{}', true);
         $values = is_array($values) ? $values : [];
+        $previous = $values[$field] ?? 'Onbekend';
         $values[$field] = $value;
         $sample->update([$attribute => json_encode($values, JSON_FORCE_OBJECT)]);
+        $this->changeTracker->changed(5, project: $sample->project, sample: $sample->id,
+            event: 'Monster info gewijzigd: '.$field, from: $previous, to: $value);
     }
 
     private function customFieldNames(): array

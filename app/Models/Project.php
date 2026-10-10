@@ -31,6 +31,11 @@ class Project extends Model
         return $this->hasMany(Sample::class, 'project');
     }
 
+    public function reportedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rap_by');
+    }
+
     public function sampleAnalyses(): HasMany
     {
         return $this->hasMany(SampleAnalysis::class, 'project')->orderBy('project_order');
