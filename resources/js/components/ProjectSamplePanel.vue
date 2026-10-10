@@ -45,8 +45,8 @@ const store = useProjectSearchStore();
 :deep([data-pc-name='tablist']) { display:block; width:100%; border-top:1px solid var(--line); }
 :deep([data-pc-name='tablist'] [data-pc-section='content']) { width:100%; overflow:hidden; }
 :deep([data-pc-name='tablist'] [data-pc-section='tablist']) { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:100%; }
-:deep([data-pc-name='tab']) { display:flex; align-items:center; justify-content:center; gap:5px; min-height:31px; padding:4px 6px; border:0; border-top:2px solid transparent; background:var(--surface-alt); color:var(--muted); font:inherit; font-size:11px; cursor:pointer; }
-:deep([data-pc-name='tab'][data-p-active='true']) { border-top-color:var(--accent); background:var(--accent-faint); color:var(--accent); font-weight:700; }
+:deep([data-pc-name='tab']) { display:flex; align-items:center; justify-content:center; gap:5px; padding:9px 6px; border:0; background:var(--surface-alt); color:var(--ink); font:inherit; font-size:11px; cursor:pointer; }
+:deep([data-pc-name='tab'][data-p-active='true']) { box-shadow:inset 0 -2px var(--accent); background:var(--accent-faint); color:var(--accent); }
 :deep([data-pc-name='tabpanel']) { padding:12px; }
 :deep(.project-sample-metadata-panel) { padding:6px; }
 :deep([data-pc-section='prevbutton']),:deep([data-pc-section='nextbutton']) { display:none; }
