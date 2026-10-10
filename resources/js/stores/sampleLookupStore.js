@@ -18,7 +18,8 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
             this.scannedPlateFollowNumber = plateFollowNumber || null;
             const replaceBarcodeUrl = () => {
                 const url = new URL(window.location.href);
-                url.searchParams.set('barcode', this.barcode);
+                url.pathname = `${new URL(this.endpoints.page, url).pathname}/${encodeURIComponent(scannedBarcode)}`;
+                url.searchParams.delete('barcode');
                 window.history.replaceState({}, '', url);
             };
             if (sampleBarcode && String(this.data?.sample.barcode) === sampleBarcode) {

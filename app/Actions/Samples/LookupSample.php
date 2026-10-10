@@ -43,6 +43,7 @@ class LookupSample
             'client' => $client?->only(['id', 'name']),
             'product_group' => $sample->productGroup?->only(['portal_id', 'name', 'default', 'visible']),
             'project' => $project?->only(['id', 'project_name', 'reference', 'project_date', 'project_notes', 'auth_status', 'is_ready', 'locked', 'lock_message']),
+            'project_url' => $project ? route('projects.search', ['project' => $project->id]) : null,
             'project_fields' => $this->fields($project?->custom_fields, ProjectField::query()->orderBy('position')->get()),
             'project_samples' => $projectSamples,
             'analyses' => $sample->analyses->map(fn ($analysis) => [

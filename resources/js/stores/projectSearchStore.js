@@ -52,6 +52,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
             this.selectedProjectId = null;
             this.selectedSampleId = null;
             this.clearSample();
+            window.history.replaceState({}, '', this.endpoints.page);
 
             try {
                 const parameters = new URLSearchParams({ mode: this.mode, query });
@@ -91,6 +92,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
                     signal: request.signal,
                 });
                 this.projectData = await responseData(response);
+                window.history.replaceState({}, '', this.projectData.url);
                 if (sampleId && !this.selectedSample) this.selectedSampleId = null;
                 if (this.selectedSampleId) await this.selectSample(this.selectedSampleId);
                 return true;

@@ -27,6 +27,26 @@ class SampleLookupTest extends TestCase
         }
     }
 
+    public function test_lookup_page_passes_the_route_barcode_to_vue(): void
+    {
+        $this->get('/laboratory/samples/lookup/26091016')
+            ->assertOk()
+            ->assertViewIs('samples.lookup')
+            ->assertViewHas('initialBarcode', '26091016')
+            ->assertSee('initialBarcode');
+        $this->get(route('samples.lookup', ['barcode' => '26091016.2.3']))
+            ->assertOk()
+            ->assertViewHas('initialBarcode', '26091016.2.3');
+        $this->get(route('samples.lookup'))->assertOk()->assertViewHas('initialBarcode', '');
+    }
+
+    public function test_lookup_page_returns_403_without_view_permission(): void
+    {
+        Gate::define('samples.view', fn () => false);
+
+        $this->get('/laboratory/samples/lookup/26091016')->assertForbidden();
+    }
+
     public function test_lookup_returns_legacy_data_and_project_navigation_without_sensitive_fields(): void
     {
         $sample = $this->sample('26091000');
@@ -38,6 +58,7 @@ class SampleLookupTest extends TestCase
             ->assertJsonPath('data.project_follow_number', 1)
             ->assertJsonPath('data.sample_fields.0.value', '4 C')
             ->assertJsonPath('data.project.project_name', 'Project water')
+            ->assertJsonPath('data.project_url', url('/laboratory/projects/search/'.$sample->project))
             ->assertJsonPath('data.project_samples.1.barcode', $next->barcode)
             ->assertJsonPath('data.previous', null)
             ->assertJsonPath('data.next', $next->barcode)

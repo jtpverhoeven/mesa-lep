@@ -19,6 +19,7 @@ class GetProjectSearchDetails
             ->get(['id', 'project', 'barcode', 'description', 'sample_note']);
 
         return [
+            'url' => route('projects.search', ['project' => $project->id]),
             'project' => [
                 ...$project->only([
                     'id', 'reference', 'project_name', 'project_date', 'revision', 'auth_status',

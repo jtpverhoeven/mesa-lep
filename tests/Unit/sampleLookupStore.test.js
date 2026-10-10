@@ -7,7 +7,8 @@ import { useSampleResearchStore } from '../../resources/js/stores/sampleResearch
 const originalFetch = globalThis.fetch;
 beforeEach(() => {
     setActivePinia(createPinia());
-    globalThis.window = { location: { href: 'http://localhost/laboratory/samples/lookup' }, history: { replaceState() {} } };
+    useSampleLookupStore().endpoints.page = '/laboratory/samples/lookup';
+    globalThis.window = { location: { href: 'http://localhost/laboratory/samples/lookup' }, history: { replaceState(state, title, url) { window.location.href = String(url); } } };
 });
 afterEach(() => { globalThis.fetch = originalFetch; delete globalThis.window; });
 
@@ -24,6 +25,7 @@ test('latest barcode wins when responses arrive out of order', async () => {
     await first;
     assert.equal(store.data.sample.id, 2);
     assert.equal(store.loading, false);
+    assert.equal(window.location.href, 'http://localhost/laboratory/samples/lookup/second');
 });
 
 test('compound barcode selects the analysis and retains the plate follow number', async () => {
@@ -44,6 +46,7 @@ test('compound barcode selects the analysis and retains the plate follow number'
     assert.equal(store.selectedId, 20);
     assert.equal(store.scannedPlateFollowNumber, '3');
     assert.equal(store.barcode, '26091000.2.3');
+    assert.equal(window.location.href, 'http://localhost/laboratory/samples/lookup/26091000.2.3');
 });
 
 test('rescanning the same sample replaces the analysis and plate targets', async () => {
@@ -67,6 +70,7 @@ test('rescanning the same sample replaces the analysis and plate targets', async
     assert.equal(store.data, sampleData);
     assert.equal(store.selectedId, 20);
     assert.equal(store.scannedPlateFollowNumber, '3');
+    assert.equal(window.location.href, 'http://localhost/laboratory/samples/lookup/26091000.2.3');
 });
 
 test('scanning another plate in the selected analysis preserves loaded results', async () => {
@@ -140,7 +144,7 @@ test('a new scan invalidates an in-flight result response from the previous samp
         return Promise.resolve({ ok: true, json: async () => ({ data: { sample: { id: 6, barcode: '26091001' }, analyses: [] } }) });
     };
     const store = useSampleLookupStore();
-    store.endpoints = { lookup: '/lookup', results: '/analyses/__ANALYSIS__/results' };
+    store.endpoints = { page: '/laboratory/samples/lookup', lookup: '/lookup', results: '/analyses/__ANALYSIS__/results' };
     store.data = { sample: { id: 5 }, analyses: [{ id: 12 }] };
     store.selectedId = 12;
 

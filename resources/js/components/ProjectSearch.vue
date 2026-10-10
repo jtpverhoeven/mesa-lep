@@ -1,4 +1,5 @@
 <script setup>
+import { onMounted } from 'vue';
 import { LoaderCircle } from '@lucide/vue';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
 import ProjectDetailsPanel from './ProjectDetailsPanel.vue';
@@ -9,9 +10,14 @@ import ProjectSearchPanel from './ProjectSearchPanel.vue';
 const props = defineProps({
     endpoints: { type: Object, required: true },
     permissions: { type: Object, required: true },
+    initialProjectId: { type: Number, default: null },
 });
 const store = useProjectSearchStore();
 store.configure(props.endpoints);
+
+onMounted(() => {
+    if (props.initialProjectId !== null) store.selectProject(props.initialProjectId);
+});
 
 function displayDate(value) {
     if (!value) return '-';

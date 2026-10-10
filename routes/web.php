@@ -57,12 +57,12 @@ Route::middleware(['auth', 'can:clients.view'])->prefix('laboratory')->group(fun
 });
 
 Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/lookup')->group(function () {
-    Route::get('/', [SampleLookupController::class, 'index'])->name('samples.lookup');
     Route::get('/data', [SampleLookupController::class, 'show'])->name('samples.lookup.data');
     Route::get('/{sample}/options', [SampleLookupController::class, 'options'])->middleware('can:samples.assign-research')->name('samples.lookup.options');
     Route::get('/{sample}/product-groups', [SampleLookupController::class, 'productGroups'])->name('samples.lookup.product-groups');
     Route::patch('/{sample}/product-group', [SampleLookupController::class, 'updateProductGroup'])->name('samples.lookup.product-group.update');
     Route::post('/{sample}/research', [SampleLookupController::class, 'update'])->name('samples.lookup.research');
+    Route::get('/{barcode?}', [SampleLookupController::class, 'index'])->where('barcode', '[^/]{1,32}')->name('samples.lookup');
 });
 
 Route::middleware(['auth', 'can:samples.assign-research'])->prefix('laboratory/samples/assign-analyses')->group(function () {
@@ -79,12 +79,12 @@ Route::middleware(['auth', 'can:samples.update'])->prefix('laboratory/samples/{s
 });
 
 Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects/search')->group(function () {
-    Route::get('/', [ProjectSearchController::class, 'index'])->name('projects.search');
     Route::get('/data', [ProjectSearchController::class, 'search'])->name('projects.search.data');
+    Route::get('/data/{project}', [ProjectSearchController::class, 'show'])->whereNumber('project')->name('projects.search.show');
     Route::get('/{project}/samples/{sample}', [ProjectSearchController::class, 'showSample'])->scopeBindings()->name('projects.search.samples.show');
     Route::patch('/{project}/samples/{sample}', [ProjectSearchController::class, 'updateSample'])->scopeBindings()->name('projects.search.samples.update');
     Route::get('/{project}/samples/{sample}/analyses/{analysis}/results', [ProjectSearchController::class, 'showSampleAnalysisResults'])->scopeBindings()->name('projects.search.samples.results.show');
-    Route::get('/{project}', [ProjectSearchController::class, 'show'])->name('projects.search.show');
+    Route::get('/{project?}', [ProjectSearchController::class, 'index'])->whereNumber('project')->name('projects.search');
 });
 
 Route::middleware(['auth', 'can:samples.list'])->prefix('laboratory/samples/register')->group(function () {

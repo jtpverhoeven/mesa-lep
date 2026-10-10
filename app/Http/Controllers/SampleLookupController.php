@@ -16,9 +16,9 @@ use Illuminate\View\View;
 
 class SampleLookupController extends Controller
 {
-    public function index(): View
+    public function index(?string $barcode = null): View
     {
-        return view('samples.lookup');
+        return view('samples.lookup', ['initialBarcode' => $barcode ?? '']);
     }
 
     public function show(Request $request, LookupSample $lookup): JsonResponse

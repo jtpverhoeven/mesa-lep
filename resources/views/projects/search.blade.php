@@ -3,7 +3,9 @@
 @section('content')
     {{-- <div class="page-heading"><div><div class="eyebrow">Laboratorium / Projecten</div><h1>Projecten zoeken</h1></div></div> --}}
     <project-search v-bind="{{ Illuminate\Support\Js::from([
+        'initialProjectId' => $initialProjectId,
         'endpoints' => [
+            'page' => route('projects.search'),
             'search' => route('projects.search.data'),
             'project' => route('projects.search.show', ['project' => '__PROJECT__']),
             'sample' => route('projects.search.samples.show', ['project' => '__PROJECT__', 'sample' => '__SAMPLE__']),

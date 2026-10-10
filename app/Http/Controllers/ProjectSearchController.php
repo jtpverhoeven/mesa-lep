@@ -17,9 +17,10 @@ use Illuminate\View\View;
 
 class ProjectSearchController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, ?Project $project = null): View
     {
         return view('projects.search', [
+            'initialProjectId' => $project?->id,
             'permissions' => [
                 'updateSample' => $request->user()->can('samples.update'),
             ],
