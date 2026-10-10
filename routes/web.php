@@ -65,6 +65,8 @@ Route::middleware(['auth', 'can:clients.view'])->prefix('laboratory')->group(fun
 
 Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/lookup')->group(function () {
     Route::get('/data', [SampleLookupController::class, 'show'])->name('samples.lookup.data');
+    Route::get('/projects/{project}/samples/{sample}/details', [ProjectSearchController::class, 'showSample'])->scopeBindings()->name('samples.lookup.details');
+    Route::patch('/projects/{project}/samples/{sample}/details', [ProjectSearchController::class, 'updateSample'])->scopeBindings()->name('samples.lookup.details.update');
     Route::get('/{sample}/options', [SampleLookupController::class, 'options'])->middleware('can:samples.assign-research')->name('samples.lookup.options');
     Route::get('/{sample}/product-groups', [SampleLookupController::class, 'productGroups'])->name('samples.lookup.product-groups');
     Route::patch('/{sample}/product-group', [SampleLookupController::class, 'updateProductGroup'])->name('samples.lookup.product-group.update');

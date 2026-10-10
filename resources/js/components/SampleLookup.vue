@@ -9,6 +9,7 @@ import SampleLookupResults from './SampleLookupResults.vue';
 import SampleLookupPlaceholder from './SampleLookupPlaceholder.vue';
 import SampleProductGroup from './SampleProductGroup.vue';
 import SampleMetadataEditor from './SampleMetadataEditor.vue';
+import SampleDetailsDialog from './SampleDetailsDialog.vue';
 import ConfirmationDecisionDialog from './ConfirmationDecisionDialog.vue';
 import ConfirmationDialog from './ConfirmationDialog.vue';
 import { useConfirmationStore } from '../stores/confirmationStore';
@@ -142,7 +143,7 @@ onBeforeUnmount(() => {
                     <p v-if="store.loading" class="sample-panel-body" role="status">Monster laden...</p>
                 </section>
                 <section class="sample-panel">
-                    <h2>Gescand monster<span class="lookup-tools"><button class="icon-button" title="Monsterrevisies" aria-label="Monsterrevisies" :disabled="!store.data" @click="revisionScope = 'sample'"><FileClock :size="15" /></button><button class="icon-button" title="Monsterdetails wijzigen" :disabled="!store.data" @click="store.placeholder('Monsterdetails wijzigen')"><Pencil :size="15" /></button></span></h2>
+                    <h2>Gescand monster<span class="lookup-tools"><button class="icon-button" title="Monsterrevisies" aria-label="Monsterrevisies" :disabled="!store.data" @click="revisionScope = 'sample'"><FileClock :size="15" /></button><button class="icon-button" type="button" title="Monsterdetails wijzigen" aria-label="Monsterdetails wijzigen" :disabled="!store.data || !permissions.updateSample || store.readOnly || store.loading || store.saving || store.detailsBusy" @click="store.openDetails()"><Pencil :size="15" /></button></span></h2>
                     <div class="sample-panel-body">
                         <p v-if="!store.data" class="empty-state">Geen monster geselecteerd.</p>
                         <template v-else>
@@ -231,6 +232,7 @@ onBeforeUnmount(() => {
         </div>
         <ConfirmationDialog />
         <ConfirmationDecisionDialog />
+        <SampleDetailsDialog v-model:visible="store.detailsVisible" :sample-data="store.detailsData" :barcode="String(store.data?.sample.barcode ?? '')" :can-update="permissions.updateSample" :read-only="store.readOnly" :loading="store.detailsLoading" :saving-fields="store.detailsSaving" :error="store.detailsError" @save="store.saveDetailField" />
         <ShowRevisions :visible="revisionScope !== null" :endpoint="endpoints.revisions" :scope="revisionScope ?? 'sample'" :scope-id="revisionScope === 'analysis' ? store.selectedId : (store.data?.sample.id ?? null)" :sample-id="store.data?.sample.id ?? null" :title="revisionScope === 'analysis' ? 'Resultaatrevisies' : 'Monsterrevisies'" @update:visible="revisionScope = $event ? revisionScope : null" />
     </div>
 </template>

@@ -1,18 +1,22 @@
 <script setup>
-import { computed } from 'vue';
 import { LoaderCircle } from '@lucide/vue';
-import { useProjectSearchStore } from '../stores/projectSearchStore';
+import InputText from 'openvue/inputtext';
+import Textarea from 'openvue/textarea';
 
-const props = defineProps({ canUpdate: { type: Boolean, required: true } });
-const store = useProjectSearchStore();
-const readOnly = computed(() => !props.canUpdate || store.sampleReadOnly);
+const props = defineProps({
+    sampleData: { type: Object, required: true },
+    canUpdate: { type: Boolean, required: true },
+    readOnly: { type: Boolean, default: false },
+    savingFields: { type: Object, default: () => ({}) },
+});
+const emit = defineEmits(['save']);
 
 function saving(source, field) {
-    return Boolean(store.savingSample[`${source}:${field}`]);
+    return Boolean(props.savingFields[`${source}:${field}`]);
 }
 
 function save(source, field, value) {
-    return store.updateSampleField(source, field, value);
+    emit('save', source, field, value);
 }
 
 function filterVolume(event, field) {
@@ -25,8 +29,8 @@ function filterVolume(event, field) {
         <label>
             <span>Bemonster. methode</span>
             <span class="project-sample-control">
-                <select v-model="store.sampleData.sample.sampling_method" :disabled="readOnly || saving('attribute', 'sampling_method')" @change="save('attribute', 'sampling_method', $event.target.value)">
-                    <option v-for="method in store.sampleData.sampling_methods" :key="method.id" :value="method.id">{{ method.name }}</option>
+                <select v-model="sampleData.sample.sampling_method" :disabled="!canUpdate || readOnly || saving('attribute', 'sampling_method')" @change="save('attribute', 'sampling_method', $event.target.value)">
+                    <option v-for="method in sampleData.sampling_methods" :key="method.id" :value="method.id">{{ method.name }}</option>
                 </select>
                 <LoaderCircle v-if="saving('attribute', 'sampling_method')" class="spin" :size="14" />
             </span>
@@ -34,37 +38,37 @@ function filterVolume(event, field) {
         <label>
             <span>Monster omschrijving LIMS</span>
             <span class="project-sample-control">
-                <input v-model="store.sampleData.sample.description" type="text" :disabled="readOnly || saving('attribute', 'description')" @change="save('attribute', 'description', $event.target.value)">
+                <InputText v-model="sampleData.sample.description" unstyled :disabled="!canUpdate || readOnly || saving('attribute', 'description')" @change="save('attribute', 'description', $event.target.value)" />
                 <LoaderCircle v-if="saving('attribute', 'description')" class="spin" :size="14" />
             </span>
         </label>
         <label>
             <span>Volgnummer</span>
-            <input :value="store.sampleData.project_follow_number" type="text" disabled>
+            <InputText :model-value="String(sampleData.project_follow_number)" unstyled disabled />
         </label>
         <label>
             <span>Monster omschrijving klant</span>
-            <input :value="store.sampleData.sample.client_description" type="text" readonly>
+            <InputText :model-value="sampleData.sample.client_description" unstyled readonly />
         </label>
-        <label v-for="field in store.sampleData.sample_fields" :key="field.name">
+        <label v-for="field in sampleData.sample_fields" :key="field.name">
             <span>{{ field.label }}</span>
             <span class="project-sample-control">
-                <textarea v-if="field.type === 'textarea'" v-model="field.value" rows="3" :disabled="readOnly || saving('custom', field.name)" @change="save('custom', field.name, field.value)"></textarea>
-                <input v-else v-model="field.value" type="text" :disabled="readOnly || saving('custom', field.name)" @change="save('custom', field.name, field.value)">
+                <Textarea v-if="field.type === 'textarea'" v-model="field.value" unstyled rows="3" :disabled="!canUpdate || readOnly || saving('custom', field.name)" @change="save('custom', field.name, field.value)" />
+                <InputText v-else v-model="field.value" unstyled :disabled="!canUpdate || readOnly || saving('custom', field.name)" @change="save('custom', field.name, field.value)" />
                 <LoaderCircle v-if="saving('custom', field.name)" class="spin" :size="14" />
             </span>
         </label>
-        <label v-for="field in store.sampleData.sample_extra" :key="field.name">
+        <label v-for="field in sampleData.sample_extra" :key="field.name">
             <span>{{ field.label }}</span>
             <span class="project-sample-control">
-                <select v-if="field.name === 'type'" v-model="field.value" :disabled="readOnly || saving('extra', field.name)" @change="save('extra', field.name, field.value)">
+                <select v-if="field.name === 'type'" v-model="field.value" :disabled="!canUpdate || readOnly || saving('extra', field.name)" @change="save('extra', field.name, field.value)">
                     <option value=""></option><option value="Koud">Koud</option><option value="Warm">Warm</option><option value="Mengwater">Mengwater</option>
                 </select>
-                <input v-else v-model="field.value" type="text" :inputmode="field.name === 'filter_volume' ? 'decimal' : 'text'" :disabled="readOnly || saving('extra', field.name)" @input="field.name === 'filter_volume' && filterVolume($event, field)" @change="save('extra', field.name, field.value)">
+                <InputText v-else v-model="field.value" unstyled :inputmode="field.name === 'filter_volume' ? 'decimal' : 'text'" :disabled="!canUpdate || readOnly || saving('extra', field.name)" @input="field.name === 'filter_volume' && filterVolume($event, field)" @change="save('extra', field.name, field.value)" />
                 <LoaderCircle v-if="saving('extra', field.name)" class="spin" :size="14" />
             </span>
         </label>
-        <p v-if="readOnly" class="project-sample-read-only">{{ canUpdate ? 'Dit project is vergrendeld of geautoriseerd.' : 'U heeft alleen-lezen toegang tot monsterdetails.' }}</p>
+        <p v-if="!canUpdate || readOnly" class="project-sample-read-only">{{ canUpdate ? 'Dit project is vergrendeld of geautoriseerd.' : 'U heeft alleen-lezen toegang tot monsterdetails.' }}</p>
     </form>
 </template>
 

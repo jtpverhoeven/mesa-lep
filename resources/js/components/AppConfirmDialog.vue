@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, useId, watch } from 'vue';
 import { Check, LoaderCircle } from '@lucide/vue';
+import InputOtp from 'openvue/inputotp';
 import AppDialog from './AppDialog.vue';
 
 const props = defineProps({
@@ -44,8 +45,8 @@ function confirm() {
         <form :id="formId" class="confirm-dialog-form" @submit.prevent="confirm">
             <slot><p v-if="message" class="confirm-dialog-message">{{ message }}</p></slot>
             <div v-if="danger" class="field">
-                <label :for="inputId">Bevestigingscode: <strong class="confirm-dialog-code">{{ code }}</strong></label>
-                <input :id="inputId" v-model="enteredCode" type="text" inputmode="numeric" autocomplete="off" maxlength="4" pattern="[0-9]{4}" required :disabled="loading || disabled" aria-label="Bevestigingscode">
+                <label :id="inputId">Bevestigingscode: <strong class="confirm-dialog-code">{{ code }}</strong></label>
+                <InputOtp v-model="enteredCode" :length="4" integer-only :disabled="loading || disabled" role="group" :aria-labelledby="inputId" :pt="{ pcInputText: { root: { autocomplete: 'off', required: true, 'aria-label': 'Bevestigingscode' } } }" />
             </div>
             <p v-if="error" class="confirm-dialog-error" role="alert">{{ error }}</p>
         </form>

@@ -44,7 +44,7 @@ async function confirmDelete() {
         <template v-else-if="store.sampleData">        
             <Tabs value="details">
                 <TabPanels>
-                    <TabPanel value="details"><ProjectSampleFields :can-update="canUpdate" /></TabPanel>
+                    <TabPanel value="details"><ProjectSampleFields :sample-data="store.sampleData" :can-update="canUpdate" :read-only="store.sampleReadOnly" :saving-fields="store.savingSample" @save="store.updateSampleField" /></TabPanel>
                     <TabPanel value="metadata" class="project-sample-metadata-panel"><SampleMetadataEditor v-model:metadata="store.sampleData.metadata" :sample-id="store.sampleData.sample.id" :endpoint="store.endpoints.metadata" :read-only="!canUpdate || store.sampleReadOnly" /></TabPanel>
                     <TabPanel value="files"><p class="empty-state">Bestanden worden in een latere fase toegevoegd.</p></TabPanel>
                 </TabPanels>
@@ -61,6 +61,7 @@ async function confirmDelete() {
         <AppConfirmDialog
             v-model:visible="deleteDialogVisible"
             title="Monster verwijderen"
+            danger
             :message="`Monster ${store.sampleData?.sample.barcode ?? ''} verwijderen? Ook de bijbehorende analyses, resultaten en metadata worden verwijderd.`"
             confirm-label="Verwijderen"
             :loading="store.deletingSample"

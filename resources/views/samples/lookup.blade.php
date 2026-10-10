@@ -7,6 +7,7 @@
         'endpoints' => [
             'page' => route('samples.lookup'),
             'lookup' => route('samples.lookup.data'),
+            'sampleDetails' => route('samples.lookup.details', ['project' => '__PROJECT__', 'sample' => '__SAMPLE__']),
             'revisions' => route('revisions.index'),
             'options' => route('samples.lookup.options', ['sample' => '__SAMPLE__']),
             'research' => route('samples.lookup.research', ['sample' => '__SAMPLE__']),
@@ -30,6 +31,7 @@
             'add' => auth()->user()->can('samples.assign-research'),
             'edit' => auth()->user()->can('samples.update-research'),
             'updateMetadata' => auth()->user()->can('samples.update'),
+            'updateSample' => auth()->user()->can('samples.update'),
             'updateProductGroup' => auth()->user()->can('samples.update'),
             'resetConfirmation' => auth()->user()->can('confirmations.reset'),
             'viewProjects' => auth()->user()->can('projects.view'),

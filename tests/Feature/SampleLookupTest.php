@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Assay;
+use App\Models\ChangeRevision;
 use App\Models\Project;
 use App\Models\Sample;
+use App\Models\SampleField;
+use App\Models\SampleProcedure;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -113,6 +116,117 @@ class SampleLookupTest extends TestCase
         $this->postJson(route('samples.lookup.research', $sample), ['operation' => 'add'])->assertForbidden();
         Gate::define('samples.update-research', fn () => false);
         $this->postJson(route('samples.lookup.research', $sample), ['operation' => 'remove', 'analysis_id' => 1])->assertForbidden();
+    }
+
+    public function test_sample_details_can_be_read_and_changed_without_project_view_permission(): void
+    {
+        Gate::define('projects.view', fn () => false);
+        Gate::define('samples.update', fn () => true);
+        $sample = $this->sample('26091000');
+        $parameters = ['project' => $sample->project, 'sample' => $sample->id];
+
+        $this->getJson(route('samples.lookup.details', $parameters))
+            ->assertOk()
+            ->assertJsonPath('data.sample.description', 'Water sample')
+            ->assertJsonPath('data.read_only', false)
+            ->assertJsonMissingPath('data.project.lock_pass');
+        $this->patchJson(route('samples.lookup.details.update', $parameters), [
+            'source' => 'attribute', 'field' => 'description', 'value' => 'Updated water sample',
+        ])->assertOk()->assertJsonPath('data.sample.description', 'Updated water sample');
+
+        $this->assertDatabaseHas('samples', ['id' => $sample->id, 'description' => 'Updated water sample']);
+        $this->assertDatabaseHas(ChangeRevision::class, [
+            'sample' => $sample->id, 'project' => $sample->project,
+            'from' => 'Water sample', 'to' => 'Updated water sample',
+        ]);
+    }
+
+    #[DataProvider('deniedDetailChanges')]
+    public function test_sample_detail_changes_return_403_without_permission_or_for_frozen_projects(bool $canView, bool $canUpdate, int $authorized, int $locked): void
+    {
+        Gate::define('samples.view', fn () => $canView);
+        Gate::define('samples.update', fn () => $canUpdate);
+        $sample = $this->sample('26091000');
+        Project::find($sample->project)->update(['auth_status' => $authorized, 'locked' => $locked]);
+
+        $this->patchJson(route('samples.lookup.details.update', ['project' => $sample->project, 'sample' => $sample->id]), [
+            'source' => 'attribute', 'field' => 'description', 'value' => 'Not allowed',
+        ])->assertForbidden();
+
+        $this->assertDatabaseHas('samples', ['id' => $sample->id, 'description' => 'Water sample']);
+        $this->assertDatabaseCount(ChangeRevision::class, 0);
+    }
+
+    public static function deniedDetailChanges(): array
+    {
+        return [
+            'no sample view permission' => [false, true, 0, 0],
+            'no sample update permission' => [true, false, 0, 0],
+            'authorized project' => [true, true, 1, 0],
+            'locked project' => [true, true, 0, 1],
+        ];
+    }
+
+    #[DataProvider('legacyDetailFields')]
+    public function test_sample_details_update_legacy_json_fields_without_losing_other_values(string $source, string $field, string $value, string $column): void
+    {
+        Gate::define('samples.update', fn () => true);
+        $sample = $this->sample('26091000');
+        SampleField::create(['name' => 'temperature', 'alias' => 'Temperatuur', 'type' => 'text', 'std_value' => '', 'position' => 1]);
+        $sample->update(['sample_type' => 'L', 'sample_extra' => '{"follow":"7","type":"Warm","filter_volume":"1000"}']);
+
+        $this->patchJson(route('samples.lookup.details.update', ['project' => $sample->project, 'sample' => $sample->id]), [
+            'source' => $source, 'field' => $field, 'value' => $value,
+        ])->assertOk();
+
+        $this->assertSame($value, json_decode($sample->fresh()->{$column}, true)[$field]);
+        $this->assertSame('7', json_decode($sample->fresh()->sample_extra, true)['follow']);
+        $this->assertDatabaseHas(ChangeRevision::class, ['sample' => $sample->id, 'to' => $value]);
+    }
+
+    public static function legacyDetailFields(): array
+    {
+        return [
+            'custom field' => ['custom', 'temperature', '8 C', 'custom_fields'],
+            'legionella volume' => ['extra', 'filter_volume', '500,5', 'sample_extra'],
+        ];
+    }
+
+    public function test_sample_details_accept_active_sampling_methods_and_reject_inactive_methods(): void
+    {
+        Gate::define('samples.update', fn () => true);
+        $sample = $this->sample('26091000');
+        SampleProcedure::create(['name' => 'Original method', 'active' => 1, 'fields' => '[]']);
+        $active = SampleProcedure::create(['name' => 'Updated method', 'active' => 1, 'fields' => '[]']);
+        $inactive = SampleProcedure::create(['name' => 'Inactive method', 'active' => 0, 'fields' => '[]']);
+        $url = route('samples.lookup.details.update', ['project' => $sample->project, 'sample' => $sample->id]);
+
+        $this->patchJson($url, ['source' => 'attribute', 'field' => 'sampling_method', 'value' => (string) $active->id])
+            ->assertOk()->assertJsonPath('data.sample.sampling_method', $active->id);
+        $this->patchJson($url, ['source' => 'attribute', 'field' => 'sampling_method', 'value' => (string) $inactive->id])
+            ->assertInvalid(['value' => 'Selecteer een geldige monsternameprocedure.']);
+
+        $this->assertDatabaseHas('samples', ['id' => $sample->id, 'sampling_method' => $active->id]);
+        $this->assertDatabaseCount(ChangeRevision::class, 1);
+    }
+
+    public function test_sample_details_return_404_for_another_project_and_reject_noneditable_fields(): void
+    {
+        Gate::define('samples.update', fn () => true);
+        $sample = $this->sample('26091000');
+        $other = $this->sample('26091001');
+        $wrongProject = ['project' => $other->project, 'sample' => $sample->id];
+
+        $this->getJson(route('samples.lookup.details', $wrongProject))->assertNotFound();
+        $this->patchJson(route('samples.lookup.details.update', $wrongProject), [
+            'source' => 'attribute', 'field' => 'description', 'value' => 'Not allowed',
+        ])->assertNotFound();
+        $this->patchJson(route('samples.lookup.details.update', ['project' => $sample->project, 'sample' => $sample->id]), [
+            'source' => 'attribute', 'field' => 'client_description', 'value' => 'Not allowed',
+        ])->assertInvalid(['field' => 'Dit monsterveld kan niet worden gewijzigd.']);
+
+        $this->assertDatabaseHas('samples', ['id' => $sample->id, 'description' => 'Water sample']);
+        $this->assertDatabaseCount(ChangeRevision::class, 0);
     }
 
     public function test_research_can_be_added_reordered_and_removed_only_from_its_sample(): void

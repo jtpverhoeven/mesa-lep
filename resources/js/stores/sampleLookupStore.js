@@ -2,15 +2,16 @@ import { defineStore } from 'pinia';
 import { useSampleResearchStore } from './sampleResearchStore.js';
 
 export const useSampleLookupStore = defineStore('sampleLookup', {
-    state: () => ({ endpoints: {}, data: null, barcode: '', loading: false, saving: false, error: '', selectedId: null, scannedPlateFollowNumber: null, plateFocusRevision: 0, tab: 'general', adding: false, requestId: 0, debug: null, resultData: null, resultsLoading: false, resultSaving: {}, resultError: '', calculation: null, calculationLoading: false, calculationError: '', calculationRevision: 0, resultRequestId: 0 }),
+    state: () => ({ endpoints: {}, data: null, barcode: '', loading: false, saving: false, error: '', selectedId: null, scannedPlateFollowNumber: null, plateFocusRevision: 0, tab: 'general', adding: false, requestId: 0, debug: null, resultData: null, resultsLoading: false, resultSaving: {}, resultError: '', calculation: null, calculationLoading: false, calculationError: '', calculationRevision: 0, resultRequestId: 0, detailsVisible: false, detailsData: null, detailsLoading: false, detailsSaving: {}, detailsError: '', detailsRequestId: 0 }),
     getters: {
         selected: (state) => state.data?.analyses.find((analysis) => analysis.id === state.selectedId) ?? null,
         progress: (state) => state.data?.analyses.length ? Math.round(state.data.analyses.filter((analysis) => analysis.is_ready).length / state.data.analyses.length * 100) : 0,
-        readOnly: (state) => Boolean(Number(state.data?.project?.locked) || Number(state.data?.project?.auth_status)),
+        readOnly: (state) => Boolean(Number(state.data?.project?.locked) || Number(state.data?.project?.auth_status) || state.detailsData?.read_only),
+        detailsBusy: (state) => state.detailsLoading || Object.keys(state.detailsSaving).length > 0,
     },
     actions: {
         async lookup(barcode = this.barcode) {
-            if (this.saving) return null;
+            if (this.saving || Object.keys(this.detailsSaving).length) return null;
             const requestId = ++this.requestId;
             const scannedBarcode = String(barcode ?? '').trim();
             const [sampleBarcode, analysisFollowNumber, plateFollowNumber] = scannedBarcode.split('.');
@@ -32,6 +33,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                 else this.selectedId = selectedId;
                 return true;
             }
+            this.resetDetails();
             this.data = null;
             this.selectedId = null;
             this.clearResults();
@@ -58,6 +60,89 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                 return false;
             } finally {
                 if (requestId === this.requestId) this.loading = false;
+            }
+        },
+        detailsEndpoint() {
+            return this.endpoints.sampleDetails
+                .replace('__PROJECT__', this.data.project.id)
+                .replace('__SAMPLE__', this.data.sample.id);
+        },
+        resetDetails() {
+            this.detailsRequestId++;
+            this.detailsVisible = false;
+            this.detailsData = null;
+            this.detailsLoading = false;
+            this.detailsSaving = {};
+            this.detailsError = '';
+        },
+        async openDetails() {
+            if (!this.data || this.readOnly || this.loading || this.saving || this.detailsBusy) return;
+            const requestId = ++this.detailsRequestId;
+            this.detailsVisible = true;
+            this.detailsData = null;
+            this.detailsError = '';
+            this.detailsLoading = true;
+            try {
+                const response = await fetch(this.detailsEndpoint(), { headers: { Accept: 'application/json' } });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || 'Monsterdetails konden niet worden geladen.');
+                if (requestId === this.detailsRequestId) {
+                    this.detailsData = result.data;
+                    this.data.sample.sampling_method = result.data.sample.sampling_method;
+                }
+            } catch (error) {
+                if (requestId === this.detailsRequestId) this.detailsError = error.message;
+            } finally {
+                if (requestId === this.detailsRequestId) this.detailsLoading = false;
+            }
+        },
+        setDetailValue(data, source, field, value) {
+            if (source === 'attribute') data.sample[field] = value;
+            else {
+                const entry = data[source === 'custom' ? 'sample_fields' : 'sample_extra'].find((item) => item.name === field);
+                if (entry) entry.value = value;
+            }
+        },
+        async saveDetailField(source, field, value) {
+            const key = `${source}:${field}`;
+            if (!this.data || !this.detailsData || this.readOnly || this.detailsLoading || this.detailsSaving[key]) return;
+            const requestId = this.detailsRequestId;
+            const previous = source === 'attribute'
+                ? this.data.sample[field]
+                : this.data[source === 'custom' ? 'sample_fields' : 'sample_extra'].find((item) => item.name === field)?.value ?? '';
+            this.detailsSaving[key] = true;
+            this.detailsError = '';
+            let forbidden = false;
+            try {
+                const response = await fetch(this.detailsEndpoint(), {
+                    method: 'PATCH',
+                    headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '' },
+                    body: JSON.stringify({ source, field, value: String(value ?? '') }),
+                });
+                const result = await response.json();
+                forbidden = response.status === 403;
+                if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Monsterdetails konden niet worden opgeslagen.');
+                if (requestId !== this.detailsRequestId) return;
+                const saved = source === 'attribute'
+                    ? result.data.sample[field]
+                    : result.data[source === 'custom' ? 'sample_fields' : 'sample_extra'].find((item) => item.name === field)?.value ?? '';
+                this.setDetailValue(this.detailsData, source, field, saved);
+                this.setDetailValue(this.data, source, field, saved);
+                this.detailsData.read_only = result.data.read_only;
+                if (source === 'attribute' && field === 'sampling_method') {
+                    this.data.sampling_method = result.data.sampling_methods.find((method) => Number(method.id) === Number(saved))?.name ?? '-';
+                }
+                if (source === 'attribute' && field === 'description') {
+                    const sample = this.data.project_samples?.find((item) => item.id === this.data.sample.id);
+                    if (sample) sample.description = saved;
+                }
+            } catch (error) {
+                if (requestId !== this.detailsRequestId) return;
+                this.setDetailValue(this.detailsData, source, field, previous);
+                if (forbidden) this.detailsData.read_only = true;
+                this.detailsError = error.message;
+            } finally {
+                if (requestId === this.detailsRequestId) delete this.detailsSaving[key];
             }
         },
         async openResearch() {

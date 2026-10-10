@@ -9,8 +9,9 @@ beforeEach(() => {
     setActivePinia(createPinia());
     useSampleLookupStore().endpoints.page = '/laboratory/samples/lookup';
     globalThis.window = { location: { href: 'http://localhost/laboratory/samples/lookup' }, history: { replaceState(state, title, url) { window.location.href = String(url); } } };
+    globalThis.document = { querySelector: () => ({ content: 'csrf-token' }) };
 });
-afterEach(() => { globalThis.fetch = originalFetch; delete globalThis.window; });
+afterEach(() => { globalThis.fetch = originalFetch; delete globalThis.window; delete globalThis.document; });
 
 test('latest barcode wins when responses arrive out of order', async () => {
     const responses = [];
@@ -178,4 +179,164 @@ test('a calculation event wins over an in-flight queued result response', async 
     assert.equal(store.calculation.output.result, '42');
     assert.equal(store.calculationLoading, false);
     assert.equal(store.data.analyses[0].is_ready, true);
+});
+
+function detailStore() {
+    const store = useSampleLookupStore();
+    const details = {
+        sample: { id: 5, barcode: '26091000', description: 'Water sample', sampling_method: 1 },
+        sample_fields: [{ name: 'temperature', value: '4 C' }],
+        sample_extra: [{ name: 'filter_volume', value: '1000' }],
+        sampling_methods: [{ id: 1, name: 'Original method' }, { id: 2, name: 'Updated method' }],
+        read_only: false,
+    };
+    store.endpoints.sampleDetails = '/lookup/projects/__PROJECT__/samples/__SAMPLE__/details';
+    store.data = { ...structuredClone(details), project: { id: 7, auth_status: 0, locked: 0 }, analyses: [{ id: 12 }], project_samples: [{ id: 5, description: 'Water sample' }] };
+    store.detailsData = details;
+    store.detailsVisible = true;
+    store.selectedId = 12;
+    store.resultData = { rows: [{ id: 30 }] };
+    store.calculation = { output: { result: '42' } };
+    return store;
+}
+
+test('detail saves use the shared endpoint and preserve selected results and calculation', async () => {
+    const store = detailStore();
+    const results = store.resultData;
+    const calculation = store.calculation;
+    globalThis.fetch = async (url, options) => {
+        assert.equal(url, '/lookup/projects/7/samples/5/details');
+        assert.equal(options.method, 'PATCH');
+        assert.equal(options.headers['X-CSRF-TOKEN'], 'csrf-token');
+        assert.deepEqual(JSON.parse(options.body), { source: 'attribute', field: 'description', value: 'Updated sample' });
+        return { ok: true, json: async () => ({ data: { sample: { description: 'Updated sample' }, read_only: false } }) };
+    };
+
+    await store.saveDetailField('attribute', 'description', 'Updated sample');
+
+    assert.equal(store.data.sample.description, 'Updated sample');
+    assert.equal(store.data.project_samples[0].description, 'Updated sample');
+    assert.equal(store.detailsData.sample.description, 'Updated sample');
+    assert.equal(store.selectedId, 12);
+    assert.equal(store.resultData, results);
+    assert.equal(store.calculation, calculation);
+    assert.equal(store.detailsBusy, false);
+});
+
+test('a sampling method save refreshes its lookup label', async () => {
+    const store = detailStore();
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ data: { sample: { sampling_method: 2 }, sampling_methods: store.detailsData.sampling_methods, read_only: false } }) });
+
+    await store.saveDetailField('attribute', 'sampling_method', '2');
+
+    assert.equal(store.data.sample.sampling_method, 2);
+    assert.equal(store.data.sampling_method, 'Updated method');
+});
+
+test('a rejected sampling method restores the editor ID missing from the lookup payload', async () => {
+    const store = detailStore();
+    delete store.data.sample.sampling_method;
+    const details = { sample: { sampling_method: 1 }, sample_fields: [], sample_extra: [], read_only: false };
+    globalThis.fetch = async (url, options) => options?.method === 'PATCH'
+        ? { ok: false, status: 422, json: async () => ({ errors: { value: ['Selecteer een geldige monsternameprocedure.'] } }) }
+        : { ok: true, json: async () => ({ data: details }) };
+
+    await store.openDetails();
+    store.detailsData.sample.sampling_method = 2;
+    await store.saveDetailField('attribute', 'sampling_method', '2');
+
+    assert.equal(store.data.sample.sampling_method, 1);
+    assert.equal(store.detailsData.sample.sampling_method, 1);
+});
+
+test('concurrent custom and extra saves merge only their own field', async () => {
+    const store = detailStore();
+    const responses = [];
+    globalThis.fetch = () => new Promise((resolve) => responses.push(resolve));
+    const custom = store.saveDetailField('custom', 'temperature', '8 C');
+    const extra = store.saveDetailField('extra', 'filter_volume', '500');
+    responses[1]({ ok: true, json: async () => ({ data: { sample_fields: [{ name: 'temperature', value: '4 C' }], sample_extra: [{ name: 'filter_volume', value: '500' }], read_only: false } }) });
+    await extra;
+    responses[0]({ ok: true, json: async () => ({ data: { sample_fields: [{ name: 'temperature', value: '8 C' }], sample_extra: [{ name: 'filter_volume', value: '1000' }], read_only: false } }) });
+    await custom;
+
+    assert.equal(store.data.sample_fields[0].value, '8 C');
+    assert.equal(store.data.sample_extra[0].value, '500');
+    assert.equal(store.detailsData.sample_extra[0].value, '500');
+});
+
+test('failed detail saves restore the saved value and show the validation error', async () => {
+    const store = detailStore();
+    store.detailsData.sample.description = 'Invalid';
+    globalThis.fetch = async () => ({ ok: false, status: 422, json: async () => ({ errors: { value: ['Ongeldige waarde.'] } }) });
+
+    await store.saveDetailField('attribute', 'description', 'Invalid');
+
+    assert.equal(store.data.sample.description, 'Water sample');
+    assert.equal(store.detailsData.sample.description, 'Water sample');
+    assert.equal(store.detailsError, 'Ongeldige waarde.');
+    assert.equal(store.detailsBusy, false);
+    assert.equal(store.readOnly, false);
+});
+
+test('a rejected detail save freezes the editor after project authorization changes', async () => {
+    const store = detailStore();
+    let requests = 0;
+    globalThis.fetch = async () => {
+        requests++;
+        return { ok: false, status: 403, json: async () => ({ message: 'Dit project is vergrendeld of geautoriseerd.' }) };
+    };
+
+    await store.saveDetailField('attribute', 'description', 'Not allowed');
+    await store.saveDetailField('attribute', 'description', 'Still not allowed');
+    await store.openDetails();
+
+    assert.equal(requests, 1);
+    assert.equal(store.readOnly, true);
+    assert.equal(store.data.sample.description, 'Water sample');
+    assert.match(store.detailsError, /geautoriseerd/);
+});
+
+test('authorized and locked projects cannot open or save details', async () => {
+    const store = detailStore();
+    globalThis.fetch = () => { throw new Error('Frozen projects must not send detail requests.'); };
+    for (const field of ['auth_status', 'locked']) {
+        store.data.project = { id: 7, auth_status: 0, locked: 0, [field]: 1 };
+        store.detailsVisible = false;
+        await store.openDetails();
+        await store.saveDetailField('attribute', 'description', 'Not allowed');
+        assert.equal(store.detailsVisible, false);
+        assert.equal(store.detailsBusy, false);
+    }
+});
+
+test('scanning another sample ignores an in-flight detail response', async () => {
+    const store = detailStore();
+    let finishDetails;
+    globalThis.fetch = (url) => {
+        if (url.includes('/details')) return new Promise((resolve) => { finishDetails = resolve; });
+        return Promise.resolve({ ok: true, json: async () => ({ data: { sample: { id: 6, barcode: '26091001' }, analyses: [] } }) });
+    };
+
+    const pending = store.openDetails();
+    await store.lookup('26091001');
+    finishDetails({ ok: true, json: async () => ({ data: { sample: { id: 5 } } }) });
+    await pending;
+
+    assert.equal(store.data.sample.id, 6);
+    assert.equal(store.detailsData, null);
+    assert.equal(store.detailsVisible, false);
+    assert.equal(store.detailsLoading, false);
+});
+
+test('sample navigation waits for an in-flight detail save', async () => {
+    const store = detailStore();
+    let finish;
+    globalThis.fetch = () => new Promise((resolve) => { finish = resolve; });
+    const pending = store.saveDetailField('attribute', 'description', 'Updated sample');
+
+    assert.equal(await store.lookup('26091001'), null);
+    assert.equal(store.data.sample.id, 5);
+    finish({ ok: true, json: async () => ({ data: { sample: { description: 'Updated sample' }, read_only: false } }) });
+    await pending;
 });
