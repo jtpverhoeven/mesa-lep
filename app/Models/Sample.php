@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\Samples\EstimateRegisteredSampleEndpoints;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,6 +21,14 @@ class Sample extends Model
     protected $table = 'samples';
 
     const CREATED_AT = null;
+
+    public function recalculatePredictedEnd(): int
+    {
+        $predictedEnd = app(EstimateRegisteredSampleEndpoints::class)->handle($this);
+        $this->refresh();
+
+        return $predictedEnd;
+    }
 
     public function client(): BelongsTo
     {

@@ -9,9 +9,11 @@ use App\Models\Sample;
 use App\Models\SampleField;
 use App\Models\SampleProcedure;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -71,6 +73,33 @@ class SampleLookupTest extends TestCase
             ->assertOk()->assertJsonPath('data.project_follow_number', 2);
         $this->getJson(route('samples.lookup.data', ['barcode' => 'unknown']))->assertNotFound();
         $this->getJson(route('samples.lookup.data'))->assertUnprocessable();
+    }
+
+    #[DataProvider('predictedProgressCases')]
+    public function test_lookup_progress_measures_elapsed_time_not_completed_results(int $start, int $end, int $authorized, int $expected): void
+    {
+        $this->travelTo(CarbonImmutable::createFromTimestampUTC(1789084800));
+        $sample = $this->sample('26091000');
+        $sample->update(['date_registered' => (string) $start, 'predicted_end' => $end]);
+        Project::find($sample->project)->update(['auth_status' => $authorized]);
+
+        $this->getJson(route('samples.lookup.data', ['barcode' => $sample->barcode]))
+            ->assertOk()
+            ->assertJsonPath('data.progress', $expected);
+    }
+
+    public static function predictedProgressCases(): array
+    {
+        return [
+            'half elapsed without results' => [1788998400, 1789171200, 0, 50],
+            'rounds elapsed percentage up' => [1788998400, 1789257600, 0, 34],
+            'overdue is capped' => [1788825600, 1788998400, 0, 100],
+            'not started is zero' => [1789171200, 1789257600, 0, 0],
+            'unknown inoculation date' => [1788998400, -1, 0, 0],
+            'unset predicted date' => [1788998400, 0, 0, 0],
+            'authorized overrides unknown date' => [1788998400, -1, 1, 100],
+            'zero interval follows legacy lookup' => [1788998400, 1788998400, 0, 0],
+        ];
     }
 
     #[DataProvider('sampleExtraFields')]
@@ -254,6 +283,7 @@ class SampleLookupTest extends TestCase
     public function test_addition_rolls_back_when_a_later_entry_is_unavailable(): void
     {
         $sample = $this->sample('26091000');
+        $previousProjectEnd = Project::find($sample->project)->predicted_end;
         $assay = $this->assay();
         $inactive = $this->assay();
         $inactive->update(['active' => 0]);
@@ -264,6 +294,142 @@ class SampleLookupTest extends TestCase
         $this->assertDatabaseCount('sampleanalysis', 0);
         $this->assertDatabaseCount('roaminganalysis', 0);
         $this->assertSame(1, $sample->fresh()->isEmpty);
+        $this->assertSame(1789171200, $sample->fresh()->predicted_end);
+        $this->assertSame($previousProjectEnd, Project::find($sample->project)->predicted_end);
+    }
+
+    public function test_adding_and_removing_research_recalculates_the_longest_endpoint_and_elapsed_progress(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-10 00:00:00', 'UTC'));
+        $sample = $this->sample('26091000');
+        $sample->update(['date_registered' => (string) CarbonImmutable::parse('2026-10-09', 'UTC')->timestamp]);
+        $sibling = $this->sample('26091001', $sample->project);
+        $siblingEnd = CarbonImmutable::parse('2026-10-15', 'UTC')->timestamp;
+        $sibling->update(['predicted_end' => $siblingEnd]);
+        $short = $this->assay(['duration' => '1', 'start_from' => 'r']);
+        $long = $this->assay(['duration' => '4', 'start_from' => 'r']);
+        $url = route('samples.lookup.research', $sample);
+        $monday = CarbonImmutable::parse('2026-10-12', 'UTC')->timestamp;
+        $tuesday = CarbonImmutable::parse('2026-10-13', 'UTC')->timestamp;
+
+        $this->postJson($url, ['operation' => 'add', 'analyses' => [['type' => 'assay', 'assay_id' => $short->id, 'settings' => ['replicates' => 1]]]])
+            ->assertOk()->assertJsonPath('data.sample.predicted_end', $monday)->assertJsonPath('data.progress', 34)
+            ->assertJsonPath('data.analyses.0.predicted_end', $monday);
+        $shortId = $sample->analyses()->value('id');
+        $this->postJson($url, ['operation' => 'add', 'analyses' => [['type' => 'assay', 'assay_id' => $long->id, 'settings' => ['replicates' => 1]]]])
+            ->assertOk()->assertJsonPath('data.sample.predicted_end', $tuesday)->assertJsonPath('data.progress', 25)
+            ->assertJsonPath('data.analyses.0.predicted_end', $monday)->assertJsonPath('data.analyses.1.predicted_end', $tuesday);
+        $longId = $sample->analyses()->where('assay_base', $long->id)->value('id');
+        $this->assertDatabaseHas('projects', ['id' => $sample->project, 'predicted_end' => $siblingEnd]);
+
+        $this->postJson($url, ['operation' => 'remove', 'analysis_id' => $longId])
+            ->assertOk()->assertJsonPath('data.sample.predicted_end', $monday)->assertJsonPath('data.progress', 34);
+        $this->assertDatabaseHas('projects', ['id' => $sample->project, 'predicted_end' => $siblingEnd]);
+        $this->postJson($url, ['operation' => 'remove', 'analysis_id' => $shortId])
+            ->assertOk()->assertJsonPath('data.sample.predicted_end', now()->timestamp);
+        $this->assertSame(1, $sample->fresh()->isEmpty);
+    }
+
+    public function test_one_unknown_analysis_keeps_sample_and_project_unknown_until_it_is_removed(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-09 12:00:00', 'UTC'));
+        $sample = $this->sample('26091000');
+        $sample->update(['date_registered' => (string) now()->timestamp]);
+        $known = $this->assay(['duration' => '1', 'start_from' => 'r']);
+        $unknown = $this->assay(['duration' => '2', 'start_from' => 'i']);
+        $monday = CarbonImmutable::parse('2026-10-12', 'UTC')->timestamp;
+        $url = route('samples.lookup.research', $sample);
+
+        $this->postJson($url, ['operation' => 'add', 'analyses' => [
+            ['type' => 'assay', 'assay_id' => $known->id, 'settings' => ['replicates' => 1]],
+            ['type' => 'assay', 'assay_id' => $unknown->id, 'settings' => ['replicates' => 1]],
+        ]])->assertOk()->assertJsonPath('data.sample.predicted_end', -1)->assertJsonPath('data.progress', 0)
+            ->assertJsonPath('data.analyses.0.predicted_end', $monday)->assertJsonPath('data.analyses.1.predicted_end', -1);
+        $this->assertDatabaseHas('projects', ['id' => $sample->project, 'predicted_end' => -1]);
+
+        $this->postJson($url, ['operation' => 'remove', 'analysis_id' => $sample->analyses()->where('assay_base', $unknown->id)->value('id')])
+            ->assertOk()->assertJsonPath('data.sample.predicted_end', $monday);
+        $this->assertDatabaseHas('projects', ['id' => $sample->project, 'predicted_end' => $monday]);
+    }
+
+    #[DataProvider('analysisAnchors')]
+    public function test_endpoint_recalculation_uses_legacy_anchors_and_durations(string $startFrom, string $duration, string $inoculated, array $sampleFields, array $projectFields, int|string $expected): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-10 12:00:00', 'UTC'));
+        $sample = $this->sample('26091000');
+        $sample->update([
+            'date_registered' => (string) CarbonImmutable::parse('2026-10-08 12:00:00', 'UTC')->timestamp,
+            'sample_innoculated' => $inoculated,
+            'custom_fields' => json_encode($sampleFields),
+        ]);
+        Project::find($sample->project)->update(['custom_fields' => json_encode($projectFields)]);
+        $assay = $this->assay(['duration' => $duration, 'start_from' => $startFrom]);
+        $analysisEnd = is_int($expected) ? $expected : CarbonImmutable::parse($expected, 'UTC')->timestamp;
+        $sampleEnd = $analysisEnd === 0 ? now()->timestamp : $analysisEnd;
+        $sample->load(['analyses', 'project']);
+
+        $this->postJson(route('samples.lookup.research', $sample), ['operation' => 'add', 'analyses' => [
+            ['type' => 'assay', 'assay_id' => $assay->id, 'settings' => ['replicates' => 1]],
+        ]])->assertOk()->assertJsonPath('data.sample.predicted_end', $sampleEnd)
+            ->assertJsonPath('data.analyses.0.predicted_end', $analysisEnd);
+
+        $this->assertSame($sampleEnd, $sample->recalculatePredictedEnd());
+        $this->assertSame($sampleEnd, $sample->predicted_end);
+        $this->assertSame($analysisEnd, $sample->analyses->first()->predicted_end);
+        $this->assertSame($sampleEnd, (int) $sample->getRelation('project')->predicted_end);
+        $this->assertDatabaseHas('samples', ['id' => $sample->id, 'predicted_end' => $sampleEnd]);
+        $this->assertDatabaseHas('projects', ['id' => $sample->project, 'predicted_end' => $sampleEnd]);
+    }
+
+    public static function analysisAnchors(): array
+    {
+        return [
+            'registration plus days' => ['r', '1', '', [], [], '2026-10-09'],
+            'fractional day shifts to monday' => ['r', '1.5', '', [], [], '2026-10-12'],
+            'empty duration is zero' => ['r', '', '', [], [], '2026-10-08'],
+            'inoculation plus days' => ['i', '3', '1791547200', [], [], '2026-10-12'],
+            'inoculation not started' => ['i', '3', '', [], [], -1],
+            'zero inoculation sentinel' => ['i', '3', '0', [], [], -1],
+            'dash inoculation sentinel' => ['i', '3', '-', [], [], -1],
+            'project field' => ['p:received', '1', '', [], ['received' => '09-10-2026'], '2026-10-12'],
+            'sample field' => ['s:collected', '2', '', ['collected' => '11-10-2026'], [], '2026-10-13'],
+            'missing custom anchor retains zero fallback' => ['s:missing', '0', '', [], [], 0],
+        ];
+    }
+
+    #[DataProvider('inoculationSampleTypes')]
+    public function test_inoculation_and_date_corrections_recalculate_endpoints_for_every_sample_type(string $sampleType): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-09 12:00:00', 'UTC'));
+        Queue::fake();
+        Gate::define('samples.list', fn () => true);
+        $sample = $this->sample('26091000');
+        $sample->update(['sample_type' => $sampleType]);
+        $assay = $this->assay(['duration' => '1', 'start_from' => 'i']);
+        $monday = CarbonImmutable::parse('2026-10-12', 'UTC')->timestamp;
+        $tuesday = CarbonImmutable::parse('2026-10-13', 'UTC')->timestamp;
+        $this->postJson(route('samples.lookup.research', $sample), ['operation' => 'add', 'analyses' => [
+            ['type' => 'assay', 'assay_id' => $assay->id, 'settings' => ['replicates' => 1]],
+        ]])->assertOk()->assertJsonPath('data.sample.predicted_end', -1);
+
+        $this->postJson(route('samples.register.inoculation'), ['barcode' => $sample->barcode])->assertOk();
+
+        $this->assertDatabaseHas('samples', ['id' => $sample->id, 'predicted_end' => $monday]);
+        $this->assertDatabaseHas('projects', ['id' => $sample->project, 'predicted_end' => $monday]);
+        $this->assertDatabaseHas('sampleanalysis', ['sample' => $sample->id, 'predicted_end' => $monday]);
+
+        $this->withSession(['_token' => 'conditions-test-token'])->withHeader('X-CSRF-TOKEN', 'conditions-test-token')
+            ->patchJson(route('samples.register.conditions', $sample), ['innoc' => '12-10-2026 12:00', 'storage' => 'B', 'diluted_at' => 'DIL'])
+            ->assertOk();
+
+        $this->assertDatabaseHas('samples', ['id' => $sample->id, 'predicted_end' => $tuesday]);
+        $this->assertDatabaseHas('projects', ['id' => $sample->project, 'predicted_end' => $tuesday]);
+        $this->assertDatabaseHas('sampleanalysis', ['sample' => $sample->id, 'predicted_end' => $tuesday]);
+    }
+
+    public static function inoculationSampleTypes(): array
+    {
+        return ['standard' => ['S'], 'legionella' => ['L'], 'rodac' => ['R']];
     }
 
     public function test_database_rejects_duplicate_barcodes(): void
@@ -286,13 +452,14 @@ class SampleLookupTest extends TestCase
         ]);
     }
 
-    private function assay(): Assay
+    private function assay(array $attributes = []): Assay
     {
         return Assay::create([
             'original_id' => 1, 'name' => 'Total count', 'type_base' => 1, 'media_id' => '[]',
             'dillution' => 0, 'replicates' => 1, 'confirmation' => 0, 'confirmation_script' => '{}',
             'type' => 1, 'meta_assays' => '', 'max_count' => 300, 'min_count' => 10,
             'script' => '', 'custom_fields' => '{}', 'duration' => '48', 'start_from' => '', 'article_code' => '',
+            ...$attributes,
         ]);
     }
 }

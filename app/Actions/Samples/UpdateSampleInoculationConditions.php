@@ -18,6 +18,7 @@ class UpdateSampleInoculationConditions
         private ResolveAssuranceDay $resolveDay,
         private GetOrCreateAssuranceForm $getOrCreateForm,
         private QueueAssuranceFormSynchronization $queueAssuranceSync,
+        private EstimateRegisteredSampleEndpoints $estimate,
         private ChangeTracker $changeTracker,
     ) {}
 
@@ -42,6 +43,9 @@ class UpdateSampleInoculationConditions
             $lockedSample->stored_in = $storage;
             $lockedSample->diluted_at = $dilutedAt;
             $lockedSample->save();
+            if ($project !== null) {
+                $this->estimate->handle($lockedSample);
+            }
             $this->changeTracker->changed(4, project: $lockedSample->project, sample: $lockedSample->id,
                 event: 'Inzet datum / tijd, opslag bak en afweegstation  manueel gewijzigd naar: '
                     .$inoculatedAt->format('d-m-Y/H:i').' Opslag:'.$storage.' afweegstation : '.$dilutedAt,

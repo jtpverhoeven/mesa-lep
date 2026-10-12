@@ -2,6 +2,7 @@
 
 namespace App\Actions\SampleAnalyses;
 
+use App\Actions\Samples\EstimateRegisteredSampleEndpoints;
 use App\ChangeTracking\ChangeTracker;
 use App\Models\Assay;
 use App\Models\Project;
@@ -13,7 +14,11 @@ use Illuminate\Validation\ValidationException;
 
 class CreateSampleAnalyses
 {
-    public function __construct(private RefreshSampleIsEmpty $refreshSampleIsEmpty, private ChangeTracker $changeTracker) {}
+    public function __construct(
+        private RefreshSampleIsEmpty $refreshSampleIsEmpty,
+        private ChangeTracker $changeTracker,
+        private EstimateRegisteredSampleEndpoints $estimate,
+    ) {}
 
     public function handle(Sample $sample, array $definitions): Collection
     {
@@ -69,8 +74,9 @@ class CreateSampleAnalyses
             }
 
             $this->refreshSampleIsEmpty->handle($sample);
+            $this->estimate->handle($sample);
 
-            return $analyses;
+            return $analyses->fresh();
         });
     }
 }

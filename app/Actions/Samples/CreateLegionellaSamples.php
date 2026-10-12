@@ -15,7 +15,6 @@ class CreateLegionellaSamples
         private CreateBulkSamples $create,
         private BulkSampleRegistrationOptions $options,
         private AddResearchProfileToSample $addProfile,
-        private EstimateRegisteredSampleEndpoints $estimate,
         private QueueAssuranceFormSynchronization $queueAssuranceSync,
     ) {}
 
@@ -52,7 +51,6 @@ class CreateLegionellaSamples
             })->latest('id')->firstOrFail();
 
             $this->addProfile->handle($sample, $profile, legacyRegistration: true);
-            $this->estimate->handle($sample);
             if (! empty($sample->sample_innoculated)) {
                 $this->queueAssuranceSync->handle($sample->sample_innoculated);
             }

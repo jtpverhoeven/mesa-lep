@@ -60,7 +60,7 @@ class RegisterSampleInoculation
 
             $lockedSample->save();
 
-            if (in_array($lockedSample->sample_type, ['L', 'R'], true)) {
+            if ($project !== null) {
                 $this->estimate->handle($lockedSample);
             }
 

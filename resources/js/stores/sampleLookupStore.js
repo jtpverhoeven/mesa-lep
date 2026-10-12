@@ -5,7 +5,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
     state: () => ({ endpoints: {}, data: null, barcode: '', loading: false, saving: false, error: '', selectedId: null, scannedPlateFollowNumber: null, plateFocusRevision: 0, tab: 'general', adding: false, requestId: 0, debug: null, resultData: null, resultsLoading: false, resultSaving: {}, resultError: '', calculation: null, calculationLoading: false, calculationError: '', calculationRevision: 0, resultRequestId: 0, detailsVisible: false, detailsData: null, detailsLoading: false, detailsSaving: {}, detailsError: '', detailsRequestId: 0 }),
     getters: {
         selected: (state) => state.data?.analyses.find((analysis) => analysis.id === state.selectedId) ?? null,
-        progress: (state) => state.data?.analyses.length ? Math.round(state.data.analyses.filter((analysis) => analysis.is_ready).length / state.data.analyses.length * 100) : 0,
+        progress: (state) => state.data?.progress ?? 0,
         readOnly: (state) => Boolean(Number(state.data?.project?.locked) || Number(state.data?.project?.auth_status) || state.detailsData?.read_only),
         detailsBusy: (state) => state.detailsLoading || Object.keys(state.detailsSaving).length > 0,
     },

@@ -7,9 +7,12 @@ use App\Models\Sample;
 use App\Models\SampleField;
 use App\Models\SampleProcedure;
 use App\Models\User;
+use App\Support\PredictedEndProgress;
 
 class LookupSample
 {
+    public function __construct(private PredictedEndProgress $progress) {}
+
     public function handle(string $barcode): array
     {
         $sample = Sample::query()->where('barcode', $barcode)->with([
@@ -46,6 +49,7 @@ class LookupSample
             'sampling_method' => SampleProcedure::query()->whereKey($sample->sampling_method)->value('name'),
             'registered_by' => User::query()->whereKey($sample->registered_by)->value('name'),
             'client' => $client?->only(['id', 'name']),
+            'progress' => $this->progress->percentage($sample->date_registered, $sample->predicted_end, (int) $project?->auth_status === 1),
             'product_group' => $sample->productGroup?->only(['portal_id', 'name', 'default', 'visible']),
             'project' => $project?->only(['id', 'project_name', 'reference', 'project_date', 'project_notes', 'auth_status', 'is_ready', 'locked', 'lock_message']),
             'project_url' => $project ? route('projects.search', ['project' => $project->id]) : null,

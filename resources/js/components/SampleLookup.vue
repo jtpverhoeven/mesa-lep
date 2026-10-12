@@ -33,6 +33,9 @@ function date(value) {
     if (!value || !Number(value)) return '-';
     return new Date(Number(value) * 1000).toLocaleString('nl-NL');
 }
+function expectedDate(value) {
+    return Number(value) > 0 ? new Date(Number(value) * 1000).toLocaleDateString('nl-NL') : 'Nog niet bekend';
+}
 function display(value) {
     return value !== null && typeof value === 'object' ? JSON.stringify(value) : (value ?? '-');
 }
@@ -147,6 +150,10 @@ onBeforeUnmount(() => {
                     <div class="sample-panel-body">
                         <p v-if="!store.data" class="empty-state">Geen monster geselecteerd.</p>
                         <template v-else>
+                            <div class="lookup-schedule">
+                                <div class="lookup-schedule-caption"><span>Verwacht gereed</span><strong>{{ expectedDate(store.data.sample.predicted_end) }}</strong></div>
+                                <div class="lookup-progress"><progress :value="store.progress" max="100" :aria-label="`Voortgang ${store.progress}%`"></progress><span>{{ store.progress }}%</span></div>
+                            </div>
                             <dl v-if="store.tab === 'general'" class="lookup-details">
                                 <dt>Barcode</dt><dd><strong>{{ store.data.sample.barcode }}</strong></dd>
                                 <dt>Volgnummer</dt><dd>{{ store.data.project_follow_number }}</dd>
@@ -221,7 +228,6 @@ onBeforeUnmount(() => {
             </div>
             <div class="sample-create-column">
                 <SampleLookupResearch :permissions="permissions" />
-                <section class="sample-panel"><h2>Voortgang</h2><div class="sample-panel-body"><progress :value="store.progress" max="100" :aria-label="`${store.progress}% gereed`"></progress><p>{{ store.progress }}% gereed</p><small v-if="store.data">Verwacht gereed: {{ date(store.data.sample.predicted_end) }}</small></div></section>
             </div>
             <div class="sample-create-column lookup-results-column">
                 <section class="sample-panel"><h2>Resultaat uitgedrukt in</h2><div class="sample-panel-body"><EndResultDisplay :calculation="store.calculation" :confirmation="confirmationStore.data" :confirmation-busy="confirmationStore.pendingMutationCount > 0" :confirmation-error="confirmationStore.error" :can-reset-confirmation="permissions.resetConfirmation" :read-only="store.readOnly || confirmationStore.readOnly" :loading="store.calculationLoading" :error="store.calculationError" empty-text="Selecteer een analyse om het eindresultaat te bekijken." @confirmation-decision="setConfirmationDecision" @open-confirmation="openConfirmation" /></div></section>
@@ -257,7 +263,12 @@ onBeforeUnmount(() => {
 .lookup-status.ready { color:#247448; }
 .lookup-placeholder p { color:var(--muted); font-size:12px; }
 .lookup-placeholder pre { max-height:260px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font-size:11px; line-height:1.6; }
-.sample-lookup progress { width:100%; height:15px; accent-color:var(--accent); }
+.lookup-schedule { margin-bottom:16px; font-size:11px; }
+.lookup-schedule-caption { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+.lookup-schedule-caption > span { color:var(--muted); }
+.lookup-progress { display:grid; grid-template-columns:minmax(0,1fr) 4ch; align-items:center; gap:8px; }
+.lookup-progress progress { display:block; width:100%; height:6px; accent-color:var(--accent); }
+.lookup-progress > span { text-align:right; font-variant-numeric:tabular-nums; }
 .sample-lookup select { width:100%; min-width:0; margin-top:6px; }
 .lookup-details select { min-height:35px; padding:8px 10px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); font:inherit; }
 .lookup-note { white-space:pre-wrap; overflow-wrap:anywhere; }

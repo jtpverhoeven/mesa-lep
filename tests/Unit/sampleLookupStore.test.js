@@ -13,6 +13,20 @@ beforeEach(() => {
 });
 afterEach(() => { globalThis.fetch = originalFetch; delete globalThis.window; delete globalThis.document; });
 
+test('progress uses the predicted-date percentage and does not change when results become ready', () => {
+    const store = useSampleLookupStore();
+    assert.equal(store.progress, 0);
+    store.data = { sample: { id: 5 }, progress: 34, analyses: [{ id: 12, is_ready: false }] };
+    assert.equal(store.progress, 34);
+
+    store.applyCalculation(12, { isReady: true });
+
+    assert.equal(store.data.analyses[0].is_ready, true);
+    assert.equal(store.progress, 34);
+    store.data = { sample: { id: 5 }, progress: 100, analyses: [] };
+    assert.equal(store.progress, 100);
+});
+
 test('latest barcode wins when responses arrive out of order', async () => {
     const responses = [];
     globalThis.fetch = () => new Promise((resolve) => responses.push(resolve));

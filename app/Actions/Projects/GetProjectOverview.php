@@ -3,6 +3,8 @@
 namespace App\Actions\Projects;
 
 use App\Models\Project;
+use App\Support\LaboratoryCalendar;
+use App\Support\PredictedEndProgress;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -10,6 +12,8 @@ use InvalidArgumentException;
 
 class GetProjectOverview
 {
+    public function __construct(private LaboratoryCalendar $calendar, private PredictedEndProgress $predictedProgress) {}
+
     public const STATUSES = [
         'received' => 'Ontvangen',
         'running' => 'Lopend',
@@ -113,9 +117,7 @@ class GetProjectOverview
 
         $distance = (int) $project->predicted_end - (int) $project->project_date;
 
-        return $distance === 0 ? 100 : (int) min(100, ceil(
-            (1 - (((int) $project->predicted_end - now()->timestamp) / $distance)) * 100,
-        ));
+        return $distance === 0 ? 100 : $this->predictedProgress->percentage($project->project_date, $project->predicted_end);
     }
 
     private function deadlineTone(Project $project): ?string
@@ -132,7 +134,7 @@ class GetProjectOverview
 
         $workingDays = 0;
         while ($day->lessThan($today)) {
-            if (! $day->isWeekend() && ! $this->isHoliday($day)) {
+            if ($this->calendar->isWorkingDay($day)) {
                 $workingDays++;
                 if ($workingDays > 3) {
                     return 'danger';
@@ -142,25 +144,5 @@ class GetProjectOverview
         }
 
         return 'warning';
-    }
-
-    private function isHoliday(Carbon $day): bool
-    {
-        $easter = Carbon::create($day->year, 3, 21, 0, 0, 0, 'Europe/Amsterdam')->addDays(easter_days($day->year));
-        $kingsDay = Carbon::create($day->year, 4, 27, 0, 0, 0, 'Europe/Amsterdam');
-        if ($kingsDay->isSunday()) {
-            $kingsDay->subDay();
-        }
-
-        $holidays = [
-            '01-01', '12-25', '12-26', $kingsDay->format('m-d'),
-            $easter->format('m-d'), $easter->copy()->addDay()->format('m-d'),
-            $easter->copy()->addDays(39)->format('m-d'),
-            $easter->copy()->addDays(49)->format('m-d'),
-            $easter->copy()->addDays(50)->format('m-d'),
-        ];
-
-        return in_array($day->format('m-d'), $holidays, true)
-            || ($day->year % 5 === 0 && $day->format('m-d') === '05-05');
     }
 }

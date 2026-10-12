@@ -2,6 +2,7 @@
 
 namespace App\Actions\SampleAnalyses;
 
+use App\Actions\Samples\EstimateRegisteredSampleEndpoints;
 use App\ChangeTracking\ChangeTracker;
 use App\Models\Result;
 use App\Models\RoamingAnalysis;
@@ -11,7 +12,11 @@ use Illuminate\Support\Facades\DB;
 
 class RemoveSampleAnalysis
 {
-    public function __construct(private RefreshSampleIsEmpty $refreshSampleIsEmpty, private ChangeTracker $changeTracker) {}
+    public function __construct(
+        private RefreshSampleIsEmpty $refreshSampleIsEmpty,
+        private ChangeTracker $changeTracker,
+        private EstimateRegisteredSampleEndpoints $estimate,
+    ) {}
 
     public function handle(SampleAnalysis $analysis): void
     {
@@ -36,6 +41,7 @@ class RemoveSampleAnalysis
                 ]));
 
             $this->refreshSampleIsEmpty->handle($sample);
+            $this->estimate->handle($sample);
         });
     }
 }
