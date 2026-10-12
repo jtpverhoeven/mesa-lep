@@ -20,6 +20,8 @@ Now we have to tackle LabelEvents. LabelEvents are a complicated piece of work, 
 
 In this pass, focus on the backbone and administrative part of this, with all the needed DRY and centralized entrypoints, which we can *later* hookup to sample registration etc. 
 
+I think specifically the UI where we setup the conditions can use a bit of a makeover with mdoern components, so it is more intuitive, but again, the main concern is that it has to work with the data-shape of the legacy system. 
+
 # Legacy 
 
 See `legacy/app/controllers/labelEventsController.php` how to set this up, but please revamp the UI and interface, as long as the underlying function works the same and the data structures do not change. Focus on using OpenVue components over rolling your own, but style them with tailwind in the same theme as the rest of the application. 

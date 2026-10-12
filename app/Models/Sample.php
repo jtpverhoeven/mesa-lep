@@ -40,6 +40,11 @@ class Sample extends Model
         return $this->belongsTo(Project::class, 'project');
     }
 
+    public function samplingProcedure(): BelongsTo
+    {
+        return $this->belongsTo(SampleProcedure::class, 'sampling_method');
+    }
+
     public function productGroup(): BelongsTo
     {
         return $this->belongsTo(ProductGroup::class, 'portal_product_group_id', 'portal_id');

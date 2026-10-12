@@ -12,6 +12,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CvarController;
 use App\Http\Controllers\LabelDesignController;
+use App\Http\Controllers\LabelEventController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PortalAssayController;
@@ -285,6 +286,15 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
         Route::get('/label-designs/{labelDesign}/edit', [LabelDesignController::class, 'edit'])->name('label-designs.edit');
         Route::put('/label-designs/{labelDesign}', [LabelDesignController::class, 'update'])->name('label-designs.update');
         Route::delete('/label-designs/{labelDesign}', [LabelDesignController::class, 'destroy'])->name('label-designs.destroy');
+    });
+
+    Route::middleware('can:labels.print-settings')->group(function () {
+        Route::get('/label-events', [LabelEventController::class, 'index'])->name('label-events.index');
+        Route::get('/label-events/create', [LabelEventController::class, 'create'])->name('label-events.create');
+        Route::post('/label-events', [LabelEventController::class, 'store'])->name('label-events.store');
+        Route::get('/label-events/{labelEvent}/edit', [LabelEventController::class, 'edit'])->name('label-events.edit');
+        Route::put('/label-events/{labelEvent}', [LabelEventController::class, 'update'])->name('label-events.update');
+        Route::delete('/label-events/{labelEvent}', [LabelEventController::class, 'destroy'])->name('label-events.destroy');
     });
 
     Route::middleware('can:settings.advanced')->group(function () {
