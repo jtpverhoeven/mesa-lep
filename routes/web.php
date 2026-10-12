@@ -11,10 +11,12 @@ use App\Http\Controllers\ClientCategoryController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CvarController;
+use App\Http\Controllers\LabelDesignController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PortalAssayController;
 use App\Http\Controllers\PortalConnectionController;
+use App\Http\Controllers\PrinterController;
 use App\Http\Controllers\ProductGroupController;
 use App\Http\Controllers\ProjectAuthorizationController;
 use App\Http\Controllers\ProjectFieldController;
@@ -276,7 +278,22 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
         Route::delete('/user-groups/{userGroup}', [UserGroupController::class, 'destroy'])->name('user-groups.destroy');
     });
 
+    Route::middleware('can:labels.design')->group(function () {
+        Route::get('/label-designs', [LabelDesignController::class, 'index'])->name('label-designs.index');
+        Route::get('/label-designs/create', [LabelDesignController::class, 'create'])->name('label-designs.create');
+        Route::post('/label-designs', [LabelDesignController::class, 'store'])->name('label-designs.store');
+        Route::get('/label-designs/{labelDesign}/edit', [LabelDesignController::class, 'edit'])->name('label-designs.edit');
+        Route::put('/label-designs/{labelDesign}', [LabelDesignController::class, 'update'])->name('label-designs.update');
+        Route::delete('/label-designs/{labelDesign}', [LabelDesignController::class, 'destroy'])->name('label-designs.destroy');
+    });
+
     Route::middleware('can:settings.advanced')->group(function () {
+        Route::get('/printers', [PrinterController::class, 'index'])->name('printers.index');
+        Route::get('/printers/create', [PrinterController::class, 'create'])->name('printers.create');
+        Route::post('/printers', [PrinterController::class, 'store'])->name('printers.store');
+        Route::get('/printers/{printer}/edit', [PrinterController::class, 'edit'])->name('printers.edit');
+        Route::put('/printers/{printer}', [PrinterController::class, 'update'])->name('printers.update');
+        Route::delete('/printers/{printer}', [PrinterController::class, 'destroy'])->name('printers.destroy');
         Route::get('/portal/assays', [PortalAssayController::class, 'index'])->name('portal-assays.index');
         Route::get('/portal/assays/create', [PortalAssayController::class, 'create'])->name('portal-assays.create');
         Route::post('/portal/assays', [PortalAssayController::class, 'store'])->name('portal-assays.store');

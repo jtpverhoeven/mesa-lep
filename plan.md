@@ -10,4 +10,8 @@
 
 # Ideas - Improvements after code base done
 * Should input in assays be allowed  when sample not yet innoculated?
-* ZPL rendered?
+* ZPL render 
+* Peek into projects (samples) for project overviews
+* Printer connection test (if this is posible on zebra)
+* Create a default test label 
+* 

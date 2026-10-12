@@ -14,12 +14,17 @@ We now have to implement the backbone of printing. Printing, in this context, me
 
 We should tackle this in multiple steps, in a way we dont regress from our legacy implementation, and dont create a spaghetti mess. This needs to be a unified service that has tendrils in all of our application, so it has to be DRY. 
 
-For this step, lets implement the easiest foundation of the legacy `printersController.php` first. This is a simple admin section interface to see, and add, edit or remove printer hardware. That is to say, their name, IP adress etc.  add this to the administration section of the LIMS application, under a section called "Labels", with the name "Printers".
+We have already setup printers, and print designs. 
+
+Now we have to tackle LabelEvents. LabelEvents are a complicated piece of work, they basically allow the users to define conditional statements to define what labels are being printed in what quantity on which printer, that get executed through automatic triggers on sample registration, while adding analyses, or while approving a `best before (tht)` sample. 
+
+In this pass, focus on the backbone and administrative part of this, with all the needed DRY and centralized entrypoints, which we can *later* hookup to sample registration etc. 
 
 # Legacy 
 
-See `legacy/app/controllers/printersController.php` how to set this up, but please revamp the UI and interface, as long as the underlying function works the same. 
+See `legacy/app/controllers/labelEventsController.php` how to set this up, but please revamp the UI and interface, as long as the underlying function works the same and the data structures do not change. Focus on using OpenVue components over rolling your own, but style them with tailwind in the same theme as the rest of the application. 
 
 # Addendum
 Focus on code deliverability. But implement tests for this, since it is a important section of the application. This application runs in laravel sail, so any commands you want to do for laravel have to move through there.  A MCP server is available (laravel boost). If you need to test inbrowser, use port 80, not 8000.
 
+Focus on using OpenVue components over rolling your own, but style them with tailwind in the same theme as the rest of the application.

@@ -91,6 +91,7 @@ body {
 .field label { font-weight:600; }
 .field input:not([type=checkbox]),.field select,.field textarea { width:100%; min-height:35px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); padding:8px 10px; font:inherit; }
 .field textarea { min-height:90px; resize:vertical; }
+.label-design-form .field textarea { min-height:360px; font-family:monospace; tab-size:4; }
 .app-dialog-mask { padding:18px; background:rgba(20,35,45,.45); }
 .app-dialog { width:min(var(--app-dialog-width),100%); max-height:calc(100vh - 36px); overflow:auto; border:1px solid #8e9ba2; background:var(--surface); color:var(--ink); box-shadow:0 18px 45px rgba(20,35,45,.3); }
 .app-dialog-header { display:flex; min-height:56px; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; border-bottom:1px solid var(--line); background:var(--surface-alt); }

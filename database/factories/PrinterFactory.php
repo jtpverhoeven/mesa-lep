@@ -1,0 +1,27 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Models\Printer;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<Printer>
+ */
+class PrinterFactory extends Factory
+{
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            'name' => fake()->unique()->bothify('Zebra-####-????'),
+            'adres' => fake()->ipv4(),
+            'port' => 9100,
+            'type' => 1,
+        ];
+    }
+}
