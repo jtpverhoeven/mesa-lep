@@ -12,11 +12,14 @@ use App\Models\ClientCategory;
 use App\Models\ClientCategoryAssignment;
 use App\Models\ClientPortalAssay;
 use App\Models\Cvar;
+use App\Models\LabelDesign;
+use App\Models\LabelEvent;
 use App\Models\Matrix;
 use App\Models\MatrixContent;
 use App\Models\Media;
 use App\Models\PortalAssay;
 use App\Models\PortalAssayContent;
+use App\Models\Printer;
 use App\Models\ProjectField;
 use App\Models\ReferenceSource;
 use App\Models\ResearchProfile;
@@ -68,6 +71,9 @@ class ImportLegacyCsvDirectoryCommand extends Command
         'samplefields.csv' => SampleField::class,
         'sampleprocedurefields.csv' => SampleProcedureField::class,
         'sampleprocedures.csv' => SampleProcedure::class,
+        'printers.csv' => Printer::class,
+        'labeldesigns.csv' => LabelDesign::class,
+        'labelevents.csv' => LabelEvent::class,
     ];
 
     public function handle(): int

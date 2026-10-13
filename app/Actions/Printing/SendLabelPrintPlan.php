@@ -2,18 +2,16 @@
 
 namespace App\Actions\Printing;
 
-use App\Models\Cvar;
+use App\Jobs\SendLabelPrinterSpoolJob;
 use App\Models\LabelEvent;
 use App\Models\Printer;
-use App\Support\Printing\LabelPrinterTransport;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use LogicException;
-use Throwable;
 
 class SendLabelPrintPlan
 {
-    public function __construct(private LabelPrinterTransport $transport) {}
+    public function __construct(private GetLabelPrintingSettings $settings) {}
 
     /**
      * @param  list<array{event_id: int, print_label: int, print_to: int, copies: int, zpl: string}>  $plan
@@ -25,13 +23,9 @@ class SendLabelPrintPlan
             return [];
         }
 
-        $disabledName = config('printing.disabled_cvar', 'MESA_DISABLE_PRINTING');
-        $alignmentName = config('printing.alignment_cvar', 'MESA_ZEBRA_ALIGN');
-        $settings = Cvar::query()->whereIn('cvar', [$disabledName, $alignmentName])->get()->keyBy('cvar');
-        $disabled = $settings->get($disabledName);
-        $enabled = (string) ($disabled?->value ?? $disabled?->default ?? '0') !== '1';
-        $alignment = $settings->get($alignmentName);
-        $prefix = (string) ($alignment?->value ?? $alignment?->default ?? '');
+        $settings = $this->settings->handle();
+        $enabled = $settings['enabled'];
+        $prefix = $settings['alignment'];
         $maxBytes = (int) config('printing.max_spool_bytes', 16 * 1024 * 1024);
         $spools = [];
 
@@ -41,10 +35,10 @@ class SendLabelPrintPlan
             }
 
             $printerId = $job['print_to'];
-            $spools[$printerId] ??= ['zpl' => $prefix, 'event_ids' => []];
+            $spools[$printerId] ??= ['zpl' => '', 'event_ids' => []];
             $jobBytes = strlen($job['zpl']) * $job['copies'];
 
-            if ($jobBytes > $maxBytes - strlen($spools[$printerId]['zpl'])) {
+            if ($jobBytes > $maxBytes - strlen($prefix) - strlen($spools[$printerId]['zpl'])) {
                 throw new InvalidArgumentException('Label spool exceeds the configured byte limit.');
             }
 
@@ -64,21 +58,12 @@ class SendLabelPrintPlan
             $result = ['printer_id' => $printerId, 'status' => 'disabled', 'bytes' => 0, 'event_ids' => array_values(array_unique($spool['event_ids'])), 'error' => null];
 
             if ($enabled) {
-                try {
-                    $this->transport->send($printers->get($printerId), $spool['zpl']);
-                    $result['status'] = 'sent';
-                    $result['bytes'] = strlen($spool['zpl']);
-                } catch (Throwable $exception) {
-                    $result['status'] = 'failed';
-                    $result['error'] = $exception->getMessage();
-                    Log::error('Label spool failed.', $result);
-                }
+                SendLabelPrinterSpoolJob::dispatch($printerId, $spool['zpl'], $result['event_ids']);
+                $result['status'] = 'queued';
+                $result['bytes'] = strlen($prefix) + strlen($spool['zpl']);
             }
 
-            if ($result['status'] !== 'failed') {
-                Log::info('Label spool '.$result['status'].'.', $result);
-            }
-
+            Log::info('Label spool '.$result['status'].'.', $result);
             $results[] = $result;
         }
 

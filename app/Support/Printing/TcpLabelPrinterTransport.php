@@ -33,14 +33,37 @@ class TcpLabelPrinterTransport implements LabelPrinterTransport
         }
 
         try {
-            $seconds = (int) $this->timeoutSeconds;
-            $microseconds = (int) (($this->timeoutSeconds - $seconds) * 1000000);
-            stream_set_timeout($socket, $seconds, $microseconds);
+            if (! stream_set_blocking($socket, false)) {
+                throw new RuntimeException('Could not configure printer #'.$printer->id.' socket.');
+            }
+
+            $deadline = hrtime(true) + $this->timeoutSeconds * 1000000000;
             $offset = 0;
             $length = strlen($zpl);
 
             while ($offset < $length) {
-                $written = @fwrite($socket, substr($zpl, $offset));
+                $remaining = ($deadline - hrtime(true)) / 1000000000;
+
+                if ($remaining <= 0) {
+                    throw new RuntimeException('Printer #'.$printer->id.' timed out accepting the label spool.');
+                }
+
+                $read = [];
+                $write = [$socket];
+                $except = [];
+                $seconds = (int) $remaining;
+                $microseconds = (int) (($remaining - $seconds) * 1000000);
+                $ready = @stream_select($read, $write, $except, $seconds, $microseconds);
+
+                if ($ready === false) {
+                    throw new RuntimeException('Could not write to printer #'.$printer->id.'.');
+                }
+
+                if ($ready === 0) {
+                    throw new RuntimeException('Printer #'.$printer->id.' timed out accepting the label spool.');
+                }
+
+                $written = @fwrite($socket, substr($zpl, $offset, 65536));
 
                 if ($written === false || $written === 0) {
                     throw new RuntimeException('Printer #'.$printer->id.' did not accept the complete label spool.');

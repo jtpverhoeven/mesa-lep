@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'MESA | Labelregels')
+@section('title', 'MESA | Label print configuratie')
 @section('content')
     <label-event-directory v-bind="{{ Illuminate\Support\Js::from([
         'labelEvents' => $labelEvents,

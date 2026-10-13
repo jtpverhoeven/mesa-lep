@@ -97,13 +97,13 @@ function deleteRule() {
             <template #confirm-icon><Trash2 :size="15" aria-hidden="true" /></template>
         </AppConfirmDialog>
         <div class="page-heading">
-            <div><div class="eyebrow">Beheer / Labels</div><h1>Labelregels</h1></div>
+            <div><div class="eyebrow">Beheer / Labels</div><h1>Label print configuratie</h1></div>
             <a class="button primary" :href="`${createUrl}?group=${selectedGroup}`"><Plus :size="16" aria-hidden="true" />Labelregel toevoegen</a>
         </div>
         <div class="directory-toolbar">
             <label class="directory-search">
                 <Search :size="16" aria-hidden="true" />
-                <span class="sr-only">Labelregels zoeken</span>
+                <span class="sr-only">Label print configuratie zoeken</span>
                 <input v-model="filters.global.value" type="search" placeholder="Zoek label, printer of voorwaarde" autocomplete="off">
             </label>
         </div>
@@ -133,7 +133,7 @@ function deleteRule() {
                                     </div>
                                 </template>
                             </Column>
-                            <template #empty><span class="empty-state">Geen labelregels gevonden.</span></template>
+                            <template #empty><span class="empty-state">Geen Label print configuratie gevonden.</span></template>
                         </DataTable>
                     </div>
                 </TabPanel>

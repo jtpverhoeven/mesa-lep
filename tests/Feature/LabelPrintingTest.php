@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Actions\Cvars\SetCvar;
 use App\Actions\Printing\BuildLabelPrintPlan;
 use App\Actions\Printing\SendLabelPrintPlan;
+use App\Jobs\SendLabelPrinterSpoolJob;
 use App\Models\Assay;
 use App\Models\AssayType;
 use App\Models\Client;
@@ -21,7 +22,12 @@ use App\Models\SampleProcedure;
 use App\Support\Printing\LabelPrinterTransport;
 use App\Support\Printing\TcpLabelPrinterTransport;
 use DateTimeImmutable;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use InvalidArgumentException;
 use LogicException;
 use Mockery\MockInterface;
@@ -189,6 +195,7 @@ class LabelPrintingTest extends TestCase
 
     public function test_sender_spools_once_per_printer_and_repeats_labels_with_one_legacy_alignment_prefix(): void
     {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
         Cvar::create(['cvar' => 'MESA_ZEBRA_ALIGN', 'value' => '^LH4,4', 'default' => '', 'description' => 'Alignment']);
         $printer = Printer::factory()->create();
         $design = LabelDesign::factory()->create(['zpl' => '^XA^FDBOX^FS^XZ']);
@@ -202,14 +209,21 @@ class LabelPrintingTest extends TestCase
         $results = app(SendLabelPrintPlan::class)->handle($plan);
 
         $this->assertSame([[
-            'printer_id' => $printer->id, 'status' => 'sent', 'bytes' => 51,
+            'printer_id' => $printer->id, 'status' => 'queued', 'bytes' => 51,
             'event_ids' => [$first->id, $second->id], 'error' => null,
         ]], $results);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->printerId === $printer->id
+            && $job->zpl === '^XA^FDBOX^FS^XZ^XA^FDBOX^FS^XZ^XA^FDBOX^FS^XZ'
+            && $job->eventIds === [$first->id, $second->id]);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+
+        $this->app->call([Queue::pushed(SendLabelPrinterSpoolJob::class)->first(), 'handle']);
     }
 
     #[DataProvider('disabledPrintingSettings')]
     public function test_disabled_printing_never_calls_the_transport(?string $value, string $default): void
     {
+        Queue::fake();
         Cvar::create(['cvar' => 'MESA_DISABLE_PRINTING', 'value' => $value, 'default' => $default, 'description' => 'Disable printing']);
         $event = LabelEvent::factory()->create();
         $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldNotReceive('send'));
@@ -218,10 +232,12 @@ class LabelPrintingTest extends TestCase
         $results = app(SendLabelPrintPlan::class)->handle($plan);
 
         $this->assertSame([['printer_id' => $event->print_to, 'status' => 'disabled', 'bytes' => 0, 'event_ids' => [$event->id], 'error' => null]], $results);
+        Queue::assertNothingPushed();
     }
 
     public function test_user_cvar_edits_change_printing_and_alignment_without_recreating_the_sender_or_reloading_config(): void
     {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
         config(['printing.enabled' => false, 'printing.alignment' => 'ignored']);
         $disabled = Cvar::create(['cvar' => 'MESA_DISABLE_PRINTING', 'value' => '0', 'default' => '1', 'description' => 'Disable printing']);
         $alignment = Cvar::create(['cvar' => 'MESA_ZEBRA_ALIGN', 'value' => '^LH4,4', 'default' => '^LH1,1', 'description' => 'Alignment']);
@@ -236,20 +252,24 @@ class LabelPrintingTest extends TestCase
         $setCvar = app(SetCvar::class);
 
         $first = $sender->handle($plan);
+        $this->app->call([Queue::pushed(SendLabelPrinterSpoolJob::class)->first(), 'handle']);
         $setCvar->handle($disabled, '1');
         $stopped = $sender->handle($plan);
         $setCvar->handle($disabled, '0');
         $setCvar->handle($alignment, '^LH9,9');
         $resumed = $sender->handle($plan);
+        $this->app->call([Queue::pushed(SendLabelPrinterSpoolJob::class)->last(), 'handle']);
 
-        $this->assertSame('sent', $first[0]['status']);
+        $this->assertSame('queued', $first[0]['status']);
         $this->assertSame('disabled', $stopped[0]['status']);
-        $this->assertSame('sent', $resumed[0]['status']);
+        $this->assertSame('queued', $resumed[0]['status']);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 2);
     }
 
     #[DataProvider('alignmentSettings')]
     public function test_alignment_uses_the_current_cvar_value_or_its_default_and_preserves_explicit_empty_values(?string $value, string $default, string $expectedPrefix): void
     {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
         Cvar::create(['cvar' => 'MESA_ZEBRA_ALIGN', 'value' => $value, 'default' => $default, 'description' => 'Alignment']);
         $design = LabelDesign::factory()->create(['zpl' => '^XA^XZ']);
         LabelEvent::factory()->for($design, 'labelDesign')->create();
@@ -260,10 +280,12 @@ class LabelPrintingTest extends TestCase
 
         $results = app(SendLabelPrintPlan::class)->handle($plan);
 
-        $this->assertSame('sent', $results[0]['status']);
+        $this->assertSame('queued', $results[0]['status']);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        $this->app->call([Queue::pushed(SendLabelPrinterSpoolJob::class)->first(), 'handle']);
     }
 
-    public function test_one_offline_printer_is_reported_without_retrying_or_blocking_other_printers(): void
+    public function test_one_offline_printer_is_recorded_as_failed_without_retrying_or_blocking_other_printers(): void
     {
         $first = LabelEvent::factory()->create();
         $second = LabelEvent::factory()->create();
@@ -275,24 +297,166 @@ class LabelPrintingTest extends TestCase
 
         $results = app(SendLabelPrintPlan::class)->handle($plan);
 
-        $this->assertSame(['failed', 'sent'], array_column($results, 'status'));
-        $this->assertSame('Offline', $results[0]['error']);
-        $this->assertNull($results[1]['error']);
+        $this->assertSame(['queued', 'queued'], array_column($results, 'status'));
+        $this->assertDatabaseCount('jobs', 2);
+
+        $this->artisan('queue:work', [
+            'connection' => 'database', '--queue' => 'printing', '--stop-when-empty' => true,
+            '--sleep' => 0, '--tries' => 5,
+        ])->assertSuccessful();
+
+        $this->assertDatabaseCount('jobs', 0);
+        $this->assertDatabaseCount('failed_jobs', 1);
+        $this->assertDatabaseHas('failed_jobs', ['connection' => 'database', 'queue' => 'printing']);
+        $this->assertStringContainsString('Offline', DB::table('failed_jobs')->sole()->exception);
+        $lock = Cache::lock('label-printer:'.$first->print_to, 5);
+
+        try {
+            $this->assertTrue($lock->get());
+        } finally {
+            $lock->release();
+        }
+    }
+
+    public function test_print_jobs_use_the_configured_queue_and_connection_without_inline_transport(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        config(['printing.queue' => 'zebra-labels', 'printing.connection' => 'redis']);
+        LabelEvent::factory()->create();
+        $plan = app(BuildLabelPrintPlan::class)->handle(1, []);
+        $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldNotReceive('send'));
+
+        $results = app(SendLabelPrintPlan::class)->handle($plan);
+
+        $this->assertSame('queued', $results[0]['status']);
+        Queue::assertPushedOn('zebra-labels', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->connection === 'redis');
+    }
+
+    public function test_print_jobs_are_not_visible_to_workers_until_the_transaction_commits(): void
+    {
+        LabelEvent::factory()->create();
+        $plan = app(BuildLabelPrintPlan::class)->handle(1, []);
+
+        DB::transaction(function () use ($plan): void {
+            app(SendLabelPrintPlan::class)->handle($plan);
+            $this->assertDatabaseCount('jobs', 0);
+        });
+
+        $this->assertDatabaseCount('jobs', 1);
+        $this->assertDatabaseHas('jobs', ['queue' => 'printing']);
+    }
+
+    public function test_print_jobs_are_discarded_when_the_transaction_rolls_back(): void
+    {
+        LabelEvent::factory()->create();
+        $plan = app(BuildLabelPrintPlan::class)->handle(1, []);
+        DB::beginTransaction();
+
+        try {
+            app(SendLabelPrintPlan::class)->handle($plan);
+            $this->assertDatabaseCount('jobs', 0);
+        } finally {
+            DB::rollBack();
+        }
+
+        $this->assertDatabaseCount('jobs', 0);
+    }
+
+    public function test_disabling_printing_after_dispatch_prevents_the_queued_spool_from_being_sent(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $disabled = Cvar::create(['cvar' => 'MESA_DISABLE_PRINTING', 'value' => '0', 'default' => '0', 'description' => 'Disable printing']);
+        LabelEvent::factory()->create();
+        app(SendLabelPrintPlan::class)->handle(app(BuildLabelPrintPlan::class)->handle(1, []));
+        app(SetCvar::class)->handle($disabled, '1');
+        $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldNotReceive('send'));
+
+        $this->app->call([Queue::pushed(SendLabelPrinterSpoolJob::class)->sole(), 'handle']);
+
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+    }
+
+    public function test_alignment_edited_after_dispatch_is_used_when_the_spool_is_sent(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $alignment = Cvar::create(['cvar' => 'MESA_ZEBRA_ALIGN', 'value' => '^LH1,1', 'default' => '', 'description' => 'Alignment']);
+        $design = LabelDesign::factory()->create(['zpl' => '^XA^XZ']);
+        LabelEvent::factory()->for($design, 'labelDesign')->create();
+        app(SendLabelPrintPlan::class)->handle(app(BuildLabelPrintPlan::class)->handle(1, []));
+        app(SetCvar::class)->handle($alignment, '^LH9,9');
+        $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldReceive('send')->once()
+            ->withArgs(fn (Printer $printer, string $zpl): bool => $zpl === '^LH9,9^XA^XZ'));
+
+        $this->app->call([Queue::pushed(SendLabelPrinterSpoolJob::class)->sole(), 'handle']);
+
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+    }
+
+    public function test_alignment_changes_cannot_bypass_the_spool_size_limit_in_the_worker(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        config(['printing.max_spool_bytes' => 10]);
+        $alignment = Cvar::create(['cvar' => 'MESA_ZEBRA_ALIGN', 'value' => '', 'default' => '', 'description' => 'Alignment']);
+        $design = LabelDesign::factory()->create(['zpl' => '^XA^XZ']);
+        LabelEvent::factory()->for($design, 'labelDesign')->create();
+        app(SendLabelPrintPlan::class)->handle(app(BuildLabelPrintPlan::class)->handle(1, []));
+        app(SetCvar::class)->handle($alignment, '^LH9,9');
+        $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldNotReceive('send'));
+        $this->expectException(InvalidArgumentException::class);
+
+        $this->app->call([Queue::pushed(SendLabelPrinterSpoolJob::class)->sole(), 'handle']);
+    }
+
+    public function test_a_printer_deleted_after_dispatch_fails_the_job_instead_of_silently_dropping_it(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $event = LabelEvent::factory()->create();
+        app(SendLabelPrintPlan::class)->handle(app(BuildLabelPrintPlan::class)->handle(1, []));
+        Printer::query()->whereKey($event->print_to)->delete();
+        $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldNotReceive('send'));
+        $this->expectException(ModelNotFoundException::class);
+
+        $this->app->call([Queue::pushed(SendLabelPrinterSpoolJob::class)->sole(), 'handle']);
+    }
+
+    public function test_a_busy_printer_cannot_receive_an_overlapping_spool_while_other_printers_can_print(): void
+    {
+        config(['printing.lock_wait_seconds' => 0]);
+        $busy = Printer::factory()->create();
+        $available = Printer::factory()->create();
+        $lock = Cache::lock('label-printer:'.$busy->id, 30);
+        $this->assertTrue($lock->get());
+        $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldReceive('send')->once()
+            ->withArgs(fn (Printer $printer, string $zpl): bool => $printer->is($available) && $zpl === '^XA^XZ'));
+
+        try {
+            $this->app->call([new SendLabelPrinterSpoolJob($available->id, '^XA^XZ', []), 'handle']);
+            $this->expectException(LockTimeoutException::class);
+            $this->app->call([new SendLabelPrinterSpoolJob($busy->id, '^XA^XZ', []), 'handle']);
+        } finally {
+            $lock->release();
+        }
     }
 
     public function test_oversized_spools_are_rejected_before_any_printer_is_contacted(): void
     {
+        Queue::fake();
         config(['printing.max_spool_bytes' => 10]);
         LabelEvent::factory()->create();
         $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldNotReceive('send'));
         $plan = app(BuildLabelPrintPlan::class)->handle(1, []);
         $this->expectException(InvalidArgumentException::class);
 
-        app(SendLabelPrintPlan::class)->handle($plan);
+        try {
+            app(SendLabelPrintPlan::class)->handle($plan);
+        } finally {
+            Queue::assertNothingPushed();
+        }
     }
 
     public function test_deleted_printers_are_detected_before_any_spool_is_sent(): void
     {
+        Queue::fake();
         LabelEvent::factory()->create();
         $second = LabelEvent::factory()->create();
         $plan = app(BuildLabelPrintPlan::class)->handle(1, []);
@@ -300,7 +464,11 @@ class LabelPrintingTest extends TestCase
         $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldNotReceive('send'));
         $this->expectException(LogicException::class);
 
-        app(SendLabelPrintPlan::class)->handle($plan);
+        try {
+            app(SendLabelPrintPlan::class)->handle($plan);
+        } finally {
+            Queue::assertNothingPushed();
+        }
     }
 
     #[DataProvider('printerTypes')]
@@ -313,7 +481,7 @@ class LabelPrintingTest extends TestCase
         $this->assertIsResource($server);
         $address = stream_socket_get_name($server, false);
         $printer = Printer::factory()->make(['adres' => '127.0.0.1', 'port' => parse_url('tcp://'.$address, PHP_URL_PORT), 'type' => $type]);
-        $payload = '^XA^FD'.str_repeat('A', 32768).'^FS^XZ';
+        $payload = '^XA^FD'.str_repeat('A', 131072).'^FS^XZ';
 
         try {
             app(LabelPrinterTransport::class)->send($printer, $payload);
@@ -327,6 +495,24 @@ class LabelPrintingTest extends TestCase
             if (isset($connection) && is_resource($connection)) {
                 fclose($connection);
             }
+            fclose($server);
+        }
+    }
+
+    public function test_tcp_transport_times_out_when_a_printer_stops_accepting_the_spool(): void
+    {
+        $errorCode = 0;
+        $errorMessage = '';
+        $server = stream_socket_server('tcp://127.0.0.1:0', $errorCode, $errorMessage);
+        $this->assertIsResource($server);
+        $address = stream_socket_get_name($server, false);
+        $printer = Printer::factory()->make(['adres' => '127.0.0.1', 'port' => parse_url('tcp://'.$address, PHP_URL_PORT)]);
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('timed out accepting the label spool');
+
+        try {
+            (new TcpLabelPrinterTransport(0.02))->send($printer, str_repeat('A', 8 * 1024 * 1024));
+        } finally {
             fclose($server);
         }
     }

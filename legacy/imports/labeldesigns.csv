@@ -1,0 +1,1158 @@
+﻿"id","name","zpl","default_sample","default_analysis","default_printer"
+"4","Etiketten voor monster en formulier","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,180^A0N,17,16^FH\^FDOntvangst datum: {project_custom_project_ontvangst}^FS
+^FT9,119^A0N,25,24^FH\^FD{client_name}^FS
+^FT9,208^A0N,17,17^FH\^FDVoor onderzoek en diagnose^FS
+^FT42,153^A0N,23,24^FH\^FD{sample_description}^FS
+^FT9,153^A0N,23,24^FH\^FD{sample_user_follow_no}.^FS
+^PQ1,0,1,Y^XZ","1","0","7"
+"5","Etiketten voor Platen","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT7,196^A0N,18,16^FH\^FD{sample_description}^FS
+^FT7,171^A0N,21,21^FH\^FD{client_name}^FS
+^FT235,105^A0N,28,28^FH\^FD{assay_dillution_label}^FS
+^FT20,105^A0N,28,28^FH\^FD{assay_custom_korteNaamEtiket_platen}^FS
+^FT235,141^A0N,28,28^FH\^FD{assay_predicted_end_day}^FS
+^FT20,141^A0N,28,28^FH\^FD{assay_custom_temp}\F8C^FS
+^PQ1,0,1,Y^XZ","0","1","2"
+"7","Label Bevestigingen","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,95^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT7,191^A0N,20,19^FH\^FD{sample_description}^FS
+^FT7,168^A0N,20,19^FH\^FD{client_name}^FS
+^FT67,40^A0N,39,38^FH\^FD{sample_barcode}^FS
+^FT7,144^A0N,20,19^FH\^FD{current_user}^FS
+^FT7,87^A0N,25,24^FH\^FD^FS
+^FT7,121^A0N,20,19^FH\^FDInzet bevestiging:   {date_today}^FS
+^PQ1,0,1,Y^XZ
+","0","0","3"
+"8","Listeria - Fraser HEEL - L.mono - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDFraser HEEL - L.mono ^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"10","Listeria - ALOA - L. mono - zonder barcode - 2 dagen","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit:  2 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDALOA - L. mono^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"11","Listeria - RLM - L. mono - met barcode - 2 dagen","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit:  2 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDRLM - L. mono^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"12","Salmonella - RVS - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT228,102^A0N,23,24^FH\^FD41,5\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDRVS^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"13","Salmonella - MK - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMK^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"14","Salmonella - MK - XLD - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMK - XLD^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"15","Salmonella - MK - RSA - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMK - RSA^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"16","Salmonella amnd. D - MSRV - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  2 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT228,102^A0N,23,24^FH\^FD41,5\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMSRV^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"17","Campylobacter - CCDA - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit: 2 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT228,102^A0N,23,24^FH\^FD41,5\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDCCDA   (CO2)^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"18","Campylobacter - Colorex - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit:  2 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT228,102^A0N,23,24^FH\^FD41,5\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDCampy Colorex  (CO2)^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"19","Vibrio - ASPW-1 37°C > TCBS - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDASPW1 37 - TCBS^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"20","Vibrio - ASPW-1 37°C > VC - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDASPW1 37 - VC^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"21","Vibrio - ASPW-2 - 41,5°C - 18 uur - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  18 uur^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT228,102^A0N,23,24^FH\^FD41,5\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDASPW-2^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"22","Shigella - Hektoen - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDHEKTOEN^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"23","Shigella - MacConkey - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMacConkey^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"24","Shigella - XLD - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDXLD^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"25","TAB - BAT 45°C - na ophoping - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  2-5 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD45\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDBAT^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"26","E. coli - TBX - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD44\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDTBX  -  aan/afwezig^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"27","Salmonella - RVS - XLD - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDRVS - XLD^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"28","Salmonella - RVS - RSA - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDRVS - RSA^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"30","Salmonella - MSRV - XLD","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode_sample}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMSRV - XLD^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"31","Salmonella - MSRV - RSA","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode_sample}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMSRV - RSA^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"32","Uitbesteed onderzoek","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,160^A0N,28,28^FH\^FD{sample_description}^FS
+^FT9,120^A0N,28,28^FH\^FDUitbesteed onderzoek:^FS
+^FT9,200^A0N,20,20^FH\^FDVoor onderzoek en diagnose^FS
+^PQ1,0,1,Y^XZ","0","0","2"
+"35","Vibrio - ASPW-1 41,5°C > TCBS - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDASPW1 41,5 - TCBS^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"36","Vibrio - ASPW-1 41,5°C > VC - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDASPW1 41,5 - VC^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"37","Vibrio - ASPW-2 - 37°C - 18uur - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  18 uur^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDASPW-2^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"38","Vibrio - ASPW-2 37°C > TCBS - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDASPW2 37 - TCBS^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"39","Vibrio - ASPW-2 37°C > VC - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDASPW2 37 - VC^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"40","Vibrio - ASPW-2 41,5°C > TCBS - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDASPW2 41,5 - TCBS^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"41","Vibrio - ASPW-2 41,5°C > VC - zonder barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDASPW2 41,5 - VC^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"42","Label voor zakken voor ophopingen / aanrijkingen","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,189^A0N,15,15^FH\^FD{sample_description}^FS
+^FT9,170^A0N,15,15^FH\^FD{client_name}^FS
+^FT180,151^A0N,18,18^FH\^FDUit: {assay_custom_Ophoping_incubatietijd_Etiket_zakken}^FS
+^FT9,151^A0N,18,18^FH\^FDIn: {date_today}^FS
+^FT230,101^A0N,23,24^FH\^FD{assay_custom_temp}\F8C^FS
+^FT9,101^A0N,23,24^FH\^FD{assay_custom_Medianaam_Etiket_zakken}^FS
+^FT9,129^A0N,23,24^FH\^FD{assay_custom_Analysenaam_Etiket_zakken}^FS
+^PQ1,0,1,Y^XZ","0","0","2"
+"43","Label zakken indien geen PFZ en geen ophoping / aanrijking","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,189^A0N,15,15^FH\^FD{sample_description}^FS
+^FT9,170^A0N,15,15^FH\^FD{client_name}^FS
+^FT9,101^A0N,23,24^FH\^FD{assay_custom_Medianaam_Etiket_zakken}^FS
+^FT9,129^A0N,23,24^FH\^FD{assay_custom_Analysenaam_Etiket_zakken}^FS
+^PQ1,0,1,Y^XZ","0","0","4"
+"44","Label voor zakken indien alleen PFZ","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,189^A0N,15,15^FH\^FD{sample_description}^FS
+^FT9,170^A0N,15,15^FH\^FD{client_name}^FS
+^FT9,101^A0N,23,24^FH\^FDPFZ^FS
+^PQ1,0,1,Y^XZ","0","0","2"
+"46","Vibrio - ASPW-1 41,5°C ophoping","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,189^A0N,15,15^FH\^FD{sample_description}^FS
+^FT9,170^A0N,15,15^FH\^FD{client_name}^FS
+^FT220,151^A0N,18,18^FH\^FDUit: {assay_custom_Ophoping_incubatietijd_Etiket_zakken}^FS
+^FT9,151^A0N,18,18^FH\^FDIn: {date_today}^FS
+^FT228,101^A0N,23,24^FH\^FD41,5\F8C^FS
+^FT9,101^A0N,23,24^FH\^FDASPW-1    ^FS
+^FT9,129^A0N,23,24^FH\^FD{assay_custom_Analysenaam_Etiket_zakken}^FS
+^PQ1,0,1,Y^XZ","0","0","2"
+"47","Kruislings afenten XLD","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDKruislings > XLD^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"48","Kruislings afenten RSA","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDKruislings > RSA^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"49","Label voor zakken indien matrix kaas - citraat","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,189^A0N,15,15^FH\^FD{sample_description}^FS
+^FT9,170^A0N,15,15^FH\^FD{client_name}^FS
+^FT9,101^A0N,23,24^FH\^FDCITRAAT^FS
+^PQ1,0,1,Y^XZ","0","0","2"
+"50","Label voor vruchtensappen Labojuice","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,189^A0N,15,15^FH\^FD{sample_description}^FS
+^FT9,170^A0N,15,15^FH\^FD{client_name}^FS
+^FT9,101^A0N,23,24^FH\^FDBPW^FS
+^PQ1,0,1,Y^XZ","0","0","2"
+"51","Sensorisch beoordelen","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT40,126^A0N,45,45^FB221,1,0,C^FH\^FDSensorisch ^FS
+^FT40,182^A0N,45,45^FB221,1,0,C^FH\^FDbeoordelen!^FS
+^PQ1,0,1,Y^XZ","0","0","2"
+"53","Legionella (Matrix A) - BCYE","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}.8^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  3 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDBCYE^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"54","Legionella (Matrix A) - BCYE -","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}.8^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  3 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDBCYE -^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","1"
+"55","Salmonella - RVS - met barcode - kaas","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  2 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT228,102^A0N,23,24^FH\^FD41,5\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDRVS^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"56","Salmonella - MK - zonder barcode - kaas","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  2 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMK^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"57","Listeria - ALOA - L. spp. - zonder barcode - 2 dagen","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit:  2 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDALOA - L. spp.^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"58","Listeria - RLM - L. spp. - met barcode - 2 dagen","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit:  2 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDRLM - L. spp.^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"59","Listeria - Fraser HEEL - L.spp. - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDFraser HEEL - L.spp.^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"60","Legionella potje koude behandeling","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT67,90^A0N,30,30^FH\^FD{sample_barcode}^FS
+^FT80,165^A0N,40,40^FH\^FDKOUD^FS
+^PQ1,0,1,Y^XZ","0","0","1"
+"61","Legionella buisje warme behandeling","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT67,90^A0N,30,30^FH\^FD{sample_barcode}^FS
+^FT80,165^A0N,40,40^FH\^FDWARM^FS
+^PQ1,0,1,Y^XZ","0","0","1"
+"62","Legionella potje zuur behandeling","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT67,90^A0N,30,30^FH\^FD{sample_barcode}^FS
+^FT80,165^A0N,40,40^FH\^FDZUUR^FS
+^PQ1,0,1,Y^XZ","0","0","1"
+"63","Legionella (Matrix B) - BCYE","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}.4^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  3 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDBCYE^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"64","Legionella (Matrix B) - BCYE -","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}.4^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  3 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDBCYE -^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"65","MPN Schelp - Dubbele sterkte","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit:  24uur^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT245,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMPN - DS
+^PQ1,0,1,Y^XZ","0","0","2"
+"66","MPN Schelp - Enkele sterkte 1:10","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit:  24uur^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT245,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMPN - ES - 1:10
+^PQ1,0,1,Y^XZ","0","0","2"
+"67","MPN Schelp - Enkele sterkte 1:100","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit:  24uur^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT245,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMPN - ES - 1:100
+^PQ1,0,1,Y^XZ","0","0","2"
+"68","ESBL","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDTBX  -  aan/afwezig^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"69","Etiketten voor THT-monster en formulier","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_tht_code}^FS
+^FT97,78^A0N,28,28^FH^FD{sample_tht_code}^FS
+^FT12,196^A0N,16,16^FH\^FD{sample_sample_name}^FS
+^FT12,178^A0N,16,16^FH\^FD{client_name}^FS
+^FT12,111^A0N,23,23^FH\^FDInzetdatum:     {sample_tht_date}^FS
+^FT12,161^A0N,16,16^FH\^FDDatum ontvangst:       {sample_receive_date}^FS
+^FT12,137^A0N,23,23^FH\^FD{sample_misc_directions}^FS
+^PQ1,0,1,Y^XZ","0","0","6"
+"70","Buisje Bio-Rad PCR - L. mono","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,193^A0N,14,14^FH\^FD{sample_description}^FS
+^FT9,173^A0N,14,14^FH\^FD{client_name}^FS
+^FT9,152^A0N,14,14^FH\^FDUiterste datum PCR:     +4 dagen^FS
+^FT8,133^A0N,14,14^FH\^FDAfgewogen:                  {sample_sample_innoculated}^FS
+^FT8,109^A0N,23,24^FH\^FDListeria monocytogenes^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"71","Buisje Bio-Rad PCR - L. spp.","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,193^A0N,14,14^FH\^FD{sample_description}^FS
+^FT9,173^A0N,14,14^FH\^FD{client_name}^FS
+^FT9,152^A0N,14,14^FH\^FDUiterste datum PCR:     +4 dagen^FS
+^FT8,133^A0N,14,14^FH\^FDAfgewogen:                  {sample_sample_innoculated}^FS
+^FT8,109^A0N,23,24^FH\^FDListeria spp.^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"72","Buisje Bio-Rad PCR - Salmonella","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,193^A0N,14,14^FH\^FD{sample_description}^FS
+^FT9,173^A0N,14,14^FH\^FD{client_name}^FS
+^FT9,152^A0N,14,14^FH\^FDUiterste datum PCR:     +4 dagen^FS
+^FT8,133^A0N,14,14^FH\^FDAfgewogen:                  {sample_sample_innoculated}^FS
+^FT8,109^A0N,23,24^FH\^FDSalmonella^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"73","Buisje Bio-Rad PCR - L. mono - POS","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT51,190^A0N,23,21^FH\^FDListeria monocytogenes^FS
+^BY3,3,124^FT34,124^BCN,,Y,N
+^FD>:Pos.^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"74","Buisje Bio-Rad PCR - L. spp. - POS","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT51,190^A0N,23,21^FH\^FDListeria spp.^FS
+^BY3,3,124^FT34,124^BCN,,Y,N
+^FD>:Pos.^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"75","Buisje Bio-Rad PCR - Salmonella - POS","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT51,190^A0N,23,21^FH\^FDSalmonella^FS
+^BY3,3,124^FT34,124^BCN,,Y,N
+^FD>:Pos.^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"77","TAB - PCA 45°C - bevestiging - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1-3 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD45\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDPCA^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"78","TAB - BAT 45°C - bevestiging - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1-3 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD45\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDBAT^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"79","Enterobacteriaceae - VRBG - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDVRBG  -  aan/afwezig^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"80","Coagul. pos. staph. swab - BP - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDBP  -  aan/afwezig^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"81","Potje B CSM","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,179^A0N,28,28^FH\^FD{sample_description}^FS
+^FT9,143^A0N,28,28^FH\^FDPOT GISTEN B - CSM:^FS
+^PQ1,0,1,Y^XZ","0","0","2"
+"82","Bacillus spp. aan/afwezig met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD30\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDMYP  -  aan/afwezig^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"83","Buisje Bio-Rad PCR - Campylobacter - POS","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT51,190^A0N,23,21^FH\^FDCampylobacter^FS
+^BY3,3,124^FT34,124^BCN,,Y,N
+^FD>:Pos.^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"84","Buisje Bio-Rad PCR - Campylobacter","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,193^A0N,14,14^FH\^FD{sample_description}^FS
+^FT9,173^A0N,14,14^FH\^FD{client_name}^FS
+^FT9,152^A0N,14,14^FH\^FDUiterste datum PCR:     +4 dagen^FS
+^FT8,133^A0N,14,14^FH\^FDAfgewogen:                  {sample_sample_innoculated}^FS
+^FT8,109^A0N,23,24^FH\^FDCampylobacter^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"85","Cat. 2 materiaal","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FO11,12^GB282,179,8^FS
+^FT37,85^A0N,51,50^FH\^FDCategorie 2^FS
+^FT57,158^A0N,51,50^FH\^FDmateriaal^FS
+^PQ1,0,1,Y^XZ","0","0","7"
+"86","Buisje Bio-Rad PCR - STEC","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{sample_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{sample_barcode}^FS
+^FT9,193^A0N,14,14^FH\^FD{sample_description}^FS
+^FT9,173^A0N,14,14^FH\^FD{client_name}^FS
+^FT9,152^A0N,14,14^FH\^FDUiterste datum PCR:     +4 dagen^FS
+^FT8,133^A0N,14,14^FH\^FDAfgewogen:                  {sample_sample_innoculated}^FS
+^FT8,109^A0N,23,24^FH\^FDSTEC^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"87","Buisje Bio-Rad PCR - STEC - POS","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT51,190^A0N,23,21^FH\^FDSTEC^FS
+^BY3,3,124^FT34,124^BCN,,Y,N
+^FD>:Pos.^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"88","Listeria - RLM - L. mono - met barcode - 1 dag","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT194,129^A0N,20,19^FH\^FDUit:  1 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDRLM - L. mono^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"89","ALPRO label lab","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^FT80,45^A0N,35,35^FH\^FD{sample_barcode}^FS
+^FT25,196^A0N,19,18^FH\^FD{sample_description}^FS
+^FT25,176^A0N,19,18^FH\^FD{client_name}^FS
+^FT80,120^A0N,55,55^FH\^FDALPRO^FS
+^PQ1,0,1,Y^XZ","0","0","4"
+"90","Enterococcen - KAA - met barcode","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  2 dag^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD37\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDKAA  -  aan/afwezig^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"91","Alpro platen gisten/schimmel 25°C","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT7,196^A0N,18,16^FH\^FD{sample_description}^FS
+^FT7,171^A0N,21,21^FH\^FD{client_name}^FS
+^FT235,105^A0N,28,28^FH\^FD{assay_dillution_label}^FS
+^FT20,105^A0N,28,28^FH\^FD{assay_custom_korteNaamEtiket_platen}^FS
+^FT235,141^A0N,28,28^FH\^FD{assay_predicted_end_day}^FS
+^FT20,141^A0N,28,28^FH\^FD25\F8C^FS
+^PQ1,0,1,Y^XZ","0","0","2"
+"92","Gisten - SYM - met barcode voor aan/afw","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  3 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD25\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDSYM-G  -  aan/af^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
+"93","Schimmels - SYM - met barcode voor aan/afw","^XA
+^MMT
+^PW305
+^LL0203
+^LS0
+^BY1,3,49^FT67,53^BCN,,N,N
+^FD>:{assay_plate_barcode}^FS
+^FT97,78^A0N,28,28^FH\^FD{assay_plate_barcode_sample}^FS
+^FT5,196^A0N,17,16^FH\^FD{sample_description}^FS
+^FT5,176^A0N,17,16^FH\^FD{client_name}^FS
+^FT199,129^A0N,20,19^FH\^FDUit:  3 dagen^FS
+^FT5,129^A0N,20,19^FH\^FDIn:  {date_today}^FS
+^FT234,102^A0N,23,24^FH\^FD25\F8C^FS
+^FT5,102^A0N,23,24^FH\^FDSYM-S  -  aan/af^FS
+^FT5,152^A0N,14,14^FH\^FD{current_user}^FS
+^PQ1,0,1,Y^XZ","0","0","3"
