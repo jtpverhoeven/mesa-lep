@@ -14,38 +14,21 @@ We now have to implement the backbone of printing. Printing, in this context, me
 
 We should tackle this in multiple steps, in a way we dont regress from our legacy implementation, and dont create a spaghetti mess. This needs to be a unified service that has tendrils in all of our application, so it has to be DRY. 
 
-We have already setup printers, label events and print designs. 
+We have already setup printers, label events and label designs. 
 
-However, in a previous session you have overstepped the design and already started implementing the actual network transport and printer spools. In your own words:
+What we have to implement in this session  is the concept of PrintProfiles. Print profiles are essentially small plain text scripts that users can create, and call, to automate some sticker printing. For example, a script could be "does this sample have analysis XYZ, then goto line 40, line 40 = print label design I on printer J."
 
-```
-Scope Confirmation
-Yes, I went beyond the administrative step: I implemented TCP transport, in-memory per-printer spooling, copy expansion, ZPL rendering, and sample/analysis/THT planning, including dilution and replicate labels. I interpreted “backbone” too broadly for your staged request. That implementation remains intact.
+In this pass i would like the administrative side of this function to be implemented. That is; on the admin section of our application we will have a fully functional CRUD interface to create, edit, and delete print profiles. 
 
-Those entry points are not connected to automatic workflows. There is no persistent print queue, and transport was tested with mocks and a local socket, not Zebra hardware. The workflow integration and exact printing sequences still belong to a later, agreed implementation step.
-```
+In addition, I would like you to implement, as a action that is delegated to a laravel job, so these profiles can be queued with the already implemented PrinterTransport, the parsing of these profiles. In addition, we should have a "Test" function, where the user can supply a barcode, and the output should show how many labels, tow hich printers, with which contact would have been printed (like a dry-run). 
 
-But, I actually had some requirments for this feature, so in this session, you get to check your own work, refactor where needed, and make sure we are on the right track her vis-a-vis parity with legacy, and my new requirements. 
 
-1) Fix the cvar situation.
-
-You mention
-
-```
-Printing enablement and alignment now come directly from the existing CVARs, including live edits and defaults. printing.php retains CVAR names and technical limits, with no env() settings.
-```
-
-But I don't think this i correct. YOu have created a config file `printing.php`, which I do like and should stay, but it should use the `use App\Models\Cvar;` to find a user setting under the name of `MESA_DISABLE_PRINTING` and `MESA_ZEBRA_ALIGN`, I don't see where this is currently implemented. 
-
-2) Queues
-
-The `SendLabelPrintPlan.php` action and `LabelPrinterTransport` are inline actions. This should really be moved to a Laravel queue, as the transport and network activity coudl take long enough to be noticable within the application, and this way, we can neatly send commands to printers 1 by 1 without bottlenecking the pritners themselves. The queue name should also be added tot he `printing.php` config file, so it can be dynamically changed.  The `$tries` shoudl be set to 1.  So, if a print job fails, it should go to the `failed_jobs` table.  This will be important for point #4 below.
-
-3) With all this in mind, please do a verification pass on the transport implementation, check if this is up to laravel best practices, and do an overall proactive code review. 
 
 # Legacy 
 
-See `legacy/app/controllers/printingController.php` how to set this up, but please dont follow this to the letter, only for how things are currently set up. We are allowed to refactor as long as the data shapes and behaviour stays the same as in our legacy system. 
+In our legacy implementation you can find this mostly in the function `runPrintProfile` in the file `legacy/app/controllers/printingController.php`. However, the location of this is subject to change. A dedicated model would be better (i.e. `PrintProfile`). BUT important: the existing data structure should remain compatible, the old print profiles *must* work in the new implementation. 
+
+
 
 # Addendum
 Focus on code deliverability. But implement tests for this, since it is a important section of the application. This application runs in laravel sail, so any commands you want to do for laravel have to move through there.  A MCP server is available (laravel boost). If you need to test inbrowser, use port 80, not 8000.

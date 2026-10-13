@@ -18,6 +18,7 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PortalAssayController;
 use App\Http\Controllers\PortalConnectionController;
 use App\Http\Controllers\PrinterController;
+use App\Http\Controllers\PrintProfileController;
 use App\Http\Controllers\ProductGroupController;
 use App\Http\Controllers\ProjectAuthorizationController;
 use App\Http\Controllers\ProjectFieldController;
@@ -295,6 +296,10 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
         Route::get('/label-events/{labelEvent}/edit', [LabelEventController::class, 'edit'])->name('label-events.edit');
         Route::put('/label-events/{labelEvent}', [LabelEventController::class, 'update'])->name('label-events.update');
         Route::delete('/label-events/{labelEvent}', [LabelEventController::class, 'destroy'])->name('label-events.destroy');
+
+        Route::post('/print-profiles/test', [PrintProfileController::class, 'test'])->middleware('throttle:15,1')->name('print-profiles.test');
+        Route::post('/print-profiles/{printProfile}/run', [PrintProfileController::class, 'run'])->middleware('throttle:15,1')->name('print-profiles.run');
+        Route::resource('print-profiles', PrintProfileController::class)->except('show');
     });
 
     Route::middleware('can:settings.advanced')->group(function () {
