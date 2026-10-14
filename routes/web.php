@@ -13,6 +13,7 @@ use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CvarController;
 use App\Http\Controllers\LabelDesignController;
 use App\Http\Controllers\LabelEventController;
+use App\Http\Controllers\ManualLabelPrintingController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PortalAssayController;
@@ -49,6 +50,11 @@ Route::view('/dashboard', 'dashboard')
 
 Route::get('/laboratory/revisions', [ChangeRevisionController::class, 'index'])
     ->middleware('auth')->name('revisions.index');
+
+Route::middleware(['auth', 'can:scan-to-print.use'])->prefix('laboratory/printing')->group(function () {
+    Route::get('/', [ManualLabelPrintingController::class, 'index'])->name('printing.index');
+    Route::post('/', [ManualLabelPrintingController::class, 'store'])->name('printing.store');
+});
 
 Route::middleware(['auth', 'can:clients.view'])->prefix('laboratory')->group(function () {
     Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
