@@ -50,7 +50,7 @@ class CreateLegionellaSamples
                 $query->whereKey($row['profile_id'])->orWhere('original_id', $row['profile_id']);
             })->latest('id')->firstOrFail();
 
-            $this->addProfile->handle($sample, $profile, legacyRegistration: true);
+            $this->addProfile->handle($sample, $profile, legacyRegistration: true, printLabels: false);
             if (! empty($sample->sample_innoculated)) {
                 $this->queueAssuranceSync->handle($sample->sample_innoculated);
             }

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Samples;
 
+use App\Actions\Printing\DispatchLabelEvents;
 use App\Actions\ProductGroups\FindClientDefaultProductGroup;
 use App\Actions\Projects\ResolveSampleRegistrationProject;
 use App\ChangeTracking\ChangeTracker;
@@ -17,11 +18,12 @@ class CreateRegisteredSample
         private ResolveSampleRegistrationProject $projects,
         private FindClientDefaultProductGroup $productGroups,
         private ChangeTracker $changeTracker,
+        private DispatchLabelEvents $dispatchLabelEvents,
     ) {}
 
-    public function handle(array $data, ?Project $project = null, ?CarbonInterface $at = null): Sample
+    public function handle(array $data, ?Project $project = null, ?CarbonInterface $at = null, bool $printLabels = true): Sample
     {
-        return DB::transaction(function () use ($data, $project, $at): Sample {
+        return DB::transaction(function () use ($data, $project, $at, $printLabels): Sample {
             $at ??= now();
             DB::statement("select pg_advisory_xact_lock(hashtext('mesa-lims-sample-barcode'))");
             $matrix = ($data['sample_type'] ?? 'S') === 'L' ? $data['leg_type'] : null;
@@ -55,6 +57,10 @@ class CreateRegisteredSample
 
             $this->changeTracker->changed(2, project: $project->id, sample: $sample->id,
                 event: 'Monster aangemaakt: '.$sample->barcode, from: false, to: false, userId: (int) $data['registered_by']);
+
+            if ($printLabels) {
+                $this->dispatchLabelEvents->handle([$sample]);
+            }
 
             return $sample;
         });

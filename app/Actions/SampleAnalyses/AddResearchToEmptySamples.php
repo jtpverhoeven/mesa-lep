@@ -2,8 +2,10 @@
 
 namespace App\Actions\SampleAnalyses;
 
+use App\Actions\Printing\DispatchLabelEvents;
 use App\Actions\Samples\UpdateLookupResearch;
 use App\Models\Sample;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -12,6 +14,7 @@ class AddResearchToEmptySamples
     public function __construct(
         private RefreshSampleIsEmpty $refreshSampleIsEmpty,
         private UpdateLookupResearch $updateLookupResearch,
+        private DispatchLabelEvents $dispatchLabelEvents,
     ) {}
 
     /**
@@ -53,12 +56,16 @@ class AddResearchToEmptySamples
                 }
             }
 
+            $created = new Collection;
+
             foreach ($samples as $sample) {
-                $this->updateLookupResearch->handle($sample, [
+                $created = $created->merge($this->updateLookupResearch->handle($sample, [
                     'operation' => 'add',
                     'analyses' => $analyses,
-                ]);
+                ], printLabels: false));
             }
+
+            $this->dispatchLabelEvents->handle($created);
 
             return true;
         }, 3);

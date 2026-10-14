@@ -2,6 +2,7 @@
 
 namespace App\Actions\SampleBuffers;
 
+use App\Actions\Printing\DispatchLabelEvents;
 use App\Models\Project;
 use App\Models\SampleBuffer;
 use Carbon\CarbonImmutable;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class CreateSampleBuffer
 {
+    public function __construct(private DispatchLabelEvents $dispatchLabelEvents) {}
+
     public function handle(array $data): SampleBuffer
     {
         return DB::transaction(function () use ($data): SampleBuffer {
@@ -21,7 +24,7 @@ class CreateSampleBuffer
                 DB::statement("select pg_advisory_xact_lock(hashtext('mesa-lims-tht-code'))");
             }
 
-            return SampleBuffer::create([
+            $buffer = SampleBuffer::create([
                 'client' => $data['client'],
                 'source' => 2,
                 'project' => 'PRJ-'.$data['client'].'-'.$samplingDate?->format('dmY'),
@@ -43,6 +46,12 @@ class CreateSampleBuffer
                 'sample_research_type' => '0',
                 'sample_properties' => [],
             ]);
+
+            if ($isTht) {
+                $this->dispatchLabelEvents->handle([$buffer]);
+            }
+
+            return $buffer;
         });
     }
 

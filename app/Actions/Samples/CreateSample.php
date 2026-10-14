@@ -9,14 +9,14 @@ class CreateSample
 {
     public function __construct(private CreateRegisteredSample $create) {}
 
-    public function handle(array $data): Sample
+    public function handle(array $data, bool $printLabels = true): Sample
     {
         return $this->create->handle([
             ...$data,
             'custom_fields' => $this->customFields($data['custom_fields'] ?? []),
             'sample_type' => 'S',
             'leg_type' => '-',
-        ]);
+        ], printLabels: $printLabels);
     }
 
     private function customFields(array $values): array

@@ -2,6 +2,7 @@
 
 namespace App\Actions\SampleAnalyses;
 
+use App\Actions\Printing\DispatchLabelEvents;
 use App\Actions\Results\CreateAnalysisResults;
 use App\Models\AssayProfile;
 use App\Models\ResearchProfile;
@@ -12,9 +13,11 @@ use Illuminate\Validation\ValidationException;
 
 class AddResearchProfileToSample
 {
-    public function handle(Sample $sample, ResearchProfile $profile, array $excludedAssayProfileIds = [], bool $legacyRegistration = false): Collection
+    public function __construct(private DispatchLabelEvents $dispatchLabelEvents) {}
+
+    public function handle(Sample $sample, ResearchProfile $profile, array $excludedAssayProfileIds = [], bool $legacyRegistration = false, bool $printLabels = true): Collection
     {
-        return DB::transaction(function () use ($sample, $profile, $excludedAssayProfileIds, $legacyRegistration) {
+        return DB::transaction(function () use ($sample, $profile, $excludedAssayProfileIds, $legacyRegistration, $printLabels) {
             $sample = Sample::query()->findOrFail($sample->getKey());
             $profile = ResearchProfile::query()
                 ->whereKey($profile->getKey())
@@ -63,6 +66,10 @@ class AddResearchProfileToSample
 
             $analyses = app(CreateSampleAnalyses::class)->handle($sample, $definitions);
             $analyses->each(fn ($analysis) => app(CreateAnalysisResults::class)->handle($analysis));
+
+            if ($printLabels) {
+                $this->dispatchLabelEvents->handle($analyses);
+            }
 
             return $analyses;
         });

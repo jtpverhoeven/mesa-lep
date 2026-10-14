@@ -2,6 +2,7 @@
 
 namespace App\Actions\SampleAnalyses;
 
+use App\Actions\Printing\DispatchLabelEvents;
 use App\Actions\Results\CreateAnalysisResults;
 use App\Models\Assay;
 use App\Models\ReferenceSource;
@@ -13,9 +14,11 @@ use Illuminate\Validation\ValidationException;
 
 class AddRoamingAnalysisToSample
 {
-    public function handle(Sample $sample, Assay $assay, array $settings): SampleAnalysis
+    public function __construct(private DispatchLabelEvents $dispatchLabelEvents) {}
+
+    public function handle(Sample $sample, Assay $assay, array $settings, bool $printLabels = true): SampleAnalysis
     {
-        return DB::transaction(function () use ($sample, $assay, $settings) {
+        return DB::transaction(function () use ($sample, $assay, $settings, $printLabels) {
             $sample = Sample::query()->findOrFail($sample->getKey());
             $assay = Assay::query()->whereKey($assay->getKey())->where('active', 1)->first();
 
@@ -47,6 +50,10 @@ class AddRoamingAnalysisToSample
             $analysis->roamingAnalysis()->associate($roaming);
             $analysis->save();
             app(CreateAnalysisResults::class)->handle($analysis);
+
+            if ($printLabels) {
+                $this->dispatchLabelEvents->handle([$analysis]);
+            }
 
             return $analysis->load(['assayRecord', 'roamingAnalysis.referenceSource']);
         });

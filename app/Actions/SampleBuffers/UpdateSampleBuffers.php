@@ -2,12 +2,15 @@
 
 namespace App\Actions\SampleBuffers;
 
+use App\Actions\Printing\DispatchLabelEvents;
 use App\Models\SampleBuffer;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 class UpdateSampleBuffers
 {
+    public function __construct(private DispatchLabelEvents $dispatchLabelEvents) {}
+
     public function authorizeTht(array $ids, array $values): int
     {
         return DB::transaction(function () use ($ids, $values): int {
@@ -22,6 +25,8 @@ class UpdateSampleBuffers
                     'tht_code' => $buffer->tht_code ?: app(ThtCodeGenerator::class)->next(),
                 ]);
             }
+
+            $this->dispatchLabelEvents->handle($buffers);
 
             return $buffers->count();
         });

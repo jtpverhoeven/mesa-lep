@@ -3,6 +3,7 @@
 namespace App\Actions\SampleBuffers;
 
 use App\Actions\Metadata\HydrateSampleMetadata;
+use App\Actions\Printing\DispatchLabelEvents;
 use App\Actions\Samples\CreateSampleWithAnalyses;
 use App\Models\SampleBuffer;
 use Illuminate\Support\Collection;
@@ -13,6 +14,7 @@ class CommitSampleBuffers
     public function __construct(
         private CreateSampleWithAnalyses $createSampleWithAnalyses,
         private HydrateSampleMetadata $hydrateSampleMetadata,
+        private DispatchLabelEvents $dispatchLabelEvents,
     ) {}
 
     public function handle(array $ids, int $registeredBy, array $receipt): Collection
@@ -37,7 +39,7 @@ class CommitSampleBuffers
                     'custom_fields' => [],
                     'analyses' => $buffer->analyses_selected ?? [],
                     'registered_by' => $registeredBy,
-                ]);
+                ], printLabels: false);
 
                 $createdProjects[$groupKey] = $sample->project;
                 $sample->update([
@@ -67,6 +69,9 @@ class CommitSampleBuffers
                 $created->push($sample);
                 $buffer->delete();
             }
+
+            $samples = $created->map(fn ($sample) => $sample->fresh(['analyses']));
+            $this->dispatchLabelEvents->handle($samples->concat($samples->flatMap(fn ($sample) => $sample->analyses)));
 
             return $created;
         });

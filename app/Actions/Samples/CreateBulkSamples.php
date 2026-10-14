@@ -2,6 +2,7 @@
 
 namespace App\Actions\Samples;
 
+use App\Actions\Printing\DispatchLabelEvents;
 use App\Models\Project;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -10,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class CreateBulkSamples
 {
-    public function __construct(private CreateRegisteredSample $create, private BulkSampleRegistrationOptions $options) {}
+    public function __construct(private CreateRegisteredSample $create, private BulkSampleRegistrationOptions $options, private DispatchLabelEvents $dispatchLabelEvents) {}
 
     public function handle(array $data, Closure $afterCreate): Collection
     {
@@ -27,7 +28,7 @@ class CreateBulkSamples
                     ...$data,
                     ...$row,
                     'sample_innoculated' => $inoculation,
-                ], $project, $at);
+                ], $project, $at, printLabels: false);
                 $project ??= $sample->project()->firstOrFail();
                 $afterCreate($sample, $row);
                 $samples->add($sample->fresh());
@@ -36,6 +37,9 @@ class CreateBulkSamples
             if ($project !== null) {
                 $this->updateReference($project);
             }
+
+            $samples->load('analyses');
+            $this->dispatchLabelEvents->handle($samples->concat($samples->flatMap(fn ($sample) => $sample->analyses)));
 
             return $samples;
         });

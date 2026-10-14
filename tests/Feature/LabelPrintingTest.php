@@ -4,9 +4,21 @@ namespace Tests\Feature;
 
 use App\Actions\Cvars\SetCvar;
 use App\Actions\Printing\BuildLabelPrintPlan;
+use App\Actions\Printing\DispatchLabelEvents;
 use App\Actions\Printing\SendLabelPrintPlan;
+use App\Actions\SampleAnalyses\AddResearchProfileToSample;
+use App\Actions\SampleAnalyses\AddResearchToEmptySamples;
+use App\Actions\SampleAnalyses\AddRoamingAnalysisToSample;
+use App\Actions\SampleBuffers\CommitSampleBuffers;
+use App\Actions\SampleBuffers\CreateSampleBuffer;
+use App\Actions\SampleBuffers\UpdateSampleBuffers;
+use App\Actions\Samples\CreateBulkSamples;
+use App\Actions\Samples\CreateRegisteredSample;
+use App\Actions\Samples\CreateSampleWithAnalyses;
+use App\Actions\Samples\UpdateLookupResearch;
 use App\Jobs\SendLabelPrinterSpoolJob;
 use App\Models\Assay;
+use App\Models\AssayProfile;
 use App\Models\AssayType;
 use App\Models\Client;
 use App\Models\Cvar;
@@ -14,6 +26,7 @@ use App\Models\LabelDesign;
 use App\Models\LabelEvent;
 use App\Models\Printer;
 use App\Models\Project;
+use App\Models\ResearchProfile;
 use App\Models\Result;
 use App\Models\Sample;
 use App\Models\SampleAnalysis;
@@ -41,6 +54,327 @@ use Tests\TestCase;
 class LabelPrintingTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_registering_a_sample_queues_its_configured_registration_labels(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $existing = $this->sample('M260001');
+        $design = LabelDesign::factory()->create(['zpl' => '^XA^FD{sample_barcode}^FS^XZ']);
+        $event = LabelEvent::factory()->for($design, 'labelDesign')->create(['copies' => 2]);
+
+        $sample = app(CreateRegisteredSample::class)->handle([
+            'client' => $existing->client,
+            'registered_by' => $existing->registered_by,
+        ], Project::findOrFail($existing->project));
+
+        $this->assertModelExists($sample);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->printerId === $event->print_to
+            && $job->eventIds === [$event->id]
+            && $job->zpl === str_repeat('^XA^FD'.$sample->barcode.'^FS^XZ', 2));
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+    }
+
+    public function test_event_dispatch_batches_registration_labels_and_renders_the_current_operator(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $user = User::factory()->create(['name' => 'Registration operator']);
+        $this->actingAs($user);
+        $first = $this->sample('M260001');
+        $second = $this->sample('M260002', $first->project);
+        $design = LabelDesign::factory()->create(['zpl' => '{sample_barcode}|{current_user};']);
+        $event = LabelEvent::factory()->for($design, 'labelDesign')->create();
+
+        app(DispatchLabelEvents::class)->handle([$first, $second]);
+
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->printerId === $event->print_to
+            && $job->zpl === 'M260001|Registration operator;M260002|Registration operator;'
+            && $job->activityContext['user_id'] === $user->id);
+    }
+
+    public function test_automatic_printing_logs_matching_event_ids_with_the_sample_that_triggered_them(): void
+    {
+        $this->withPrintingLogs(function (): void {
+            Queue::fake([SendLabelPrinterSpoolJob::class]);
+            $user = User::factory()->create(['name' => 'Registration operator']);
+            $this->actingAs($user);
+            $sample = $this->sample('M260001');
+            $design = LabelDesign::factory()->create(['zpl' => '^XA^FDPRIVATE LABEL^FS^XZ']);
+            $printer = Printer::factory()->create();
+            $always = LabelEvent::factory()->for($design, 'labelDesign')->for($printer, 'printer')->create(['copies' => 2]);
+            $matching = LabelEvent::factory()->for($design, 'labelDesign')->for($printer, 'printer')
+                ->conditional(['type' => 'sClient', 'inspect_value' => (string) $sample->client, 'negative' => '0'])->create();
+            $unmatched = LabelEvent::factory()->for($design, 'labelDesign')->for($printer, 'printer')
+                ->conditional(['type' => 'mType', 'inspect_value' => 'R', 'negative' => '0'])->create();
+
+            app(DispatchLabelEvents::class)->handle([$sample]);
+
+            $activity = $this->printingLog();
+            $this->assertStringContainsString('Hit label event rules: '.$always->id.', '.$matching->id.'.', $activity);
+            $this->assertStringContainsString('"event_ids":['.$always->id.','.$matching->id.']', $activity);
+            $this->assertStringContainsString('"sample_id":'.$sample->id, $activity);
+            $this->assertStringContainsString('"sample_barcode":"M260001"', $activity);
+            $this->assertStringContainsString('"event_group":1', $activity);
+            $this->assertStringContainsString('"user_id":'.$user->id, $activity);
+            $this->assertStringContainsString('"label_ids":['.$design->id.']', $activity);
+            $this->assertStringContainsString('"printer_ids":['.$printer->id.']', $activity);
+            $this->assertStringNotContainsString('"event_ids":['.$unmatched->id.']', $activity);
+            $this->assertStringNotContainsString('PRIVATE LABEL', $activity);
+            Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        });
+    }
+
+    public function test_rule_hit_logs_identify_analysis_and_tht_sources_even_when_printing_is_disabled(): void
+    {
+        $this->withPrintingLogs(function (): void {
+            Queue::fake();
+            Cvar::create(['cvar' => 'MESA_DISABLE_PRINTING', 'value' => '1', 'default' => '0', 'description' => 'Disable']);
+            $sample = $this->sample('M260001');
+            $analysis = app(AddRoamingAnalysisToSample::class)->handle($sample, $this->assay(), ['dillutions' => [1, 0.01], 'replicates' => 1]);
+            $buffer = app(CreateSampleBuffer::class)->handle(['client' => $sample->client, 'register_as' => 'tht', 'description' => 'Water']);
+            $design = LabelDesign::factory()->create(['zpl' => '^XA^FDPRIVATE LABEL^FS^XZ']);
+            $analysisEvent = LabelEvent::factory()->for($design, 'labelDesign')->create(['event_group' => 2]);
+            $thtEvent = LabelEvent::factory()->for($design, 'labelDesign')->create(['event_group' => 3]);
+
+            app(DispatchLabelEvents::class)->handle([$analysis, $buffer]);
+
+            $activity = $this->printingLog();
+            $this->assertSame(1, substr_count($activity, 'Hit label event rules: '.$analysisEvent->id.'.'));
+            $this->assertSame(1, substr_count($activity, 'Hit label event rules: '.$thtEvent->id.'.'));
+            $this->assertStringContainsString('"event_group":2', $activity);
+            $this->assertStringContainsString('"sample_analysis_id":'.$analysis->id, $activity);
+            $this->assertStringContainsString('"event_group":3', $activity);
+            $this->assertStringContainsString('"sample_buffer_id":'.$buffer->id, $activity);
+            $this->assertStringContainsString('"tht_code":"'.$buffer->tht_code.'"', $activity);
+            $this->assertStringNotContainsString('PRIVATE LABEL', $activity);
+            Queue::assertNothingPushed();
+        });
+    }
+
+    public function test_unmatched_automation_events_do_not_write_rule_hit_entries(): void
+    {
+        $this->withPrintingLogs(function (): void {
+            Queue::fake();
+            $sample = $this->sample('M260001');
+            LabelEvent::factory()->conditional(['type' => 'mType', 'inspect_value' => 'R', 'negative' => '0'])->create();
+
+            $spools = app(DispatchLabelEvents::class)->handle([$sample]);
+
+            $this->assertSame([], $spools);
+            $this->assertSame('', $this->printingLog());
+            Queue::assertNothingPushed();
+        });
+    }
+
+    public function test_adding_a_standalone_analysis_prints_matching_rules_after_dilutions_and_replicates_exist(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $sample = $this->sample('M260001');
+        $assay = $this->assay();
+        $design = LabelDesign::factory()->create(['zpl' => '{assay_plate_barcode}|{assay_dillution_numeric};']);
+        $event = LabelEvent::factory()->for($design, 'labelDesign')
+            ->conditional(['type' => 'assayIs', 'inspect_value' => (string) $assay->original_id, 'negative' => '0'], 2)->create(['copies' => 2]);
+        LabelEvent::factory()->for($design, 'labelDesign')
+            ->conditional(['type' => 'assayIs', 'inspect_value' => '999999', 'negative' => '0'], 2)->create();
+
+        $analysis = app(AddRoamingAnalysisToSample::class)->handle($sample, $assay, ['dillutions' => [1, 0.01], 'replicates' => 1]);
+
+        $this->assertCount(4, $analysis->results);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->eventIds === [$event->id]
+            && $job->zpl === 'M260001.1.3|0.01;M260001.1.3|0.01;M260001.1.4|0.01;M260001.1.4|0.01;M260001.1.1|1;M260001.1.1|1;M260001.1.2|1;M260001.1.2|1;');
+    }
+
+    public function test_adding_a_research_profile_batches_all_new_analysis_labels(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $sample = $this->sample('M260001');
+        $profile = ResearchProfile::create(['original_id' => 1, 'name' => 'Water profile', 'global' => 1, 'client' => 0, 'active' => 1]);
+        foreach ([1, 2] as $order) {
+            $assay = $this->assay();
+            AssayProfile::create([
+                'research_profile' => $profile->id, 'assay' => $assay->id, 'dillutions' => [1],
+                'replicates' => 0, 'reference' => [], 'hidden' => 0, 'project_order' => $order,
+            ]);
+        }
+        $design = LabelDesign::factory()->create(['zpl' => '{assay_plate_barcode};']);
+        $event = LabelEvent::factory()->for($design, 'labelDesign')->create(['event_group' => 2]);
+
+        $analyses = app(AddResearchProfileToSample::class)->handle($sample, $profile);
+
+        $this->assertCount(2, $analyses);
+        $this->assertDatabaseCount('results', 2);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->eventIds === [$event->id]
+            && $job->zpl === 'M260001.1.1;M260001.2.1;');
+    }
+
+    public function test_registration_with_analyses_spools_sample_and_plate_labels_once(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $existing = $this->sample('M260001');
+        $assay = $this->assay();
+        $printer = Printer::factory()->create();
+        $sampleDesign = LabelDesign::factory()->create(['zpl' => 'S:{sample_barcode};']);
+        $analysisDesign = LabelDesign::factory()->create(['zpl' => 'A:{assay_plate_barcode};']);
+        $sampleEvent = LabelEvent::factory()->for($printer, 'printer')->for($sampleDesign, 'labelDesign')->create();
+        $analysisEvent = LabelEvent::factory()->for($printer, 'printer')->for($analysisDesign, 'labelDesign')->create(['event_group' => 2]);
+
+        $sample = app(CreateSampleWithAnalyses::class)->handle([
+            'client' => $existing->client, 'project' => $existing->project, 'registered_by' => 1,
+            'analyses' => [['type' => 'assay', 'assay_id' => $assay->id, 'settings' => ['dillutions' => [1], 'replicates' => 0]]],
+        ]);
+
+        $this->assertCount(1, $sample->analyses);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->eventIds === [$sampleEvent->id, $analysisEvent->id]
+            && $job->zpl === 'S:'.$sample->barcode.';A:'.$sample->barcode.'.1.1;');
+    }
+
+    public function test_bulk_registration_prints_once_after_the_creation_callback_finishes(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $existing = $this->sample('M260001');
+        $design = LabelDesign::factory()->create(['zpl' => '{sample_description};']);
+        LabelEvent::factory()->for($design, 'labelDesign')->create();
+
+        $samples = app(CreateBulkSamples::class)->handle([
+            'client' => $existing->client, 'registered_by' => 1,
+            'samples' => [['description' => 'First'], ['description' => 'Second']],
+        ], fn (Sample $sample) => $sample->update(['description' => $sample->description.' finalized']));
+
+        $this->assertCount(2, $samples);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->zpl === 'First finalized;Second finalized;');
+    }
+
+    public function test_creating_a_tht_buffer_prints_its_assigned_code_without_registering_a_sample(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $design = LabelDesign::factory()->create(['zpl' => '{sample_tht_code}|{sample_sample_name};']);
+        $event = LabelEvent::factory()->for($design, 'labelDesign')->create(['event_group' => 3]);
+        LabelEvent::factory()->for($design, 'labelDesign')->create(['event_group' => 1]);
+
+        $buffer = app(CreateSampleBuffer::class)->handle([
+            'client' => 1, 'register_as' => 'tht', 'description' => 'THT water',
+            'sampling_date' => '2026-10-14', 'tht_date' => '2026-11-04',
+        ]);
+
+        $this->assertNotEmpty($buffer->tht_code);
+        $this->assertDatabaseCount('samples', 0);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->eventIds === [$event->id]
+            && $job->zpl === $buffer->tht_code.'|THT water;');
+    }
+
+    public function test_normal_buffers_do_not_print_registration_or_tht_labels(): void
+    {
+        Queue::fake();
+        LabelEvent::factory()->create();
+        LabelEvent::factory()->create(['event_group' => 3]);
+
+        $buffer = app(CreateSampleBuffer::class)->handle(['client' => 1, 'register_as' => 'buffer', 'description' => 'Staged water']);
+
+        $this->assertModelExists($buffer);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_tht_approval_batches_only_newly_authorized_buffers_and_does_not_print_twice(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $first = app(CreateSampleBuffer::class)->handle(['client' => 1, 'register_as' => 'buffer', 'description' => 'First']);
+        $second = app(CreateSampleBuffer::class)->handle(['client' => 1, 'register_as' => 'buffer', 'description' => 'Second']);
+        $first->update(['tht' => 1]);
+        $second->update(['tht' => 1]);
+        $design = LabelDesign::factory()->create(['zpl' => '{sample_sample_name}|{sample_tht_code};']);
+        LabelEvent::factory()->for($design, 'labelDesign')->create(['event_group' => 3]);
+        $ids = [$first->id, $second->id];
+        $receipt = ['receive_date' => '2026-10-14', 'receive_time' => '10:30'];
+
+        $count = app(UpdateSampleBuffers::class)->authorizeTht($ids, $receipt);
+        $repeated = app(UpdateSampleBuffers::class)->authorizeTht($ids, $receipt);
+
+        $this->assertSame(2, $count);
+        $this->assertSame(0, $repeated);
+        $this->assertNotEmpty($first->fresh()->tht_code);
+        $this->assertNotEmpty($second->fresh()->tht_code);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->zpl === 'First|'.$first->fresh()->tht_code.';Second|'.$second->fresh()->tht_code.';');
+    }
+
+    public function test_buffer_commits_print_transferred_fields_once_after_hydration(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $existing = $this->sample('M260001');
+        $first = app(CreateSampleBuffer::class)->handle(['client' => $existing->client, 'register_as' => 'buffer', 'description' => 'First']);
+        $second = app(CreateSampleBuffer::class)->handle(['client' => $existing->client, 'register_as' => 'buffer', 'description' => 'Second']);
+        $first->update(['tht_code' => 'THT-1', 'source' => 3, 'meta' => ['Details' => 'Hydrated water']]);
+        $second->update(['tht_code' => 'THT-2', 'source' => 1]);
+        $design = LabelDesign::factory()->create(['zpl' => '{sample_description}|{sample_tht_code}|{sample_source};']);
+        LabelEvent::factory()->for($design, 'labelDesign')->create();
+
+        $samples = app(CommitSampleBuffers::class)->handle([$first->id, $second->id], 1, ['receive_date' => '14-10-2026', 'receive_time' => '10:30']);
+
+        $this->assertCount(2, $samples);
+        $this->assertDatabaseCount('samplebuffers', 0);
+        $this->assertDatabaseHas('metadata', ['sample' => $samples->first()->id, 'name' => 'Details', 'value' => 'Hydrated water']);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->zpl === 'First|THT-1|3;Second|THT-2|1;');
+    }
+
+    public function test_invalid_registration_labels_roll_back_new_samples_without_queuing_prints(): void
+    {
+        Queue::fake();
+        $existing = $this->sample('M260001');
+        LabelEvent::factory()->create(['print_label' => 999999]);
+
+        try {
+            app(CreateSampleWithAnalyses::class)->handle(['client' => $existing->client, 'registered_by' => 1]);
+            $this->fail('Invalid label configuration should prevent registration.');
+        } catch (LogicException $exception) {
+            $this->assertStringContainsString('missing label design or printer', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('samples', 1);
+        $this->assertDatabaseCount('projects', 1);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_lookup_research_addition_batches_only_new_analyses_without_reprinting_existing_ones(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $sample = $this->sample('M260001');
+        $assay = $this->assay();
+        app(AddRoamingAnalysisToSample::class)->handle($sample, $assay, ['dillutions' => [1], 'replicates' => 0]);
+        $design = LabelDesign::factory()->create(['zpl' => '{assay_plate_barcode};']);
+        LabelEvent::factory()->for($design, 'labelDesign')->create(['event_group' => 2]);
+        $entry = ['type' => 'assay', 'assay_id' => $assay->id, 'settings' => ['dillutions' => [1], 'replicates' => 0]];
+
+        app(UpdateLookupResearch::class)->handle($sample, ['operation' => 'add', 'analyses' => [$entry, $entry]]);
+
+        $this->assertCount(3, $sample->fresh()->analyses);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->zpl === 'M260001.2.1;M260001.3.1;');
+    }
+
+    public function test_adding_research_to_empty_samples_batches_labels_across_all_selected_samples(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $first = $this->sample('M260001');
+        $second = $this->sample('M260002', $first->project);
+        $assay = $this->assay();
+        $design = LabelDesign::factory()->create(['zpl' => '{assay_plate_barcode};']);
+        LabelEvent::factory()->for($design, 'labelDesign')->create(['event_group' => 2]);
+
+        $count = app(AddResearchToEmptySamples::class)->handle([$first->id, $second->id], [
+            ['type' => 'assay', 'assay_id' => $assay->id, 'settings' => ['dillutions' => [1], 'replicates' => 0]],
+        ]);
+
+        $this->assertSame(2, $count);
+        $this->assertDatabaseCount('results', 2);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->zpl === 'M260001.1.1;M260002.1.1;');
+    }
 
     public function test_printing_logs_rotate_after_three_files_preserve_raw_zpl_and_do_not_change_application_logging(): void
     {
@@ -724,6 +1058,16 @@ class LabelPrintingTest extends TestCase
     {
         return collect(Storage::disk('local')->files($channel))
             ->map(fn (string $path): string => Storage::disk('local')->get($path))->implode("\n");
+    }
+
+    private function assay(): Assay
+    {
+        return Assay::create([
+            'original_id' => 41, 'name' => 'Plate count', 'type_base' => 0, 'media_id' => '{}',
+            'dillution' => 1, 'replicates' => 1, 'confirmation' => 0, 'confirmation_script' => '{}',
+            'type' => 1, 'meta_assays' => '', 'max_count' => 300, 'min_count' => 10, 'script' => '',
+            'custom_fields' => '{}', 'duration' => '2', 'start_from' => 'i', 'article_code' => '', 'active' => 1,
+        ]);
     }
 
     private function sample(string $barcode, ?int $projectId = null, array $attributes = []): Sample
