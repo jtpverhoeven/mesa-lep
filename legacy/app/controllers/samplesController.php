@@ -1803,7 +1803,6 @@ class samplesController extends Controller
 
             $nextGroupNumber = upa('sampleAnalysis', 'nextFreeGroupNumber', array(), False);
 
-            //upa('printing', 'sampleRegFire', array($sampleId), False);
             array_push($printSampleIds, $sampleId);
 
 
@@ -1820,8 +1819,7 @@ class samplesController extends Controller
                 {
                     $thisOrder = $projectOrder + $pAssay['project_order'];
                     $said = upa('sampleAnalysis', 'registerSampleAnalysis', array($sampleId, $nextGroupNumber, $followNumber, $profile, $pAssay['id'], 0, $pAssay['assay'], $this->Sample->project, False, False, $thisOrder), False);
-                    upa('results', 'registerResult', array($sampleId, $said, $profile, $pAssay['id']), False);
-                    //upa('printing', 'assayAddFire', array($said), False);
+                    upa('results', 'registerResult', array($sampleId, $said, $profile, $pAssay['id']), False);                    
                     array_push($printSAids, $said);
                     $followNumber++;
                 }
@@ -2130,8 +2128,7 @@ class samplesController extends Controller
                         {
                             $thisOrder = $projectOrder + $pAssay['project_order'];
                             $said = upa('sampleAnalysis', 'registerSampleAnalysis', array($sampleId, $nextGroupNumber, $followNumber, $profile, $pAssay['id'], 0, $pAssay['assay'], $this->Sample->project, False, False, $thisOrder), False);
-                            upa('results', 'registerResult', array($sampleId, $said, $profile, $pAssay['id']), False);
-                            //upa('printing', 'assayAddFire', array($said), False);
+                            upa('results', 'registerResult', array($sampleId, $said, $profile, $pAssay['id']), False);                            
                             array_push($printSAids, $said);
                             $followNumber++;
                         }
@@ -2540,8 +2537,7 @@ class samplesController extends Controller
                 //$profiler->addCheckpoint('project edited done');
 
                 //fire sticker event
-                if($printBool != False){
-                  //upa('printing', 'sampleRegFire', array($sampleId), False);
+                if($printBool != False){          
                   array_push($printSampleIds, $sampleId);
                 }
 
@@ -2585,8 +2581,7 @@ class samplesController extends Controller
 
                                 upa('results', 'registerResult', array($sampleId, $said, $profile, $pAssay['id']), False);
                                 //fire label print
-                                if($printBool != False){
-                                  //upa('printing', 'assayAddFire', array($said), False);
+                                if($printBool != False){                                  
                                   array_push($printSAids, $said);
                                 }
 
@@ -2626,7 +2621,7 @@ class samplesController extends Controller
 
                             //fire label print
                             if($printBool != False){
-                              //upa('printing', 'assayAddFire', array($said), False);
+                            
                               array_push($printSAids, $said);
                             }
 

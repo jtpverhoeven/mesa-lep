@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class RunPrintProfileJob implements ShouldQueue
 {
@@ -21,6 +22,10 @@ class RunPrintProfileJob implements ShouldQueue
 
     public bool $failOnTimeout = true;
 
+    /** @var array<string, mixed> */
+    public array $activityContext = [];
+
+    /** @param array<string, mixed> $activityContext */
     public function __construct(
         public int $profileId,
         public string $profileScript,
@@ -28,7 +33,9 @@ class RunPrintProfileJob implements ShouldQueue
         public ?int $printerOverride = null,
         public int $dateOffset = 0,
         public string $currentUser = '',
+        array $activityContext = [],
     ) {
+        $this->activityContext = $activityContext;
         $this->onConnection(config('printing.connection', 'database'));
         $this->onQueue(config('printing.queue', 'printing'));
         $this->afterCommit();
@@ -41,7 +48,22 @@ class RunPrintProfileJob implements ShouldQueue
         $sample = Sample::query()->findOrFail($this->sampleId);
         $plan = $buildPrintProfilePlan->handle($profile, $sample, $this->printerOverride, dateOffset: $this->dateOffset, currentUser: $this->currentUser);
 
-        $spools = DB::transaction(fn (): array => $sendLabelPrintPlan->handle($plan['labels']));
-        Log::info('Print profile processed.', ['profile_id' => $this->profileId, 'sample_id' => $this->sampleId, 'total_labels' => $plan['total_labels'], 'spools' => $spools]);
+        $context = $this->logContext();
+        $spools = DB::transaction(fn (): array => $sendLabelPrintPlan->handle($plan['labels'], $context));
+        Log::channel('printing')->info('Print profile processed.', [...$context, 'total_labels' => $plan['total_labels'], 'spools' => $spools]);
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        Log::channel('printing')->error('Print profile failed.', [...$this->logContext(), 'error' => $exception?->getMessage()]);
+    }
+
+    /** @return array<string, mixed> */
+    private function logContext(): array
+    {
+        return array_replace([
+            'user_id' => null,
+            'user_name' => $this->currentUser !== '' ? $this->currentUser : null,
+        ], $this->activityContext, ['profile_id' => $this->profileId, 'sample_id' => $this->sampleId]);
     }
 }

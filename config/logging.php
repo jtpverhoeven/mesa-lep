@@ -1,5 +1,6 @@
 <?php
 
+use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -79,6 +80,26 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'max_files' => 3,
             'replace_placeholders' => true,
+        ],
+
+        'printing' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/printing.log'),
+            'level' => 'info',
+            'max_files' => 3,
+            'replace_placeholders' => true,
+        ],
+
+        'printing_debug' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/printing-debug.log'),
+            'level' => 'debug',
+            'max_files' => 3,
+            'formatter' => LineFormatter::class,
+            'formatter_with' => [
+                'format' => "[%datetime%] %channel%.%level_name%: %context%\n%message%\n",
+                'allowInlineLineBreaks' => true,
+            ],
         ],
 
         'slack' => [

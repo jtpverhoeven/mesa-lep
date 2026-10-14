@@ -19,6 +19,7 @@ use App\Models\Sample;
 use App\Models\SampleAnalysis;
 use App\Models\SampleBuffer;
 use App\Models\SampleProcedure;
+use App\Models\User;
 use App\Support\Printing\LabelPrinterTransport;
 use App\Support\Printing\TcpLabelPrinterTransport;
 use DateTimeImmutable;
@@ -27,7 +28,9 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use LogicException;
 use Mockery\MockInterface;
@@ -38,6 +41,137 @@ use Tests\TestCase;
 class LabelPrintingTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_printing_logs_rotate_after_three_files_preserve_raw_zpl_and_do_not_change_application_logging(): void
+    {
+        $this->withPrintingLogs(function (): void {
+            foreach (['printing', 'printing_debug'] as $channel) {
+                foreach ([1, 2, 3, 4] as $daysAgo) {
+                    $date = (new DateTimeImmutable)->modify('-'.$daysAgo.' days')->format('Y-m-d');
+                    Storage::disk('local')->put($channel.'/printing-'.$date.'.log', 'Old activity');
+                }
+            }
+
+            $zpl = "^XA\n^FDTEST^FS\n^XZ";
+            Log::channel('printing')->info('Label spool disabled.', ['printer_id' => 1, 'user_id' => 42]);
+            Log::channel('printing_debug')->debug($zpl, ['printer_id' => 1]);
+            Log::info('Unrelated application activity.');
+
+            $this->assertCount(3, Storage::disk('local')->files('printing'));
+            $this->assertCount(3, Storage::disk('local')->files('printing_debug'));
+            $this->assertStringContainsString('Label spool disabled.', $this->printingLog());
+            $this->assertStringContainsString('"user_id":42', $this->printingLog());
+            $this->assertStringNotContainsString('^XA', $this->printingLog());
+            $this->assertStringContainsString($zpl, $this->printingLog('printing_debug'));
+            $this->assertStringNotContainsString('\\n', $this->printingLog('printing_debug'));
+            $applicationLog = Storage::disk('local')->get('application.log');
+            $this->assertStringContainsString('Unrelated application activity.', $applicationLog);
+            $this->assertStringNotContainsString('Label spool', $applicationLog);
+            $this->assertStringNotContainsString('^XA', $applicationLog);
+        });
+    }
+
+    public function test_disabled_printing_logs_repeated_aligned_zpl_and_activity_without_contacting_printers(): void
+    {
+        $this->withPrintingLogs(function (): void {
+            Queue::fake();
+            $user = User::factory()->create(['name' => 'Print operator']);
+            $this->actingAs($user);
+            Cvar::create(['cvar' => 'MESA_DISABLE_PRINTING', 'value' => '1', 'default' => '0', 'description' => 'Disable']);
+            Cvar::create(['cvar' => 'MESA_ZEBRA_ALIGN', 'value' => '^LH4,4', 'default' => '', 'description' => 'Alignment']);
+            $zpl = "^XA\n^FDRAW OUTPUT^FS\n^XZ";
+            $design = LabelDesign::factory()->create(['name' => 'Monsteretiket', 'zpl' => $zpl]);
+            $printer = Printer::factory()->create(['name' => 'Balieprinter']);
+            LabelEvent::factory()->for($design, 'labelDesign')->for($printer, 'printer')->create(['copies' => 2]);
+            $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldNotReceive('send'));
+
+            app(SendLabelPrintPlan::class)->handle(app(BuildLabelPrintPlan::class)->handle(1, []));
+
+            $activity = $this->printingLog();
+            $this->assertStringContainsString('Label spool disabled.', $activity);
+            $this->assertStringContainsString('"user_id":'.$user->id, $activity);
+            $this->assertStringContainsString('Print operator', $activity);
+            $this->assertStringContainsString('Monsteretiket', $activity);
+            $this->assertStringContainsString('Balieprinter', $activity);
+            $this->assertStringContainsString('"copies":2', $activity);
+            $this->assertStringNotContainsString('RAW OUTPUT', $activity);
+            $this->assertStringContainsString('^LH4,4'.$zpl.$zpl, $this->printingLog('printing_debug'));
+            Storage::disk('local')->assertMissing('application.log');
+            Queue::assertNothingPushed();
+        });
+    }
+
+    public function test_enabled_printing_logs_the_original_user_through_the_queue_without_logging_raw_zpl(): void
+    {
+        $this->withPrintingLogs(function (): void {
+            Queue::fake([SendLabelPrinterSpoolJob::class]);
+            $user = User::factory()->create(['name' => 'Original operator']);
+            $this->actingAs($user);
+            $design = LabelDesign::factory()->create(['name' => 'Sample label', 'zpl' => '^XA^FDPRIVATE ZPL^FS^XZ']);
+            $event = LabelEvent::factory()->for($design, 'labelDesign')->create();
+            $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldReceive('send')->once());
+
+            app(SendLabelPrintPlan::class)->handle(app(BuildLabelPrintPlan::class)->handle(1, []));
+            $this->actingAs(User::factory()->create(['name' => 'Different worker user']));
+            $job = Queue::pushed(SendLabelPrinterSpoolJob::class)->sole();
+            $this->app->call([$job, 'handle']);
+
+            $activity = $this->printingLog();
+            $this->assertSame($user->id, $job->activityContext['user_id']);
+            $this->assertStringContainsString('Original operator', $activity);
+            $this->assertStringNotContainsString('Different worker user', $activity);
+            $this->assertStringContainsString('Sample label', $activity);
+            $this->assertStringContainsString('"printer_id":'.$event->print_to, $activity);
+            $this->assertStringContainsString('Label spool queued.', $activity);
+            $this->assertStringContainsString('Label spool sending.', $activity);
+            $this->assertStringContainsString('Label spool sent.', $activity);
+            $this->assertStringNotContainsString('PRIVATE ZPL', $activity);
+            $this->assertSame([], Storage::disk('local')->files('printing_debug'));
+            Storage::disk('local')->assertMissing('application.log');
+            Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        });
+    }
+
+    public function test_disabling_printing_after_queueing_logs_raw_zpl_with_the_current_alignment(): void
+    {
+        $this->withPrintingLogs(function (): void {
+            Queue::fake([SendLabelPrinterSpoolJob::class]);
+            $disabled = Cvar::create(['cvar' => 'MESA_DISABLE_PRINTING', 'value' => '0', 'default' => '0', 'description' => 'Disable']);
+            $alignment = Cvar::create(['cvar' => 'MESA_ZEBRA_ALIGN', 'value' => '^LH1,1', 'default' => '', 'description' => 'Alignment']);
+            $design = LabelDesign::factory()->create(['zpl' => "^XA\n^FDQUEUED^FS\n^XZ"]);
+            LabelEvent::factory()->for($design, 'labelDesign')->create(['copies' => 2]);
+            app(SendLabelPrintPlan::class)->handle(app(BuildLabelPrintPlan::class)->handle(1, []));
+            app(SetCvar::class)->handle($disabled, '1');
+            app(SetCvar::class)->handle($alignment, '^LH9,9');
+            $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldNotReceive('send'));
+
+            $this->app->call([Queue::pushed(SendLabelPrinterSpoolJob::class)->sole(), 'handle']);
+
+            $this->assertStringContainsString('^LH9,9'.$design->zpl.$design->zpl, $this->printingLog('printing_debug'));
+            $this->assertStringContainsString('Label spool disabled.', $this->printingLog());
+            $this->assertStringNotContainsString('Label spool sent.', $this->printingLog());
+            Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        });
+    }
+
+    public function test_failed_transport_is_recorded_in_the_printing_activity_channel_without_raw_zpl(): void
+    {
+        $this->withPrintingLogs(function (): void {
+            $design = LabelDesign::factory()->create(['name' => 'Sample label', 'zpl' => '^XA^FDPRIVATE FAILURE^FS^XZ']);
+            LabelEvent::factory()->for($design, 'labelDesign')->create();
+            $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldReceive('send')->once()->andThrow(new RuntimeException('Offline')));
+            app(SendLabelPrintPlan::class)->handle(app(BuildLabelPrintPlan::class)->handle(1, []));
+
+            $this->artisan('queue:work', ['connection' => 'database', '--queue' => 'printing', '--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+            $this->assertStringContainsString('Label spool failed.', $this->printingLog());
+            $this->assertStringContainsString('Sample label', $this->printingLog());
+            $this->assertStringContainsString('Offline', $this->printingLog());
+            $this->assertStringNotContainsString('PRIVATE FAILURE', $this->printingLog());
+            $this->assertSame([], Storage::disk('local')->files('printing_debug'));
+            $this->assertDatabaseCount('failed_jobs', 1);
+        });
+    }
 
     public function test_planning_selects_only_matching_rules_in_the_requested_group_without_mutating_them(): void
     {
@@ -561,6 +695,35 @@ class LabelPrintingTest extends TestCase
             'zero copies' => [['copies' => 0]],
             'too many copies' => [['copies' => 10000]],
         ];
+    }
+
+    private function withPrintingLogs(callable $callback): void
+    {
+        Storage::fake('local');
+        config([
+            'logging.default' => 'single',
+            'logging.channels.single.path' => Storage::disk('local')->path('application.log'),
+            'logging.channels.printing.path' => Storage::disk('local')->path('printing/printing.log'),
+            'logging.channels.printing_debug.path' => Storage::disk('local')->path('printing_debug/printing.log'),
+        ]);
+
+        foreach (['single', 'printing', 'printing_debug'] as $channel) {
+            Log::forgetChannel($channel);
+        }
+
+        try {
+            $callback();
+        } finally {
+            foreach (['single', 'printing', 'printing_debug'] as $channel) {
+                Log::forgetChannel($channel);
+            }
+        }
+    }
+
+    private function printingLog(string $channel = 'printing'): string
+    {
+        return collect(Storage::disk('local')->files($channel))
+            ->map(fn (string $path): string => Storage::disk('local')->get($path))->implode("\n");
     }
 
     private function sample(string $barcode, ?int $projectId = null, array $attributes = []): Sample

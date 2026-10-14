@@ -18,6 +18,7 @@ use App\Models\Result;
 use App\Models\Sample;
 use App\Models\SampleAnalysis;
 use App\Models\SampleProcedure;
+use App\Models\User;
 use App\Support\Printing\LabelPrinterTransport;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -101,15 +102,22 @@ class PrintProfilePrintingTest extends TestCase
         [$sample, $analyses, $design, $printer] = $this->fixtures();
         $script = "10 SAMPLE PRINT $design->id PRINTER $printer->id COPIES 2";
         $profile = PrintProfile::factory()->create(['profile' => $script]);
+        $operator = User::factory()->create(['name' => 'Operator']);
+        $this->actingAs($operator);
         Queue::fake([RunPrintProfileJob::class, SendLabelPrinterSpoolJob::class]);
         $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldReceive('send')->once()->withArgs(fn (Printer $target, string $zpl): bool => $target->is($printer) && substr_count($zpl, 'M260001|') === 2));
 
         app(QueuePrintProfile::class)->handle($profile, $sample, currentUser: 'Operator');
         $profile->update(['profile' => '10 EXIT']);
+        $this->actingAs(User::factory()->create(['name' => 'Different worker user']));
         $this->app->call([Queue::pushed(RunPrintProfileJob::class)->sole(), 'handle']);
 
         Queue::assertPushedOn('printing', RunPrintProfileJob::class, fn (RunPrintProfileJob $job): bool => $job->profileScript === $script && $job->sampleId === $sample->id && $job->currentUser === 'Operator');
         Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        $this->assertSame($operator->id, Queue::pushed(SendLabelPrinterSpoolJob::class)->sole()->activityContext['user_id']);
+        $this->assertSame('Operator', Queue::pushed(SendLabelPrinterSpoolJob::class)->sole()->activityContext['user_name']);
+        $this->assertSame($profile->id, Queue::pushed(SendLabelPrinterSpoolJob::class)->sole()->activityContext['profile_id']);
+        $this->assertSame($sample->id, Queue::pushed(SendLabelPrinterSpoolJob::class)->sole()->activityContext['sample_id']);
         $this->app->call([Queue::pushed(SendLabelPrinterSpoolJob::class)->sole(), 'handle']);
     }
 

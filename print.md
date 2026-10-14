@@ -10,24 +10,14 @@ We are keeping a "actions based" architecture.
 
 # This session build instructions
 
-We now have to implement the backbone of printing. Printing, in this context, means the generation of labels. We use ZPL (zebra labels lanugage) and Zebra hardware. The print function is a multi facetted service, that does a *lot* of heavy lifting within the laboratory.
+We now have to implement the action driven events within our architecture. That is to say, the moments where we invoke LabelEvents that the user has set up. Since we have already implemented the back-end of this, this session should be about plumbing up this back-end events system to the appropraite actions. 
 
-We should tackle this in multiple steps, in a way we dont regress from our legacy implementation, and dont create a spaghetti mess. This needs to be a unified service that has tendrils in all of our application, so it has to be DRY. 
+In our legacy implementation these are run through the following functions in `legacy/app/controllers/printingController.php`: 
 
-We have already setup printers, label events and label designs. 
+- `assayAddFire()` within the `addNewResearch()`function.
+- `batchTHTReg()`  `thtRegFire()`, `sampleRegFire()` , `batchProcess()`. 
 
-What we have to implement in this session  is the concept of PrintProfiles. Print profiles are essentially small plain text scripts that users can create, and call, to automate some sticker printing. For example, a script could be "does this sample have analysis XYZ, then goto line 40, line 40 = print label design I on printer J."
-
-In this pass i would like the administrative side of this function to be implemented. That is; on the admin section of our application we will have a fully functional CRUD interface to create, edit, and delete print profiles. 
-
-In addition, I would like you to implement, as a action that is delegated to a laravel job, so these profiles can be queued with the already implemented PrinterTransport, the parsing of these profiles. In addition, we should have a "Test" function, where the user can supply a barcode, and the output should show how many labels, tow hich printers, with which contact would have been printed (like a dry-run). 
-
-
-
-# Legacy 
-
-In our legacy implementation you can find this mostly in the function `runPrintProfile` in the file `legacy/app/controllers/printingController.php`. However, the location of this is subject to change. A dedicated model would be better (i.e. `PrintProfile`). BUT important: the existing data structure should remain compatible, the old print profiles *must* work in the new implementation. 
-
+This is a bit of a mess, and should be refactored to work nicely with our new queued printing system, but, the functionality of all these labels need to remain the same. 
 
 
 # Addendum
