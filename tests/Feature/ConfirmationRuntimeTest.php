@@ -75,6 +75,40 @@ class ConfirmationRuntimeTest extends TestCase
         $this->assertSame(1, $complete['summary']['ratio']);
     }
 
+    public function test_correcting_a_mismatch_reopens_the_next_confirmation_step(): void
+    {
+        Queue::fake();
+        [$analysis, $media] = $this->analysis();
+        $analysis->assayRecord()->update([
+            'confirmation_script' => json_encode([
+                ['mediaId' => $media->id, 'chainId' => 1, 'disposition' => '+'],
+                ['mediaId' => $media->id, 'chainId' => 2, 'disposition' => '-'],
+                ['mediaId' => $media->id, 'chainId' => 3, 'disposition' => '+'],
+            ], JSON_THROW_ON_ERROR),
+        ]);
+        app(SetConfirmationDecision::class)->handle($analysis->fresh(), 'enable');
+        app(UpdateConfirmationTrackValue::class)->handle($analysis->fresh(), '0.1', 0, 0, 0, '+');
+        app(UpdateConfirmationTrackValue::class)->handle($analysis->fresh(), '0.1', 0, 0, 1, '+');
+        $blocked = app(GetConfirmation::class)->handle($analysis->fresh(), '0.1', 0);
+
+        $this->assertSame([0, 1], $blocked['contenders'][0]['visible_steps']);
+        $this->assertSame(['+', '+', null], $blocked['contenders'][0]['answers']);
+
+        app(UpdateConfirmationTrackValue::class)->handle($analysis->fresh(), '0.1', 0, 0, 1, '-');
+        $reopened = app(GetConfirmation::class)->handle($analysis->fresh(), '0.1', 0);
+
+        $this->assertSame([0, 1, 2], $reopened['contenders'][0]['visible_steps']);
+        $this->assertSame(['+', '-', ''], $reopened['contenders'][0]['answers']);
+        $this->assertFalse($reopened['contenders'][0]['finished']);
+        $this->assertFalse($reopened['summary']['scope_ready']);
+
+        app(UpdateConfirmationTrackValue::class)->handle($analysis->fresh(), '0.1', 0, 0, 2, '+');
+        $completed = app(GetConfirmation::class)->handle($analysis->fresh(), '0.1', 0);
+
+        $this->assertTrue($completed['contenders'][0]['confirmed']);
+        $this->assertSame(['+', '-', '+'], $analysis->fresh()->confirmationRecord->racetrack['0.1'][0][0]);
+    }
+
     public function test_undecided_confirmation_does_not_prompt_without_a_qualifying_calculation(): void
     {
         [$analysis] = $this->analysis();

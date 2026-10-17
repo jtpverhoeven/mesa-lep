@@ -30,7 +30,7 @@ class ConfirmationRacetrackEvaluator
 
             foreach ($steps as $stepIndex => $step) {
                 $visibleSteps[] = $stepIndex;
-                $answer = $this->answer($contender, $stepIndex);
+                $answer = $this->answer($contender, $stepIndex) ?? '';
                 $answers[(string) $stepIndex] = $answer;
                 $reachedSteps[$stepIndex] = true;
 

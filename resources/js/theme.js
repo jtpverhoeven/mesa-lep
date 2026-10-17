@@ -1,6 +1,25 @@
 import { definePreset } from '@openvue/themes';
 import Aura from '@openvue/themes/aura';
 
+const pastelButton = (color) => ({
+    background: `color-mix(in srgb, ${color} 14%, var(--surface))`,
+    hoverBackground: `color-mix(in srgb, ${color} 22%, var(--surface))`,
+    activeBackground: `color-mix(in srgb, ${color} 30%, var(--surface))`,
+    borderColor: `color-mix(in srgb, ${color} 40%, var(--control-border))`,
+    hoverBorderColor: color,
+    activeBorderColor: color,
+    color: `color-mix(in srgb, ${color} 45%, var(--ink))`,
+    hoverColor: `color-mix(in srgb, ${color} 45%, var(--ink))`,
+    activeColor: `color-mix(in srgb, ${color} 45%, var(--ink))`,
+    focusRing: { color, shadow: 'none' },
+});
+
+const pastelButtons = {
+    info: pastelButton('{sky.500}'),
+    warn: pastelButton('{amber.500}'),
+    success: pastelButton('{green.500}'),
+};
+
 const secondaryButton = {
     background: 'var(--surface)',
     hoverBackground: 'var(--surface-alt)',
@@ -118,8 +137,8 @@ export const MesaPreset = definePreset(Aura, {
         button: {
             root: { paddingX: '12px', paddingY: '6px', iconOnlyWidth: '34px', label: { fontWeight: '600' } },
             colorScheme: {
-                light: { root: { secondary: secondaryButton } },
-                dark: { root: { secondary: secondaryButton } },
+                light: { root: { secondary: secondaryButton, ...pastelButtons } },
+                dark: { root: { secondary: secondaryButton, ...pastelButtons } },
             },
         },
         paginator: {
