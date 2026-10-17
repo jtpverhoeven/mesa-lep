@@ -48,12 +48,16 @@ export const useConfirmationStore = defineStore('confirmation', {
             this.sampleId = sampleId ? Number(sampleId) : null;
         },
         hydrate(analysisId, data) {
-            if (!data || Number(analysisId) !== Number(this.analysisId ?? analysisId)) return;
-            this.analysisId = Number(analysisId);
+            if (!data || (
+                Number(analysisId) !== Number(this.analysisId ?? analysisId)
+                && Number(data.analysis_id) !== Number(this.analysisId)
+            )) return;
+            this.analysisId = Number(data.analysis_id ?? analysisId);
             this.applyData(data);
         },
         applyData(data) {
             this.data = data;
+            this.analysisId = Number(data?.analysis_id ?? this.analysisId);
             const scope = data?.selected_scope ?? data?.scopes?.[0];
             this.selectedScopeKey = scope ? `${scope.df}:${scope.rep}` : null;
             this.error = '';
@@ -199,6 +203,7 @@ export const useConfirmationStore = defineStore('confirmation', {
         },
         queueDecisionPrompt(event) {
             if (!event?.analysis_id || this.decisionPrompt?.analysis_id === event.analysis_id) return;
+            if (!this.data) this.analysisId = Number(event.analysis_id);
             this.decisionPrompt = event;
         },
         reset(keepSample = false) {

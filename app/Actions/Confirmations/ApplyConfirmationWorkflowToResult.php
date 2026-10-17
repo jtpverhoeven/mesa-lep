@@ -17,6 +17,12 @@ class ApplyConfirmationWorkflowToResult
         array $baseCalculation,
         array $workflow,
     ): array {
+        if ($calculator !== null && $context->metaParent !== null
+            && ($baseCalculation['meta_parent'] ?? null) === (int) $context->metaParent->id
+            && isset($baseCalculation['confirmation'])) {
+            return $this->cache->stamp($baseCalculation, $context, $calculator);
+        }
+
         $calculation = $baseCalculation;
         $snapshot = $workflow['snapshot'];
 
@@ -37,6 +43,7 @@ class ApplyConfirmationWorkflowToResult
             'ready' => $workflow['status'] === 'enabled_complete',
             'decision_required' => $workflow['decisionRequired'],
             'ratios' => $snapshot?->ratios ?? [],
+            'target_analysis_id' => $workflow['trigger']->targetAnalysisId ?? (int) $context->analysis->id,
         ];
 
         if ($workflow['status'] === 'enabled_pending') {

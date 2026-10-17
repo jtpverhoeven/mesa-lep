@@ -15,11 +15,13 @@ final readonly class ResultCalculationContext
         public Assay $assay,
         public AssayProfile|RoamingAnalysis $settings,
         public ?ConfirmationSnapshot $confirmation = null,
+        public array $metaResults = [],
+        public ?SampleAnalysis $metaParent = null,
     ) {}
 
     public function withConfirmation(?ConfirmationSnapshot $confirmation): self
     {
-        return new self($this->analysis, $this->assay, $this->settings, $confirmation);
+        return new self($this->analysis, $this->assay, $this->settings, $confirmation, $this->metaResults, $this->metaParent);
     }
 
     public function confirmationRatio(string|int|float $dilution, int|string $replicate = 0): ?float

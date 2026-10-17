@@ -39,6 +39,9 @@ function expectedDate(value) {
 function display(value) {
     return value !== null && typeof value === 'object' ? JSON.stringify(value) : (value ?? '-');
 }
+function confirmationAnalysisId() {
+    return Number(confirmationStore.data?.analysis_id ?? store.calculation?.confirmation?.target_analysis_id ?? store.selectedId);
+}
 async function setConfirmationDecision(decision) {
     if (!store.selectedId || store.readOnly || confirmationStore.pendingMutationCount) return;
     const analysisId = store.selectedId;
@@ -49,7 +52,7 @@ async function setConfirmationDecision(decision) {
 }
 function openConfirmation() {
     if (!store.selectedId || store.readOnly || confirmationStore.readOnly) return;
-    confirmationStore.open(store.selectedId, 'global', 0);
+    confirmationStore.open(confirmationAnalysisId(), 'global', 0);
 }
 function focusBarcodeInput() {
     barcodeInput.value?.focus();
@@ -79,12 +82,19 @@ watch(() => store.data?.sample.id, (sampleId) => {
         })
         .listen('.analysis.result.calculated', (event) => {
             store.applyCalculationEvent(event);
+
+            if (Number(event.analysis_id) === confirmationAnalysisId() && Number(event.analysis_id) !== Number(store.selectedId)) {
+                confirmationStore.load(Number(event.analysis_id));
+                store.loadResults(store.selectedId);
+                return;
+            }
+
             if (Number(event.analysis_id) !== Number(store.selectedId)) return;
 
             const calculatedConfirmation = event.calculation?.confirmation;
             if (calculatedConfirmation?.decision_required) {
                 confirmationStore.queueDecisionPrompt({
-                    analysis_id: Number(event.analysis_id),
+                    analysis_id: Number(calculatedConfirmation.target_analysis_id ?? event.analysis_id),
                     mode: calculatedConfirmation.mode,
                 });
             } else if (
@@ -94,13 +104,13 @@ watch(() => store.data?.sample.id, (sampleId) => {
                     || calculatedConfirmation.status !== confirmationStore.data?.status
                 )
             ) {
-                confirmationStore.load(Number(event.analysis_id));
+                confirmationStore.load(confirmationAnalysisId());
             }
         })
         .listen('.analysis.result.calculation-failed', (event) => store.applyCalculationFailure(event))
         .listen('.analysis.confirmation.updated', (event) => confirmationStore.applyUpdatedEvent(event))
         .listen('.analysis.confirmation.decision-required', (event) => {
-            if (Number(event.analysis_id) === Number(store.selectedId)) confirmationStore.queueDecisionPrompt(event);
+            if (Number(event.analysis_id) === confirmationAnalysisId()) confirmationStore.queueDecisionPrompt(event);
         })
         .error(() => {
             if (revision !== subscriptionRevision) return;
@@ -123,7 +133,7 @@ watch(() => store.calculation?.confirmation, (confirmation) => {
     if (!confirmation?.decision_required || !store.selectedId) return;
 
     confirmationStore.queueDecisionPrompt({
-        analysis_id: store.selectedId,
+        analysis_id: Number(confirmation.target_analysis_id ?? store.selectedId),
         mode: confirmation.mode,
     });
 });

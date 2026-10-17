@@ -3,6 +3,7 @@
 namespace App\Actions\Results;
 
 use App\ChangeTracking\ChangeTracker;
+use App\Jobs\CalculateAnalysisResultJob;
 use App\Models\AssayTypeField;
 use App\Models\Project;
 use App\Models\Result;
@@ -12,7 +13,10 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateResultValue
 {
-    public function __construct(private ChangeTracker $changeTracker) {}
+    public function __construct(
+        private ChangeTracker $changeTracker,
+        private GetMetaAnalysisParent $metaParent,
+    ) {}
 
     public function handle(SampleAnalysis $analysis, Result $result, string $field, string $value): Result
     {
@@ -56,6 +60,13 @@ class UpdateResultValue
             $analysis->is_ready = false;
             $analysis->storedResult = null;
             $analysis->save();
+
+            $parent = $this->metaParent->handle($analysis);
+
+            if ($parent !== null) {
+                $parent->update(['is_ready' => false, 'storedResult' => null]);
+                CalculateAnalysisResultJob::dispatch($parent->id)->afterCommit();
+            }
 
             $alias = AssayTypeField::query()->where('test_id', $analysis->assayRecord?->type_base)->where('name', $field)->value('alias') ?: $field;
             $this->changeTracker->changed(1, project: $analysis->project, sample: $analysis->sample, said: $analysis->id,

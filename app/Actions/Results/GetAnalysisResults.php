@@ -16,6 +16,8 @@ class GetAnalysisResults
         private ResultCalculationResolver $calculations,
         private ResultCalculationCache $cache,
         private GetConfirmation $confirmation,
+        private GetMetaAnalysisResults $metaResults,
+        private GetMetaAnalysisParent $metaParent,
     ) {}
 
     public function handle(SampleAnalysis $analysis): array
@@ -90,7 +92,17 @@ class GetAnalysisResults
         }
 
         try {
-            $context = new ResultCalculationContext($analysis, $assay, $settings);
+            if ((int) $assay->type === 4) {
+                $analysis->loadMissing('sampleRecord');
+            }
+
+            $context = new ResultCalculationContext(
+                $analysis,
+                $assay,
+                $settings,
+                metaResults: (int) $assay->type === 4 ? $this->metaResults->handle($analysis) : [],
+                metaParent: $this->metaParent->handle($analysis),
+            );
             $calculator = $this->calculations->resolve($assay);
         } catch (ResultCalculationException $exception) {
             return [

@@ -82,6 +82,11 @@ class ResultCalculationCache
             'implementation' => is_string($calculatorFile) ? hash_file('sha256', $calculatorFile) : null,
             'assay' => $assay,
             'settings' => $settings,
+            'meta_results' => $context->metaResults,
+            'meta_parent' => $context->metaParent?->only(['id', 'conf_requested', 'is_ready', 'storedResult']),
+            'sample_extra' => $context->analysis->relationLoaded('sampleRecord')
+                ? $context->analysis->sampleRecord?->sample_extra
+                : null,
             'confirmation_decision' => (int) $context->analysis->conf_requested,
             'confirmation_record' => $confirmation?->only([
                 'said', 'in_use', 'racetrack', 'metadata', 'isReady', 'data',

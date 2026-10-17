@@ -74,6 +74,16 @@ const addenda = computed(() => {
 });
 
 const results = computed(() => {
+    if (props.calculation?.reportable === false) {
+        return [{
+            key: 'meta_parent',
+            label: 'Meta-analyse',
+            value: display(props.calculation.meta_said?.name ?? '-'),
+            addenda: [],
+            disposition: props.calculation.disposition?.kve ?? null,
+        }];
+    }
+
     const output = Object.entries(props.calculation?.output ?? {});
     const reportKey = props.calculation?.reportIn ?? output[0]?.[0];
 

@@ -3,6 +3,7 @@
 namespace App\Actions\Confirmations;
 
 use App\Actions\AssuranceForms\QueueAssuranceFormSynchronization;
+use App\Actions\Results\GetMetaAnalysisParent;
 use App\Jobs\CalculateAnalysisResultJob;
 use App\Models\Confirmation;
 use App\Models\Project;
@@ -13,10 +14,14 @@ use Illuminate\Validation\ValidationException;
 
 class ConfirmationMutation
 {
-    public function __construct(private QueueAssuranceFormSynchronization $queueAssuranceSync) {}
+    public function __construct(
+        private QueueAssuranceFormSynchronization $queueAssuranceSync,
+        private GetMetaAnalysisParent $metaParent,
+    ) {}
 
     public function execute(SampleAnalysis $analysis, Closure $callback): SampleAnalysis
     {
+        $analysis = $this->metaParent->handle($analysis) ?? $analysis;
         $updated = DB::transaction(function () use ($analysis, $callback): SampleAnalysis {
             $locked = SampleAnalysis::query()
                 ->with(['assayRecord', 'results'])

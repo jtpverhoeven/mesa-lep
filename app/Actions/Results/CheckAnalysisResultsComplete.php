@@ -2,6 +2,7 @@
 
 namespace App\Actions\Results;
 
+use App\Calculations\Contracts\DeterminesResultCompleteness;
 use App\Calculations\Contracts\HandlesIncompleteResults;
 use App\Calculations\Contracts\ResultCalculation;
 use App\Calculations\ResultCalculationContext;
@@ -10,6 +11,10 @@ class CheckAnalysisResultsComplete
 {
     public function handle(ResultCalculationContext $context, ?ResultCalculation $calculator = null): bool
     {
+        if ($calculator instanceof DeterminesResultCompleteness) {
+            return $calculator->resultsAreComplete($context);
+        }
+
         $expectedRows = $this->expectedRows($context);
 
         if ($expectedRows === []) {

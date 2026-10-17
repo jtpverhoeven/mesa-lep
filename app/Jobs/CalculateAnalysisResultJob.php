@@ -73,11 +73,25 @@ class CalculateAnalysisResultJob implements ShouldBeUnique, ShouldQueue
             $calculation,
         );
 
+        $confirmationOwner = $analysis;
+
+        if (isset($calculation['meta_parent'])) {
+            $parent = SampleAnalysis::query()
+                ->with('assayRecord')
+                ->where('sample', $analysis->sample)
+                ->find($calculation['meta_parent']);
+
+            if ($parent !== null && is_array($parent->storedResult)) {
+                $confirmationOwner = $parent;
+                AnalysisResultCalculated::dispatch((int) $parent->sample, $parent->id, $parent->storedResult);
+            }
+        }
+
         if (! $wasDecisionRequired && ($calculation['confirmation']['decision_required'] ?? false) === true) {
             ConfirmationDecisionRequired::dispatch(
                 (int) $analysis->sample,
-                $analysis->id,
-                (string) ($analysis->assayRecord?->name ?? 'Analyse'),
+                $confirmationOwner->id,
+                (string) ($confirmationOwner->assayRecord?->name ?? 'Analyse'),
                 (string) ($calculation['confirmation']['mode'] ?? 'global'),
             );
         }

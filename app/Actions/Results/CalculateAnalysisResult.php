@@ -22,6 +22,8 @@ class CalculateAnalysisResult
         private ResultCalculationCache $cache,
         private ResolveConfirmationDecision $resolveConfirmation,
         private ApplyConfirmationWorkflowToResult $applyConfirmation,
+        private GetMetaAnalysisResults $metaResults,
+        private GetMetaAnalysisParent $metaParent,
     ) {}
 
     public function handle(SampleAnalysis $analysis): array
@@ -44,13 +46,14 @@ class CalculateAnalysisResult
                 return $analysis->storedResult;
             }
 
-            if (($analysis->storedResult['confirmation']['decision_required'] ?? false) === true) {
-                return $analysis->storedResult;
-            }
-
             $context = $this->calculationContext($analysis);
 
             $calculator = $this->calculations->resolve($context->assay);
+
+            if (($analysis->storedResult['confirmation']['decision_required'] ?? false) === true
+                && $this->cache->isCurrent($analysis->storedResult, $context, $calculator)) {
+                return $analysis->storedResult;
+            }
 
             if (! $this->resultsComplete->handle($context, $calculator)) {
                 $calculation = $calculator instanceof HandlesIncompleteResults
@@ -104,7 +107,17 @@ class CalculateAnalysisResult
             throw new LogicException("Sample analysis [{$analysis->id}] has roaming settings for a different analysis.");
         }
 
-        return new ResultCalculationContext($analysis, $assay, $settings);
+        if ((int) $assay->type === 4) {
+            $analysis->loadMissing('sampleRecord');
+        }
+
+        return new ResultCalculationContext(
+            $analysis,
+            $assay,
+            $settings,
+            metaResults: (int) $assay->type === 4 ? $this->metaResults->handle($analysis) : [],
+            metaParent: $this->metaParent->handle($analysis),
+        );
     }
 
     private function incompleteResult(): array
