@@ -116,7 +116,7 @@ async function testProfile() {
                 <details v-for="reference in [{ key: 'labelDesigns', name: 'Labelontwerpen' }, { key: 'printers', name: 'Printers' }]" :key="reference.key" class="min-w-0 border-t border-[var(--line)] pt-3">
                     <summary class="cursor-pointer font-semibold">{{ reference.name }} <span class="muted">({{ options[reference.key].length }})</span></summary>
                     <div class="mt-3 max-h-64 overflow-auto">
-                        <DataTable :value="options[reference.key]" table-class="data-table" :unstyled="true">
+                        <DataTable :value="options[reference.key]">
                             <Column field="id" header="ID" />
                             <Column field="name" header="Naam"><template #body="{ data }"><span class="whitespace-normal break-words">{{ data.name }}</span></template></Column>
                             <template #empty><span class="muted">Geen gegevens beschikbaar.</span></template>

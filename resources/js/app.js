@@ -8,7 +8,7 @@ import AssuranceFormViewer from './components/AssuranceFormViewer.vue';
 import OpenVue from 'openvue/config';
 import ConfirmationService from 'openvue/confirmationservice';
 import ToastService from 'openvue/toastservice';
-import Aura from '@openvue/themes/aura';
+import mesaTheme from './theme';
 import ClientCategoryForm from './components/ClientCategoryForm.vue';
 import ClientCategoryManager from './components/ClientCategoryManager.vue';
 import ClientDirectory from './components/ClientDirectory.vue';
@@ -46,7 +46,7 @@ import { SfxPlugin } from './sfx';
 const app = createApp({});
 
 app.use(createPinia());
-app.use(OpenVue, { theme: { preset: Aura } });
+app.use(OpenVue, mesaTheme);
 app.use(ConfirmationService);
 app.use(ToastService);
 app.use(SfxPlugin);

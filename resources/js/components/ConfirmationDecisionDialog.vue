@@ -23,7 +23,7 @@ watch(
 </script>
 
 <template>
-    <Dialog :visible="!!store.decisionPrompt && !store.readOnly" modal :draggable="false" :dismissable-mask="false" :close-on-escape="false" :closable="false" :show-header="false" :block-scroll="true" :unstyled="true" :pt="dialogPassThrough">
+    <Dialog :visible="!!store.decisionPrompt && !store.readOnly" modal :draggable="false" :dismissable-mask="false" :close-on-escape="false" :closable="false" :show-header="false" :block-scroll="true" :pt="dialogPassThrough">
         <div class="grid gap-[18px] p-5">
             <h2 id="confirmation-decision-title" class="m-0 text-[17px]">Bevestiging nodig</h2>
             <p class="m-0 text-[var(--muted)]">Deze analyse kan worden bevestigd. Wil je de bevestiging inschakelen?</p>

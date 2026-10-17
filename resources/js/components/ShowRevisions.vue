@@ -88,7 +88,7 @@ onBeforeUnmount(() => controller?.abort());
         <p v-if="loading" class="empty-state" role="status">Revisies laden...</p>
         <p v-else-if="error" class="error-text" role="alert">{{ error }} <button class="button" type="button" @click="load"><RefreshCw :size="14" />Opnieuw proberen</button></p>
         <div v-else class="table-scroll revision-table-scroll">
-            <DataTable :value="revisions" data-key="id" table-class="data-table revision-table" :unstyled="true">
+            <DataTable :value="revisions" data-key="id" table-class="revision-table">
                 <Column header="Datum"><template #body="{ data }"><span class="revision-date">{{ date(data.timestamp) }}</span></template></Column>
                 <Column field="user_name" header="Gebruiker" />
                 <Column header="Wijziging"><template #body="{ data }"><strong>{{ data.type_label }}</strong><div>{{ data.event }}</div><small v-if="data.sample || data.said">{{ data.sample ? `Monster #${data.sample}` : '' }} {{ data.said ? `Analyse #${data.said}` : '' }}</small></template></Column>

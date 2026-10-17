@@ -33,6 +33,16 @@ class ManualLabelPrintingRequest extends FormRequest
             return ['confirmation_token' => ['required', 'uuid']];
         }
 
+        if ($this->input('mode') === 'legionella') {
+            return [
+                'mode' => ['required', Rule::in(['legionella'])],
+                'leg_from' => ['required', 'integer', 'min:0'],
+                'leg_to' => ['required', 'integer', 'min:0', 'gte:leg_from'],
+                'leg_matrix' => ['required', Rule::in(['A', 'B', 'C'])],
+                'leg_printer' => ['required', 'integer', Rule::exists(Printer::class, 'id')],
+            ];
+        }
+
         return [
             'mode' => ['required', Rule::in(['scan', 'date_range', 'sample_range'])],
             'barcode' => ['exclude_unless:mode,scan', 'required', 'string', 'max:64', 'regex:/^[^.]+(?:\.\d+){0,2}$/'],
@@ -64,6 +74,14 @@ class ManualLabelPrintingRequest extends FormRequest
     {
         return [function (Validator $validator): void {
             if ($validator->errors()->isNotEmpty() || $this->filled('confirmation_token')) {
+                return;
+            }
+
+            if ($this->input('mode') === 'legionella') {
+                if ($this->integer('leg_to') - $this->integer('leg_from') > 300) {
+                    $validator->errors()->add('leg_to', 'Het bereik mag maximaal 301 nummers bevatten.');
+                }
+
                 return;
             }
 

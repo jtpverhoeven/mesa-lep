@@ -3,6 +3,7 @@
 namespace App\Actions\Printing;
 
 use App\Actions\PrintProfiles\BuildPrintProfilePlan;
+use App\Models\Cvar;
 use App\Models\LabelDesign;
 use App\Models\Printer;
 use App\Models\PrintProfile;
@@ -27,6 +28,10 @@ class BuildManualLabelPrintPlan
      */
     public function handle(array $options, string $currentUser): array
     {
+        if (($options['mode'] ?? null) === 'legionella') {
+            return $this->legionella($options, $currentUser);
+        }
+
         $clock = CarbonImmutable::instance(now());
         $offset = (int) $clock->startOfDay()->diffInDays(CarbonImmutable::createFromFormat('!Y-m-d', $options['date_offset']), false);
         $designs = LabelDesign::query()->orderBy('id')->get()->keyBy('id');
@@ -120,6 +125,63 @@ class BuildManualLabelPrintPlan
         }
 
         return ['labels' => $labels, 'total_labels' => $total, 'sample_count' => $sampleCount];
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array{labels: list<array<string, mixed>>, total_labels: int, sample_count: int}
+     */
+    private function legionella(array $options, string $currentUser): array
+    {
+        $setting = Cvar::query()->where('cvar', 'GENERIC_LEGIONELLA_LABEL_ID')->first();
+        $design = LabelDesign::query()->find((int) ($setting?->value ?? $setting?->default ?? 0));
+
+        if ($design === null || trim($design->zpl) === '') {
+            throw new InvalidArgumentException('Stel GENERIC_LEGIONELLA_LABEL_ID in op een bestaand labelontwerp met ZPL.');
+        }
+
+        $series = match ($options['leg_matrix']) {
+            'A' => [
+                ['BCYE +', 'KOUD', 2], ['BCYE +', 'ZUUR', 7], ['BCYE +', 'WARM', 5],
+                ['BCYE', 'KOUD', 1], ['BCYE', 'ZUUR', 6], ['BCYE', 'WARM', 4],
+                ['BCYE -', 'KOUD', 3],
+            ],
+            'B' => [['MWY', 'KOUD', 1], ['MWY', 'ZUUR', 3], ['MWY', 'WARM', 2]],
+            'C' => [['MWY', 'WARM/ZUUR', 1]],
+        };
+        $replicates = match ($options['leg_matrix']) {
+            'A' => 1,
+            'B' => 2,
+            'C' => 20,
+        };
+        $clock = CarbonImmutable::instance(now());
+        $labels = [];
+        $bytes = strlen($this->settings->handle()['alignment']);
+
+        foreach (range((int) $options['leg_from'], (int) $options['leg_to']) as $number) {
+            $shortCode = 'L'.$options['leg_matrix'].$number;
+
+            foreach ($series as [$media, $seriesType, $follow]) {
+                for ($replicate = 1; $replicate <= $replicates; $replicate++) {
+                    $zpl = $this->render->handle(strtr($design->zpl, [
+                        '{barcode}' => $shortCode.'.'.$follow.'.'.$replicate,
+                        '{short_code}' => $shortCode.($options['leg_matrix'] === 'C' ? '       '.$replicate : ''),
+                        '{media}' => $media,
+                        '{series_type}' => $seriesType,
+                        '{temperature}' => '',
+                    ]), [], $clock, 0, $currentUser);
+                    $bytes += strlen($zpl);
+
+                    if ($bytes > (int) config('printing.max_spool_bytes', 16 * 1024 * 1024)) {
+                        throw new InvalidArgumentException('De printopdracht overschrijdt de spoollimiet. Kies een kleiner bereik.');
+                    }
+
+                    $labels[] = ['event_id' => 0, 'print_label' => $design->id, 'print_to' => (int) $options['leg_printer'], 'copies' => 1, 'zpl' => $zpl];
+                }
+            }
+        }
+
+        return ['labels' => $labels, 'total_labels' => count($labels), 'sample_count' => (int) $options['leg_to'] - (int) $options['leg_from'] + 1];
     }
 
     private function design(Collection $designs, int|string $selected, string $default): ?LabelDesign

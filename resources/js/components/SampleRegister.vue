@@ -77,8 +77,7 @@ function confirmOverwrite(message) {
             message,
             acceptLabel: 'Opnieuw opslaan',
             rejectLabel: 'Annuleren',
-            acceptClass: 'button primary',
-            rejectClass: 'button',
+            rejectProps: { severity: 'secondary' },
             defaultFocus: 'reject',
             blockScroll: true,
             accept: () => finish(true),
@@ -395,7 +394,7 @@ onBeforeUnmount(() => observer?.disconnect());
             </aside>
         </div>
         <ContextMenu ref="sampleContextMenu" :model="sampleContextMenuItems" :pt="sampleContextMenuPassThrough" />
-        <ConfirmDialog :draggable="false" :unstyled="true" :pt="overwriteConfirmPassThrough" />
+        <ConfirmDialog :draggable="false" :pt="overwriteConfirmPassThrough" />
         <AppDialog v-model:visible="locationDialogOpen" :title="locationDialogTitle" width="560px">
             <p>Bij registreren van een monster wordt {{ locationDialogLabel.toLowerCase() }} ingesteld op:</p>
             <label class="field" for="sample-register-location"><span>{{ locationDialogLabel }}</span><input id="sample-register-location" v-model="locationDraft" type="text" maxlength="5" autocomplete="off" autofocus></label>

@@ -72,7 +72,7 @@ defineExpose({ editProfileAssay, editRoaming });
         <p v-if="store.error" class="error-text research-error">{{ store.error }}</p>
     </div>
 
-    <Dialog :visible="store.pendingConflict !== null" modal :draggable="false" :dismissable-mask="false" :close-on-escape="false" :closable="false" :block-scroll="true" :unstyled="true" :pt="conflictDialogPassThrough" @update:visible="store.pendingConflict = null">
+    <Dialog :visible="store.pendingConflict !== null" modal :draggable="false" :dismissable-mask="false" :close-on-escape="false" :closable="false" :block-scroll="true" :pt="conflictDialogPassThrough" @update:visible="store.pendingConflict = null">
         <template #header>
             <div><small class="block text-[10px] text-[var(--muted)]">Dubbele analyse</small><h3 id="conflict-title" class="m-0 text-[15px]">Keuze vereist</h3></div>
             <AlertTriangle :size="20" />

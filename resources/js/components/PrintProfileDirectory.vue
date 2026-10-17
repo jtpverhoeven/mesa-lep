@@ -49,12 +49,12 @@ function deleteProfile() {
             <label class="directory-search">
                 <Search :size="16" aria-hidden="true" />
                 <span class="sr-only">Printprofielen zoeken</span>
-                <InputText v-model="filters.global.value" type="search" placeholder="Zoek printprofiel" autocomplete="off" :unstyled="true" />
+                <InputText v-model="filters.global.value" type="search" placeholder="Zoek printprofiel" autocomplete="off" />
             </label>
             <span class="muted tabular-nums">{{ profiles.length }} profielen</span>
         </div>
         <div class="table-scroll">
-            <DataTable v-model:filters="filters" :value="profiles" data-key="id" :global-filter-fields="['name', 'id']" sort-field="name" :sort-order="1" table-class="data-table" :unstyled="true">
+            <DataTable v-model:filters="filters" :value="profiles" data-key="id" :global-filter-fields="['name', 'id']" sort-field="name" :sort-order="1">
                 <Column field="id" header="#" sortable><template #body="{ data }"><span class="muted tabular-nums">{{ data.id }}</span></template></Column>
                 <Column field="name" header="Printprofiel" sortable><template #body="{ data }"><a :href="url(editUrl, data)" class="font-semibold break-words">{{ data.name }}</a></template></Column>
                 <Column header="Acties">

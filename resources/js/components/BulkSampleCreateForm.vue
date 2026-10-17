@@ -56,7 +56,7 @@ onMounted(async () => {
                         <button v-if="store.clientDetails?.notes || store.clientDetails?.files.length" class="button wide" type="button" @click="particularsVisible = true"><CircleAlert :size="16" />Eisen / bijzonderheden</button>
                     </div></section>
                     <section class="sample-panel"><h2><Tag :size="16" />Monsterinformatie</h2><div class="sample-panel-body form-grid">
-                        <div class="field wide"><label for="bulk-sample-count">Aantal monsters</label><InputNumber input-id="bulk-sample-count" :model-value="store.count" :min="0" :use-grouping="false" unstyled @input="store.resizeRows($event.value)" @blur="store.resizeRows($event.value)" @update:model-value="store.resizeRows($event)" /></div>
+                        <div class="field wide"><label for="bulk-sample-count">Aantal monsters</label><InputNumber input-id="bulk-sample-count" :model-value="store.count" :min="0" :use-grouping="false" @input="store.resizeRows($event.value)" @blur="store.resizeRows($event.value)" @update:model-value="store.resizeRows($event)" /></div>
                         <div v-if="!store.legionella" class="field wide"><label for="bulk-sampling-method">Monstername</label><select id="bulk-sampling-method" v-model="store.form.sampling_method"><option v-for="method in store.samplingMethods" :key="method.id" :value="method.id">{{ method.name }}</option></select></div>
                     </div></section>
                     <section class="sample-panel"><h2><BriefcaseBusiness :size="16" />Projectinformatie</h2><div class="sample-panel-body form-grid">

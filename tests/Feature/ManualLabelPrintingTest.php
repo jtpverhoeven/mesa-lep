@@ -32,6 +32,195 @@ class ManualLabelPrintingTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    #[DataProvider('legionellaMatrices')]
+    public function test_legionella_prints_legacy_label_data_from_the_configured_design(string $matrix, array $expected): void
+    {
+        [$printer] = $this->legionellaFixtures();
+        $this->actingAs($this->operator());
+        Queue::fake();
+
+        $this->postJson(route('printing.store'), [
+            'mode' => 'legionella', 'leg_from' => 12, 'leg_to' => 12, 'leg_matrix' => $matrix, 'leg_printer' => $printer->id,
+        ])->assertAccepted()->assertJsonPath('total_labels', count($expected))->assertJsonPath('sample_count', 1);
+
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        $spool = Queue::pushed(SendLabelPrinterSpoolJob::class)->sole();
+        $this->assertSame($printer->id, $spool->printerId);
+        $this->assertSame(implode(';', $expected).';', $spool->zpl);
+    }
+
+    public static function legionellaMatrices(): array
+    {
+        return [
+            'A' => ['A', [
+                'LA12.2.1|LA12|BCYE +|KOUD|',
+                'LA12.7.1|LA12|BCYE +|ZUUR|',
+                'LA12.5.1|LA12|BCYE +|WARM|',
+                'LA12.1.1|LA12|BCYE|KOUD|',
+                'LA12.6.1|LA12|BCYE|ZUUR|',
+                'LA12.4.1|LA12|BCYE|WARM|',
+                'LA12.3.1|LA12|BCYE -|KOUD|',
+            ]],
+            'B' => ['B', [
+                'LB12.1.1|LB12|MWY|KOUD|',
+                'LB12.1.2|LB12|MWY|KOUD|',
+                'LB12.3.1|LB12|MWY|ZUUR|',
+                'LB12.3.2|LB12|MWY|ZUUR|',
+                'LB12.2.1|LB12|MWY|WARM|',
+                'LB12.2.2|LB12|MWY|WARM|',
+            ]],
+            'C' => ['C', [
+                'LC12.1.1|LC12       1|MWY|WARM/ZUUR|',
+                'LC12.1.2|LC12       2|MWY|WARM/ZUUR|',
+                'LC12.1.3|LC12       3|MWY|WARM/ZUUR|',
+                'LC12.1.4|LC12       4|MWY|WARM/ZUUR|',
+                'LC12.1.5|LC12       5|MWY|WARM/ZUUR|',
+                'LC12.1.6|LC12       6|MWY|WARM/ZUUR|',
+                'LC12.1.7|LC12       7|MWY|WARM/ZUUR|',
+                'LC12.1.8|LC12       8|MWY|WARM/ZUUR|',
+                'LC12.1.9|LC12       9|MWY|WARM/ZUUR|',
+                'LC12.1.10|LC12       10|MWY|WARM/ZUUR|',
+                'LC12.1.11|LC12       11|MWY|WARM/ZUUR|',
+                'LC12.1.12|LC12       12|MWY|WARM/ZUUR|',
+                'LC12.1.13|LC12       13|MWY|WARM/ZUUR|',
+                'LC12.1.14|LC12       14|MWY|WARM/ZUUR|',
+                'LC12.1.15|LC12       15|MWY|WARM/ZUUR|',
+                'LC12.1.16|LC12       16|MWY|WARM/ZUUR|',
+                'LC12.1.17|LC12       17|MWY|WARM/ZUUR|',
+                'LC12.1.18|LC12       18|MWY|WARM/ZUUR|',
+                'LC12.1.19|LC12       19|MWY|WARM/ZUUR|',
+                'LC12.1.20|LC12       20|MWY|WARM/ZUUR|',
+            ]],
+        ];
+    }
+
+    public function test_legionella_range_is_inclusive_and_independent_of_sample_options(): void
+    {
+        [$printer, $design] = $this->legionellaFixtures();
+        Cvar::query()->where('cvar', 'GENERIC_LEGIONELLA_LABEL_ID')->update(['value' => null, 'default' => (string) $design->id]);
+        $this->actingAs($this->operator());
+        Queue::fake();
+
+        $this->postJson(route('printing.store'), [
+            'mode' => 'legionella', 'leg_from' => 12, 'leg_to' => 13, 'leg_matrix' => 'B', 'leg_printer' => $printer->id,
+            'date_offset' => 'invalid', 'duplicate_label' => true, 'print_sample' => true, 'profile_ids' => [99999], 'printer' => 99999,
+        ])->assertAccepted()->assertJsonPath('total_labels', 12)->assertJsonPath('sample_count', 2);
+
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        $spool = Queue::pushed(SendLabelPrinterSpoolJob::class)->sole();
+        $this->assertSame($printer->id, $spool->printerId);
+        $this->assertStringStartsWith('LB12.1.1|LB12|MWY|KOUD|;', $spool->zpl);
+        $this->assertStringEndsWith('LB13.2.2|LB13|MWY|WARM|;', $spool->zpl);
+        $this->assertSame(12, substr_count($spool->zpl, ';'));
+    }
+
+    public function test_legionella_maximum_legacy_range_requires_single_use_confirmation_of_the_rendered_snapshot(): void
+    {
+        [$printer, $design] = $this->legionellaFixtures();
+        $this->actingAs($this->operator());
+        Queue::fake();
+
+        $response = $this->postJson(route('printing.store'), [
+            'mode' => 'legionella', 'leg_from' => 0, 'leg_to' => 300, 'leg_matrix' => 'A', 'leg_printer' => $printer->id,
+        ])->assertConflict()->assertJsonPath('confirmation_required', true)->assertJsonPath('total_labels', 2107)->assertJsonPath('sample_count', 301);
+
+        Queue::assertNothingPushed();
+        $design->update(['zpl' => 'CHANGED']);
+        $token = $response->json('confirmation_token');
+        $this->postJson(route('printing.store'), ['confirmation_token' => $token])->assertAccepted()->assertJsonPath('total_labels', 2107);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+        $zpl = Queue::pushed(SendLabelPrinterSpoolJob::class)->sole()->zpl;
+        $this->assertStringStartsWith('LA0.2.1|LA0|BCYE +|KOUD|;', $zpl);
+        $this->assertStringEndsWith('LA300.3.1|LA300|BCYE -|KOUD|;', $zpl);
+        $this->assertSame(2107, substr_count($zpl, ';'));
+        $this->postJson(route('printing.store'), ['confirmation_token' => $token])->assertUnprocessable()->assertJsonValidationErrors('confirmation_token');
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
+    }
+
+    public function test_disabled_legionella_printing_does_not_queue_labels(): void
+    {
+        [$printer] = $this->legionellaFixtures();
+        Cvar::create(['cvar' => 'MESA_DISABLE_PRINTING', 'value' => '1', 'default' => '0', 'description' => 'Disable']);
+        $this->actingAs($this->operator());
+        Queue::fake();
+
+        $this->postJson(route('printing.store'), [
+            'mode' => 'legionella', 'leg_from' => 12, 'leg_to' => 12, 'leg_matrix' => 'A', 'leg_printer' => $printer->id,
+        ])->assertAccepted()->assertJsonPath('disabled', true);
+
+        Queue::assertNothingPushed();
+    }
+
+    #[DataProvider('invalidLegionellaOptions')]
+    public function test_invalid_legionella_options_return_422_without_queueing(array $changes, string $error): void
+    {
+        [$printer] = $this->legionellaFixtures();
+        $this->actingAs($this->operator());
+        Queue::fake();
+
+        $this->postJson(route('printing.store'), array_replace([
+            'mode' => 'legionella', 'leg_from' => 12, 'leg_to' => 12, 'leg_matrix' => 'A', 'leg_printer' => $printer->id,
+        ], $changes))->assertUnprocessable()->assertJsonValidationErrors($error);
+
+        Queue::assertNothingPushed();
+    }
+
+    public static function invalidLegionellaOptions(): array
+    {
+        return [
+            'missing start' => [['leg_from' => null], 'leg_from'],
+            'missing stop' => [['leg_to' => null], 'leg_to'],
+            'missing matrix' => [['leg_matrix' => null], 'leg_matrix'],
+            'missing printer' => [['leg_printer' => null], 'leg_printer'],
+            'barcode instead of number' => [['leg_from' => 'LA12'], 'leg_from'],
+            'negative number' => [['leg_from' => -1], 'leg_from'],
+            'fractional number' => [['leg_to' => 12.5], 'leg_to'],
+            'reversed range' => [['leg_to' => 11], 'leg_to'],
+            'range too large' => [['leg_to' => 313], 'leg_to'],
+            'unknown matrix' => [['leg_matrix' => 'D'], 'leg_matrix'],
+            'unknown printer' => [['leg_printer' => 99999], 'leg_printer'],
+        ];
+    }
+
+    #[DataProvider('invalidLegionellaConfigurations')]
+    public function test_invalid_legionella_configuration_returns_422_without_queueing(string $value, string $zpl): void
+    {
+        [$printer, $design] = $this->legionellaFixtures();
+        $design->update(['zpl' => $zpl]);
+        Cvar::query()->where('cvar', 'GENERIC_LEGIONELLA_LABEL_ID')->update(['value' => $value === 'configured' ? (string) $design->id : $value]);
+        $this->actingAs($this->operator());
+        Queue::fake();
+
+        $this->postJson(route('printing.store'), [
+            'mode' => 'legionella', 'leg_from' => 12, 'leg_to' => 12, 'leg_matrix' => 'A', 'leg_printer' => $printer->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('options');
+
+        Queue::assertNothingPushed();
+    }
+
+    public static function invalidLegionellaConfigurations(): array
+    {
+        return [
+            'unconfigured design' => ['0', 'LABEL'],
+            'deleted design' => ['99999', 'LABEL'],
+            'empty ZPL' => ['configured', '   '],
+        ];
+    }
+
+    public function test_legionella_spool_limit_prevents_partial_dispatch(): void
+    {
+        [$printer] = $this->legionellaFixtures();
+        config(['printing.max_spool_bytes' => 40]);
+        $this->actingAs($this->operator());
+        Queue::fake();
+
+        $this->postJson(route('printing.store'), [
+            'mode' => 'legionella', 'leg_from' => 12, 'leg_to' => 12, 'leg_matrix' => 'A', 'leg_printer' => $printer->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('options');
+
+        Queue::assertNothingPushed();
+    }
+
     public function test_barcode_range_is_inclusive_id_based_and_accepts_reversed_plate_barcodes(): void
     {
         $first = $this->sample(['barcode' => 'S260009']);
@@ -387,6 +576,18 @@ class ManualLabelPrintingTest extends TestCase
         $user->assignRole($role);
 
         return $user;
+    }
+
+    /** @return array{Printer, LabelDesign} */
+    private function legionellaFixtures(): array
+    {
+        $printer = Printer::factory()->create();
+        $design = LabelDesign::factory()->create(['zpl' => '{barcode}|{short_code}|{media}|{series_type}|{temperature};']);
+        Cvar::updateOrCreate(['cvar' => 'GENERIC_LEGIONELLA_LABEL_ID'], [
+            'value' => (string) $design->id, 'default' => '0', 'description' => 'Legionellalabel',
+        ]);
+
+        return [$printer, $design];
     }
 
     /** @return array{Sample, LabelDesign, LabelDesign, Printer} */

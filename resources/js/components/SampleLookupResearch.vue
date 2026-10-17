@@ -49,7 +49,7 @@ const groups = computed(() => {
             </section>
         </div>
     </section>
-    <Dialog v-model:visible="store.adding" modal :draggable="false" :dismissable-mask="false" :close-on-escape="!store.saving" :closable="false" :block-scroll="true" :unstyled="true" :pt="addDialogPassThrough">
+    <Dialog v-model:visible="store.adding" modal :draggable="false" :dismissable-mask="false" :close-on-escape="!store.saving" :closable="false" :block-scroll="true" :pt="addDialogPassThrough">
         <template #header><h3 id="lookup-add-title" class="m-0 text-[15px]">Onderzoek toevoegen · {{ store.data?.sample.barcode }}</h3><button class="icon-button" type="button" title="Sluiten" :disabled="store.saving" @click="store.adding = false"><X :size="18" /></button></template>
         <fieldset class="grid gap-4 p-[14px]" :disabled="store.saving">
             <SampleResearchSelector ref="selector" />
@@ -58,7 +58,7 @@ const groups = computed(() => {
         <p v-if="store.error" role="alert" class="px-[14px] pb-[14px] text-[11px] text-[#903e32]">{{ store.error }}</p>
         <template #footer><button class="button" type="button" :disabled="store.saving" @click="store.adding = false">Annuleren</button><button class="button primary" type="button" :disabled="store.saving || research.loading || !research.selected.length || !!research.pendingConflict" @click="store.mutate({ operation: 'add', analyses: research.payload })"><Plus :size="16" />{{ store.saving ? 'Opslaan...' : 'Toevoegen' }}</button></template>
     </Dialog>
-    <Dialog :visible="removing !== null" modal :draggable="false" :dismissable-mask="false" :close-on-escape="false" :closable="false" :block-scroll="true" :unstyled="true" :pt="removeDialogPassThrough" @update:visible="removing = null">
+    <Dialog :visible="removing !== null" modal :draggable="false" :dismissable-mask="false" :close-on-escape="false" :closable="false" :block-scroll="true" :pt="removeDialogPassThrough" @update:visible="removing = null">
         <template #header><h3 id="lookup-remove-title" class="m-0 text-[15px]">Analyse verwijderen</h3></template>
         <div class="p-[14px]">{{ removing?.name }} (SAID {{ removing?.id }}) verwijderen?</div>
         <template #footer><button class="button" type="button" @click="removing = null">Annuleren</button><button class="button danger" type="button" @click="store.mutate({ operation: 'remove', analysis_id: removing.id }); removing = null"><Trash2 :size="15" />Verwijderen</button></template>

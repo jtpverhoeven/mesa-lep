@@ -98,7 +98,7 @@ watch(() => [props.open, props.assay?.id, props.defaults], ([open]) => { if (ope
 </script>
 
 <template>
-    <Dialog :visible="open" modal :draggable="false" :dismissable-mask="true" :close-on-escape="false" :closable="false" :block-scroll="true" :unstyled="true" :pt="dialogPassThrough" @update:visible="emit('cancel')">
+    <Dialog :visible="open" modal :draggable="false" :dismissable-mask="true" :close-on-escape="false" :closable="false" :block-scroll="true" :pt="dialogPassThrough" @update:visible="emit('cancel')">
         <template #header>
             <div><small class="block text-[10px] text-[var(--muted)]">Losse analyse</small><h3 id="roaming-title" class="m-0 text-[15px]">{{ assay?.name }}</h3></div>
             <button class="icon-button" type="button" title="Sluiten" @click="emit('cancel')"><X :size="16" /></button>

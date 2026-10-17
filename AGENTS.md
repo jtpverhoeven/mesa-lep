@@ -181,3 +181,12 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Run `vendor/bin/sail bin phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 
 </laravel-boost-guidelines>
+
+## Shared Mesa UI Theme
+
+- OpenVue is registered once with the Mesa preset in `resources/js/theme.js` through `resources/js/app.js`. Use styled OpenVue components by default; do not add `unstyled`, copied Pass Through theme maps, or local CSS to recreate the application skin.
+- `resources/css/theme.css` owns the light/dark palette, typography, and control radius. Its Tailwind v4 tokens provide utilities such as `bg-surface`, `bg-surface-alt`, `text-ink`, `text-muted`, `border-line`, `border-control-border`, `text-accent`, and `rounded-control`. Use these instead of literal colors or repeated arbitrary-value utilities.
+- Set `data-theme="light"` or `data-theme="dark"` on the document element, not a page container. Tokens must also reach dialogs, menus, and dropdowns teleported to the document body.
+- Shared native Blade controls use `.button` (`.primary` for primary actions), `.icon-button`, `.field`, and `.form-control` from `resources/css/components.css`. Do not apply native button classes to styled OpenVue buttons; use their `severity` and `variant` props.
+- Change OpenVue visual defaults in the preset and shared native control rules in the Tailwind components layer. Use component-local styles or Pass Through only for genuinely local layout, accessibility attributes, and behavior. Keep existing shared `AppDialog`/dialog helpers for their application-specific sizing and behavior; do not copy their implementation into a page.
+- Preserve the compact LIMS shell and existing layout classes in `resources/css/app.css`. This is a theme, not a page redesign. Validate with `vendor/bin/sail npm run build` and check representative native and OpenVue controls, overlays, and focus/disabled/invalid states in both themes and narrow viewports.

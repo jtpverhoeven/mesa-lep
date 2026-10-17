@@ -15,31 +15,6 @@ const rows = ref(50);
 const totalRecords = ref(0);
 let searchTimeout;
 
-const paginatorButtonClass = 'grid h-[30px] min-w-[30px] place-items-center rounded-[2px] border border-[#9eabb2] bg-[var(--surface)] px-2 font-[inherit] text-[var(--accent)] transition-colors hover:bg-[var(--accent-faint)] disabled:cursor-not-allowed disabled:opacity-50';
-const paginatorPassThrough = {
-    root: { class: 'flex items-center justify-end border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2 text-[var(--muted)]' },
-    content: { class: 'flex w-full flex-wrap items-center justify-end gap-1' },
-    pages: { class: 'flex items-center gap-1' },
-    first: { class: paginatorButtonClass },
-    prev: { class: paginatorButtonClass },
-    next: { class: paginatorButtonClass },
-    last: { class: paginatorButtonClass },
-    firstIcon: { class: 'size-3' },
-    prevIcon: { class: 'size-3' },
-    nextIcon: { class: 'size-3' },
-    lastIcon: { class: 'size-3' },
-    page: { class: `${paginatorButtonClass} data-[p-active=true]:border-[var(--accent)] data-[p-active=true]:bg-[var(--accent)] data-[p-active=true]:font-bold data-[p-active=true]:text-white data-[p-active=true]:hover:bg-[var(--accent)]` },
-    pcRowPerPageDropdown: {
-        root: { class: 'relative flex h-[30px] min-w-[64px] items-center rounded-[2px] border border-[#9eabb2] bg-[var(--surface)] text-[var(--ink)] font-[inherit] transition-colors hover:border-[var(--accent)] focus-within:outline-2 focus-within:outline-[var(--accent)] focus-within:outline-offset-2' },
-        label: { class: 'flex-1 px-2 py-1 text-left' },
-        dropdown: { class: 'grid h-full w-7 place-items-center border-l border-[var(--line)] text-[var(--muted)]' },
-        dropdownIcon: { class: 'size-3' },
-        overlay: { class: 'z-50 overflow-hidden rounded-[2px] border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] shadow-lg' },
-        list: { class: 'm-0 max-h-60 list-none overflow-auto p-1' },
-        option: { class: 'cursor-pointer rounded-[2px] px-2 py-1 hover:bg-[var(--accent-faint)] data-[p-focused=true]:bg-[var(--accent-faint)] data-[p-selected=true]:font-bold' },
-    },
-};
-
 async function load(page = Math.floor(first.value / rows.value) + 1) {
     loading.value = true;
     error.value = '';
@@ -84,7 +59,7 @@ onMounted(load);
                 <label class="directory-toggle"><input v-model="hideDefaults" type="checkbox">Standaardgroepen verbergen</label>
             </div>
             <div class="table-scroll">
-                <DataTable :value="groups" :lazy="true" :loading="loading" :first="first" :rows="rows" :total-records="totalRecords" data-key="id" paginator :rows-per-page-options="[50, 100, 250]" table-class="data-table" :pt="{ pcPaginator: paginatorPassThrough }" :unstyled="true" @page="onPage">
+                <DataTable :value="groups" :lazy="true" :loading="loading" :first="first" :rows="rows" :total-records="totalRecords" data-key="id" paginator :rows-per-page-options="[50, 100, 250]" table-class="data-table" @page="onPage">
                     <Column field="name" header="Productgroep" />
                     <Column field="client" header="Klant" />
                     <Column field="portal_id" header="Portal ID" />

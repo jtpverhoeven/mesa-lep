@@ -131,11 +131,11 @@ async function testConnection() {
         </fieldset>
 
         <div class="form-actions">
-            <Button type="button" class="button" :unstyled="true" :disabled="busyAction !== null" @click="testConnection">
+            <Button type="button" severity="secondary" :disabled="busyAction !== null" @click="testConnection">
                 <PlugZap :size="15" aria-hidden="true" />
                 <span>{{ busyAction === 'test' ? 'Testen...' : 'Test verbinding' }}</span>
             </Button>
-            <Button type="submit" class="button primary" :unstyled="true" :disabled="busyAction !== null">
+            <Button type="submit" :disabled="busyAction !== null">
                 <Save :size="15" aria-hidden="true" />
                 <span>{{ busyAction === 'save' ? 'Opslaan...' : 'Opslaan' }}</span>
             </Button>

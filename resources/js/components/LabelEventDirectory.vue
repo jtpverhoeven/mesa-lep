@@ -107,16 +107,16 @@ function deleteRule() {
                 <input v-model="filters.global.value" type="search" placeholder="Zoek label, printer of voorwaarde" autocomplete="off">
             </label>
         </div>
-        <Tabs v-model:value="selectedGroup" class="label-rule-tabs" :unstyled="true">
-            <TabList :unstyled="true">
-                <Tab v-for="group in groups" :key="group.id" :value="group.id" :unstyled="true">
+        <Tabs v-model:value="selectedGroup" class="label-rule-tabs">
+            <TabList>
+                <Tab v-for="group in groups" :key="group.id" :value="group.id">
                     <span>{{ group.name }}</span><span class="muted tabular-nums">{{ groupedEvents[group.id].length }}</span>
                 </Tab>
             </TabList>
-            <TabPanels :unstyled="true">
-                <TabPanel v-for="group in groups" :key="group.id" :value="group.id" :unstyled="true">
+            <TabPanels>
+                <TabPanel v-for="group in groups" :key="group.id" :value="group.id">
                     <div class="table-scroll">
-                        <DataTable v-model:filters="filters" :value="groupedEvents[group.id]" data-key="id" :global-filter-fields="['label_design.name', 'printer.name', 'description']" sort-field="id" :sort-order="1" table-class="data-table" :unstyled="true">
+                        <DataTable v-model:filters="filters" :value="groupedEvents[group.id]" data-key="id" :global-filter-fields="['label_design.name', 'printer.name', 'description']" sort-field="id" :sort-order="1">
                             <Column field="id" header="#" sortable><template #body="{ data }"><span class="muted tabular-nums">{{ data.id }}</span></template></Column>
                             <Column field="description" header="Voorwaarde"><template #body="{ data }"><span class="rule-description">{{ data.description }}</span></template></Column>
                             <Column field="label_design.name" header="Labelontwerp" sortable><template #body="{ data }"><strong v-if="data.label_design">{{ data.label_design.name }}</strong><span v-else class="error-text">Ontwerp ontbreekt</span></template></Column>
@@ -143,10 +143,6 @@ function deleteRule() {
 </template>
 
 <style scoped>
-.label-rule-tabs :deep([data-pc-section='tablist']) { display:flex; gap:4px; border-bottom:1px solid var(--line); }
-.label-rule-tabs :deep([data-pc-name='tab']) { display:flex; align-items:center; gap:10px; min-height:43px; padding:10px 14px; border-bottom:2px solid transparent; color:var(--muted); font:inherit; font-weight:600; cursor:pointer; }
-.label-rule-tabs :deep([data-pc-name='tab'][aria-selected='true']) { border-color:var(--accent); color:var(--accent); background:var(--accent-faint); }
-.label-rule-tabs :deep([data-pc-section='activebar']) { display:none; }
 .rule-description { display:block; min-width:180px; max-width:440px; white-space:normal; overflow-wrap:anywhere; }
 @media (max-width:640px) { .label-rule-tabs :deep([data-pc-name='tab']) { flex:1; justify-content:center; flex-wrap:wrap; gap:4px; padding:8px; text-align:center; } }
 </style>

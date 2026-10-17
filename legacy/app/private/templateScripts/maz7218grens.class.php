@@ -249,21 +249,16 @@ class maz7218grens extends calculation
 
         if($result == '+' || $result == '1' || $result == '>' || $result == 'J' || $result == 'Y') {
 
-            //$this->output['output'][$this->reportIn] = 'Verdacht';
-            //$this->output['outputEn'][$this->reportIn] = 'Suspected';
+          
             $this->borderResult = 1;
             $this->disposition[$this->reportIn] = '+';
 
 
 
-        } elseif($result =='-' || $result =='0' || $result =='N'){
-            //$this->output['output'][$this->reportIn] = 'Niet aangetoond';
-            //$this->output['outputEn'][$this->reportIn] = 'Not detected';
+        } elseif($result =='-' || $result =='0' || $result =='N'){            
             $this->borderResult = 0;
             $this->disposition[$this->reportIn] = '-';
-        } else{
-            //$this->output['output'][$this->reportIn] = 'Niet afgerond';
-            //$this->output['outputEn'][$this->reportIn] = 'Niet afgerond';
+        } else{            
             $this->borderResult = 3;
             $this->disposition[$this->reportIn] = '+';
         }
@@ -276,9 +271,7 @@ class maz7218grens extends calculation
 
         $this->_log('simple with conf $result', $result);
 
-        if($result == '-' || $result == '0' || $result == '<'   || $result == 'N' ){
-            //$this->output['output'][$this->reportIn] = 'Niet aangetoond';
-            //$this->output['outputEn'][$this->reportIn] = 'Not detected';
+        if($result == '-' || $result == '0' || $result == '<'   || $result == 'N' ){            
             $this->borderResult = 0;
             $this->disposition[$this->reportIn] = '-';
         }
@@ -301,146 +294,13 @@ class maz7218grens extends calculation
         } else{
 
             $this->borderResult = 3;
-            //$this->output['output'][$this->reportIn] = 'Niet afgerond';
-            //$this->output['outputEn'][$this->reportIn] = 'Niet afgerond';
+           
         }
 
     }
 
-    private function checkGlobalSalmonellaConfirmation(){
-
-
-
-      // $nBeginChain = 0;
-      // $nEndChain = False;
-      // $confirmedEndChain = 0;
-      //
-      // $chainEnd = count($this->confirmationMethods);
-      //
-      // if (array_key_exists(1, $this->confirmationData))  {
-      //     $thisConfMethod = $this->confirmationMethods[0];
-      //     $nBeginChain = $this->confirmationData[1][$thisConfMethod['mediaId'] . '_n'];
-      // }
-      //
-      // $investigatePrior = False;
-      // if (array_key_exists($chainEnd, $this->confirmationData)) {
-      //     $thisConfMethod = end($this->confirmationMethods);
-      //     $endOfChainDisposition = $thisConfMethod['disposition'];
-      //     $nEndChain = $this->confirmationData[$chainEnd][$thisConfMethod['mediaId']  . '_n'];
-      //     $confirmedEndChainTested = $this->confirmationData[$chainEnd][$thisConfMethod['mediaId']  . '_n'];
-      //     $confirmedEndChain = $this->confirmationData[$chainEnd][$thisConfMethod['mediaId']  . '_pos'];
-      //
-      //     if($confirmedEndChainTested == 0){
-      //       $investigatePrior = True;
-      //     }
-      //
-      // } else{
-      //     $investigatePrior = True;
-      // }
-      //
-      //     //we want to emulate the second to last conf method as chain end,
-      //     //EXCEPT if its zero. Because then we need to use the
-      //     //last chain link
-      // if($investigatePrior == True){
-      //   $chainEndPrior = $chainEnd  - 1;
-      //   $confMethodId = $chainEnd - 2; //need to do minus to as the conf data array is from 1 - ... & confMethods array is from 0 - ...
-      //
-      //   if (array_key_exists($chainEndPrior, $this->confirmationData)) {
-      //       $thisConfMethod = $this->confirmationMethods[$confMethodId];
-      //       $endOfChainDisposition = $thisConfMethod['disposition'];
-      //       $nEndChain = $this->confirmationData[$chainEndPrior][$thisConfMethod['mediaId']  . '_n'];
-      //       $confirmedEndChainTested = $this->confirmationData[$chainEndPrior][$thisConfMethod['mediaId']  . '_n'];
-      //       $confirmedEndChain = $this->confirmationData[$chainEndPrior][$thisConfMethod['mediaId']  . '_pos'];
-      //
-      //       //reset end chain if was zero
-      //       if($confirmedEndChain == 0 || $confirmedEndChain == '' || $confirmedEndChain == False){
-      //         $nEndChain = False;
-      //         $confirmedEndChain = 0;
-      //       }
-      //   }
-      // }
-      //
-      //
-      // if ($nBeginChain == 0 || ($nEndChain === False || $nEndChain == '')) {
-      //
-      //     //check chain interrupted
-      //     $chainInterrupted = False;
-      //     reset($this->confirmationMethods);
-      //
-      //     foreach ($this->confirmationMethods as $chainI => $cfMethod) {
-      //
-      //         if (array_key_exists($chainI + 1, $this->confirmationData)) {
-      //             $chainI = $chainI + 1;
-      //             $thisChainDisposition = $cfMethod['disposition'];
-      //
-      //             if( !array_key_exists($cfMethod['mediaId'] . '_pos', $this->confirmationData[$chainI]) ||
-      //                 !array_key_exists($cfMethod['mediaId'] . '_n', $this->confirmationData[$chainI])){
-      //                     $chainInterrupted = False;
-      //             }
-      //
-      //             $thisConfirmed = $this->confirmationData[$chainI][$cfMethod['mediaId'] . '_pos'];
-      //             $thisTested = $this->confirmationData[$chainI][$cfMethod['mediaId'] . '_n'];
-      //
-      //             if ($thisChainDisposition == '-' && $thisConfirmed != '' && $thisConfirmed > 0 && $chainI != 6) {
-      //                 $chainInterrupted = True;
-      //             } elseif ($thisChainDisposition != '-' && $thisConfirmed != '' && $thisConfirmed == 0 ) {
-      //               if($chainI != 7){
-      //                 //selectivly disable the interupt for chainI 7, which is the prior to last conf method
-      //                 //we still want to keep this as suspected for the next I.
-      //                 $chainInterrupted = True;
-      //               }
-      //
-      //             }
-      //         }
-      //     }
-      //
-      //     if($chainInterrupted == True){
-      //         //$this->output['output'][$this->reportIn] = 'Niet aangetoond';
-      //         $this->disposition[$this->reportIn] = '-';
-      //         //$this->output['outputEn'][$this->reportIn] = 'Not detected';
-      //         $this->borderResult = 0;
-      //         $this->confCalcDone = True;
-      //     } else{
-      //         //$this->output['output'][$this->reportIn] = 'Verdacht';
-      //         $this->disposition[$this->reportIn] = '+';
-      //         //$this->output['outputEn'][$this->reportIn] = 'Suspected';
-      //         $this->borderResult = 3;
-      //         $this->confCalcDone = False;
-      //     }
-      //
-      // } else{
-      //     $this->confCalcDone = True;
-      //     if($endOfChainDisposition == '-'){
-      //
-      //         if($confirmedEndChain < $confirmedEndChainTested){
-      //             //$this->output['output'][$this->reportIn] = 'Aangetoond';
-      //             $this->disposition[$this->reportIn] = '+';
-      //             //$this->output['outputEn'][$this->reportIn] = 'Detected';
-      //
-      //             $this->borderResult = 1;
-      //         } else{
-      //             //$this->output['output'][$this->reportIn] = 'Niet aangetoond';
-      //             $this->disposition[$this->reportIn] = '-';
-      //             //$this->output['outputEn'][$this->reportIn] = 'Not detected';
-      //             $this->borderResult = 0;
-      //         }
-      //
-      //     } else{
-      //         if($confirmedEndChain > 0){
-      //             //$this->output['output'][$this->reportIn] = 'Aangetoond';
-      //             $this->disposition[$this->reportIn] = '+';
-      //             $this->borderResult = 1;
-      //             //$this->output['outputEn'][$this->reportIn] = 'Detected';
-      //         }else{
-      //             //$this->output['output'][$this->reportIn] = 'Niet aangetoond';
-      //             $this->disposition[$this->reportIn] = '-';
-      //             $this->borderResult = 0;
-      //             //$this->output['outputEn'][$this->reportIn] = 'Not detected';
-      //         }
-      //     }
-      //
-      // }
-    }
+    // private function checkGlobalSalmonellaConfirmation(){
+    // }
 
     private function checkConfirmation($df, $rep)
     {

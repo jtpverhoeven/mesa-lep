@@ -43,7 +43,7 @@ function confirmDeletion(event, labelDesign) {
             </label>
         </div>
         <div class="table-scroll">
-            <DataTable v-model:filters="filters" :value="props.labelDesigns" data-key="id" :global-filter-fields="['name', 'printer.name']" sort-field="name" :sort-order="1" table-class="data-table" :unstyled="true">
+            <DataTable v-model:filters="filters" :value="props.labelDesigns" data-key="id" :global-filter-fields="['name', 'printer.name']" sort-field="name" :sort-order="1">
                 <Column field="name" header="Naam" sortable><template #body="{ data }"><strong>{{ data.name }}</strong></template></Column>
                 <Column field="default_sample" header="Standaard monsters" sortable><template #body="{ data }">{{ data.default_sample ? 'Ja' : 'Nee' }}</template></Column>
                 <Column field="default_analysis" header="Standaard analyses" sortable><template #body="{ data }">{{ data.default_analysis ? 'Ja' : 'Nee' }}</template></Column>

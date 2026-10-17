@@ -1,0 +1,107 @@
+@layer components {
+    .button {
+        @apply inline-flex min-h-[34px] items-center justify-center gap-[7px] rounded-control border border-control-border bg-surface px-3 py-1.5 font-semibold text-ink;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .button.primary {
+        @apply border-accent bg-accent text-accent-contrast;
+    }
+
+    .button:hover {
+        filter: brightness(.95);
+    }
+
+    .button:disabled, .icon-button:disabled {
+        @apply cursor-not-allowed opacity-50;
+    }
+
+    .icon-button {
+        @apply mr-[5px] inline-grid size-8 shrink-0 place-items-center rounded-control border border-control-border bg-surface p-0 align-middle text-accent;
+        cursor: pointer;
+    }
+
+    .icon-button:hover {
+        @apply bg-accent-faint;
+    }
+
+    .icon-button.danger {
+        @apply text-danger;
+    }
+
+    .field {
+        @apply flex min-w-0 flex-col gap-[7px];
+    }
+
+    .field label {
+        @apply font-semibold;
+    }
+
+    .form-control, .field input:not([type='checkbox']):not([data-pc-name]), .field select, .field textarea:not([data-pc-name]) {
+        @apply min-h-[35px] w-full min-w-0 rounded-control border border-control-border bg-surface px-2.5 py-2 text-ink;
+        font: inherit;
+    }
+
+    textarea.form-control, .field textarea {
+        @apply min-h-[90px] resize-y;
+    }
+
+    .form-control:disabled, .form-control[readonly],
+    .field :where(input, select, textarea):disabled:not([data-pc-name]),
+    .field :where(input, textarea)[readonly]:not([data-pc-name]),
+    :where([data-pc-name='inputtext'], [data-pc-name='pcinputtext'], [data-pc-name='textarea'])[readonly] {
+        @apply border-line bg-surface-alt text-muted;
+    }
+
+    .form-control[aria-invalid='true'] {
+        @apply border-danger;
+    }
+
+    :where(input:not([type='checkbox']):not([type='radio']), textarea, select):focus {
+        @apply bg-field-focus;
+    }
+
+    :where([data-pc-name='inputtext'], [data-pc-name='pcinputtext'], [data-pc-name='textarea'], [data-pc-name='select'], [data-pc-name='multiselect'], [data-pc-name='button']) {
+        font-size: inherit;
+    }
+
+    :where([data-pc-name='button']) {
+        min-height: 34px;
+    }
+
+    :where([data-pc-name='checkbox'], [data-pc-name='radiobutton']) {
+        flex-shrink: 0;
+    }
+
+    .field :where([data-pc-name='inputtext'], [data-pc-name='inputnumber'], [data-pc-name='datepicker'], [data-pc-name='select'], [data-pc-name='multiselect'], [data-pc-name='textarea']) {
+        @apply w-full min-w-0;
+    }
+
+    .field :where([data-pc-name='select'], [data-pc-name='multiselect']) > [data-pc-section='label'] {
+        @apply min-w-0 whitespace-normal wrap-anywhere;
+    }
+
+    :where([data-pc-name='dialog']) > [data-pc-section='header'],
+    :where([data-pc-name='dialog']) > [data-pc-section='footer'] {
+        @apply bg-surface-alt;
+    }
+
+    :where([data-pc-name='dialog']) > [data-pc-section='header'] {
+        @apply border-b border-line;
+    }
+
+    :where([data-pc-name='dialog']) > [data-pc-section='footer'] {
+        @apply border-t border-line;
+    }
+
+    .app-dialog-title {
+        @apply m-0 font-semibold;
+        font-size: var(--p-dialog-title-font-size);
+    }
+
+    .app-dialog-content {
+        @apply p-0;
+    }
+}

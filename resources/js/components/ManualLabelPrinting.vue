@@ -13,6 +13,7 @@ const props = defineProps({ options: { type: Object, required: true }, printUrl:
 const barcodeInput = ref(null);
 const rangeStartInput = ref(null);
 const rangeStopInput = ref(null);
+const legionellaStartInput = ref(null);
 const advanced = ref(false);
 const running = ref(false);
 const activeMode = ref('scan');
@@ -26,6 +27,8 @@ const errorMessages = computed(() => Object.values(errors.value).flat());
 const printerOptions = computed(() => [{ id: 0, name: 'Standaard printer' }, ...props.options.printers]);
 const labelOptions = computed(() => [{ id: 'default', name: 'Standaard label' }, ...props.options.labels]);
 const assayOptions = computed(() => [{ id: 0, name: 'Alles' }, ...props.options.assayTypes]);
+const legionellaMatrices = ['A', 'B', 'C'];
+const legionella = reactive({ leg_from: null, leg_to: null, leg_matrix: 'A', leg_printer: props.options.printers[0]?.id ?? null });
 const initialDate = () => {
     const [year, month, day] = props.options.today.split('-').map(Number);
     return new Date(year, month - 1, day);
@@ -62,13 +65,14 @@ function dateString(date) {
 }
 
 function focusInput(input) {
-    input?.$el?.focus();
-    input?.$el?.select();
+    const control = input?.$el?.querySelector('input') ?? input?.$el;
+    control?.focus();
+    control?.select();
 }
 
 async function restoreFocus() {
     await nextTick();
-    focusInput(activeMode.value === 'sample_range' ? rangeStartInput.value : barcodeInput.value);
+    focusInput(activeMode.value === 'legionella' ? legionellaStartInput.value : activeMode.value === 'sample_range' ? rangeStartInput.value : barcodeInput.value);
 }
 
 async function request(payload) {
@@ -138,6 +142,12 @@ async function confirmPrint() {
     await request({ confirmation_token: pending.value.confirmation_token });
 }
 
+async function printLegionella() {
+    if (busy.value) return;
+    activeMode.value = 'legionella';
+    await request({ mode: 'legionella', ...legionella });
+}
+
 function closeConfirmation(visible) {
     if (running.value) return;
     confirmationVisible.value = visible;
@@ -151,8 +161,7 @@ onMounted(() => focusInput(barcodeInput.value));
 </script>
 
 <template>
-    <div class="manual-printing min-w-0">
-        
+    <div class="manual-printing min-w-0">        
         <div v-if="!options.enabled" class="notice" role="status">Printen is uitgeschakeld.</div>
         <div v-if="requestError || errorMessages.length" class="notice error" role="alert">
             <strong>{{ requestError || 'Controleer de invoer.' }}</strong>
@@ -170,7 +179,7 @@ onMounted(() => focusInput(barcodeInput.value));
                             <InputText id="print-barcode" ref="barcodeInput" v-model="form.barcode" placeholder="Barcode" maxlength="64" autocomplete="off" :disabled="busy" :invalid="Boolean(errors.barcode)" fluid />
                         </div>
                         <div class="mt-3 flex justify-end">
-                            <Button type="submit" class="button primary" unstyled :disabled="busy || !form.barcode.trim()">
+                            <Button type="submit" :disabled="busy || !form.barcode.trim()">
                                 <LoaderCircle v-if="running && activeMode === 'scan'" class="spin" :size="15" aria-hidden="true" /><Printer v-else :size="15" aria-hidden="true" />
                                 {{ running && activeMode === 'scan' ? 'Verwerken' : 'Printen' }}
                             </Button>
@@ -186,7 +195,7 @@ onMounted(() => focusInput(barcodeInput.value));
                             <div class="field"><label for="print-date-start">Van</label><DatePicker v-model="form.range_start" input-id="print-date-start" date-format="dd-mm-yy" :disabled="busy" :invalid="Boolean(errors.range_start) || invalidDateEntries.range_start" append-to="self" fluid @input="trackDateInput('range_start', $event)" @date-select="acceptDate('range_start')" /></div>
                             <div class="field"><label for="print-date-stop">Tot en met</label><DatePicker v-model="form.range_stop" input-id="print-date-stop" date-format="dd-mm-yy" :disabled="busy" :invalid="Boolean(errors.range_stop) || invalidDateEntries.range_stop" append-to="self" fluid @input="trackDateInput('range_stop', $event)" @date-select="acceptDate('range_stop')" /></div>
                         </div>
-                        <div class="mt-3 flex justify-end"><Button type="submit" class="button primary" unstyled :disabled="busy || form.duplicate_label">
+                        <div class="mt-3 flex justify-end"><Button type="submit" :disabled="busy || form.duplicate_label">
                             <LoaderCircle v-if="running && activeMode === 'date_range'" class="spin" :size="15" aria-hidden="true" /><Printer v-else :size="15" aria-hidden="true" />
                             {{ running && activeMode === 'date_range' ? 'Verwerken' : 'Printen' }}
                         </Button></div>
@@ -202,7 +211,7 @@ onMounted(() => focusInput(barcodeInput.value));
                             <label class="print-check"><Checkbox v-model="form.print_normal_samples" input-id="print-normal" binary :disabled="busy" /><span>Normale analyse &amp; legionella monsters</span></label>
                             <label class="print-check"><Checkbox v-model="form.print_rodac_samples" input-id="print-rodac" binary :disabled="busy" /><span>RODAC monsters</span></label>
                         </div>
-                        <div class="mt-3 flex justify-end"><Button type="submit" class="button primary" unstyled :disabled="busy || form.duplicate_label || !form.bar_range_start.trim() || !form.bar_range_stop.trim()">
+                        <div class="mt-3 flex justify-end"><Button type="submit" :disabled="busy || form.duplicate_label || !form.bar_range_start.trim() || !form.bar_range_stop.trim()">
                             <LoaderCircle v-if="running && activeMode === 'sample_range'" class="spin" :size="15" aria-hidden="true" /><Printer v-else :size="15" aria-hidden="true" />
                             {{ running && activeMode === 'sample_range' ? 'Verwerken' : 'Printen' }}
                         </Button></div>
@@ -238,7 +247,7 @@ onMounted(() => focusInput(barcodeInput.value));
                             <InputNumber v-model="form.print_sample_amount" class="print-copy-count" input-id="print-sample-copies" :min="1" :max="9999" :use-grouping="false" :disabled="busy || !form.print_sample || form.duplicate_label" />
                             <span>monster labels</span>
                         </div>
-                        <Button type="button" class="button" unstyled :disabled="busy" :aria-expanded="advanced" aria-controls="print-advanced" @click="advanced = !advanced">
+                        <Button type="button" severity="secondary" :disabled="busy" :aria-expanded="advanced" aria-controls="print-advanced" @click="advanced = !advanced">
                             <ChevronUp v-if="advanced" :size="15" aria-hidden="true" /><ChevronDown v-else :size="15" aria-hidden="true" />Geavanceerde opties
                         </Button>
                     </div>
@@ -258,10 +267,21 @@ onMounted(() => focusInput(barcodeInput.value));
                 <div class="field"><label id="print-printer-label">Print naar</label><Select v-model="form.printer" :options="printerOptions" option-label="name" option-value="id" aria-labelledby="print-printer-label" :disabled="busy" append-to="self" filter fluid /></div>
             </fieldset>
 
-            <fieldset class="form-section min-w-0" disabled>
-                <legend><Printer :size="15" aria-hidden="true" />Legionella stickers</legend>
-                <Button type="button" class="button" unstyled disabled><Printer :size="15" aria-hidden="true" />Binnenkort beschikbaar</Button>
-            </fieldset>
+            <form class="min-w-0" @submit.prevent="printLegionella">
+                <fieldset class="form-section" :disabled="busy">
+                    <legend><Printer :size="15" aria-hidden="true" />Legionella stickers</legend>
+                    <div class="grid gap-3">
+                        <div class="field"><label id="print-legionella-matrix-label">Matrix</label><Select v-model="legionella.leg_matrix" :options="legionellaMatrices" aria-labelledby="print-legionella-matrix-label" :disabled="busy" :invalid="Boolean(errors.leg_matrix)" append-to="self" fluid /></div>
+                        <div class="field"><label for="print-legionella-start">Van</label><InputNumber ref="legionellaStartInput" v-model="legionella.leg_from" input-id="print-legionella-start" :min="0" :use-grouping="false" :disabled="busy" :invalid="Boolean(errors.leg_from)" fluid /></div>
+                        <div class="field"><label for="print-legionella-stop">Tot en met</label><InputNumber v-model="legionella.leg_to" input-id="print-legionella-stop" :min="0" :use-grouping="false" :disabled="busy" :invalid="Boolean(errors.leg_to)" fluid /></div>
+                        <div class="field"><label id="print-legionella-printer-label">Print naar</label><Select v-model="legionella.leg_printer" :options="options.printers" option-label="name" option-value="id" aria-labelledby="print-legionella-printer-label" :disabled="busy" :invalid="Boolean(errors.leg_printer)" append-to="self" filter fluid /></div>
+                    </div>
+                    <div class="mt-3 flex justify-end"><Button type="submit" :disabled="busy || legionella.leg_from === null || legionella.leg_to === null || !legionella.leg_printer">
+                        <LoaderCircle v-if="running && activeMode === 'legionella'" class="spin" :size="15" aria-hidden="true" /><Printer v-else :size="15" aria-hidden="true" />
+                        {{ running && activeMode === 'legionella' ? 'Verwerken' : 'Printen' }}
+                    </Button></div>
+                </fieldset>
+            </form>
         </div>
 
         <AppConfirmDialog :visible="confirmationVisible" title="Grote printopdracht" :message="pending?.message ?? ''" confirm-label="Printen" :loading="running" :error="requestError || errorMessages.join(' ')" @update:visible="closeConfirmation" @confirm="confirmPrint">
@@ -274,12 +294,9 @@ onMounted(() => focusInput(barcodeInput.value));
 .form-section legend { display:flex; align-items:center; gap:7px; }
 .print-check { display:flex; align-items:flex-start; gap:9px; cursor:pointer; }
 .print-check span { min-width:0; overflow-wrap:anywhere; line-height:20px; }
-.print-check :deep([data-pc-name='checkbox']) { flex-shrink:0; }
 .print-inline-option .print-check { align-items:center; }
 .print-copy-count { flex:0 0 48px; width:48px; min-width:0; }
 .print-copy-count :deep(input) { width:100%; min-width:0; padding:6px; }
 .print-extra-design { flex:1 1 70px; min-width:60px; }
 .print-extra-design :deep([data-pc-section='label']) { min-width:0; padding:6px; }
-.field :deep([data-pc-name='inputnumber']), .field :deep([data-pc-name='datepicker']) { width:100%; min-width:0; }
-.field :deep([data-pc-section='label']) { min-width:0; white-space:normal; overflow-wrap:anywhere; }
 </style>

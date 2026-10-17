@@ -146,8 +146,7 @@ onBeforeUnmount(() => {
             <DataTable
                 :value="projects"
                 data-key="id"
-                table-class="data-table project-overview-table"
-                :unstyled="true"
+                table-class="project-overview-table"
             >
                 <Column v-for="column in columns" :key="column.field" :field="column.field" :header="column.header">
                     <template #body="{ data }">

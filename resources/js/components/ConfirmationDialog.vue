@@ -44,7 +44,7 @@ function scopeLabel(scope) {
 </script>
 
 <template>
-    <Dialog v-model:visible="store.dialogOpen" modal :draggable="false" :dismissable-mask="true" :close-on-escape="false" :closable="false" :block-scroll="true" :unstyled="true" :pt="dialogPassThrough">
+    <Dialog v-model:visible="store.dialogOpen" modal :draggable="false" :dismissable-mask="true" :close-on-escape="false" :closable="false" :block-scroll="true" :pt="dialogPassThrough">
         <template #header>
             <div><h2 id="confirmation-title" class="m-0 text-[16px]">Bevestiging</h2><small v-if="store.data" class="mt-[3px] block text-[var(--muted)]">{{ store.data.status }}</small></div>
             <button class="icon-button" type="button" title="Sluiten" aria-label="Bevestiging sluiten" @click="store.close()"><X :size="16" /></button>

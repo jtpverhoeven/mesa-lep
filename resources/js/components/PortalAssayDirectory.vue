@@ -21,7 +21,7 @@ function url(template, portalAssay) {
     <div class="portal-assay-directory">
         <div class="directory-toolbar"><label class="directory-search"><Search :size="16" aria-hidden="true" /><span class="sr-only">Portaalanalyses zoeken</span><input v-model="filters.global.value" type="search" placeholder="Zoek portaalanalyses" autocomplete="off"></label></div>
         <div class="table-scroll">
-            <DataTable v-model:filters="filters" :value="props.portalAssays" data-key="id" :global-filter-fields="['id', 'common_name', 'common_name_en']" sort-field="common_name" :sort-order="1" paginator :rows="100" :rows-per-page-options="[50, 100, 250]" table-class="data-table" class="portal-assay-data-table" :unstyled="true">
+            <DataTable v-model:filters="filters" :value="props.portalAssays" data-key="id" :global-filter-fields="['id', 'common_name', 'common_name_en']" sort-field="common_name" :sort-order="1" paginator :rows="100" :rows-per-page-options="[50, 100, 250]" class="portal-assay-data-table">
                 <Column field="id" header="ID" sortable />
                 <Column field="common_name" header="Portaalanalyse" sortable><template #body="{ data }"><strong>{{ data.common_name }}</strong></template></Column>
                 <Column field="common_name_en" header="Engels" sortable><template #body="{ data }">{{ data.common_name_en || '-' }}</template></Column>

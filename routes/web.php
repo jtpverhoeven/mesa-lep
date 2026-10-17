@@ -42,6 +42,15 @@ use App\Http\Controllers\UserGroupController;
 use App\Models\Assay;
 use Illuminate\Support\Facades\Route;
 
+
+Route::get('/pdf-debug', function(){
+
+$mpdf = new \Mpdf\Mpdf();
+$mpdf->WriteHTML('<h1>Hello world!</h1>');
+$mpdf->Output();
+
+});
+
 Route::redirect('/', '/dashboard')->name('welcome');
 
 Route::view('/dashboard', 'dashboard')

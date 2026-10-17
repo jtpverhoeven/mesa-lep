@@ -29,7 +29,6 @@ const passThrough = computed(() => createAppDialogPassThrough({ width: props.wid
         :close-on-escape="closeOnEscape"
         :closable="false"
         :block-scroll="true"
-        :unstyled="true"
         :pt="passThrough"
         @update:visible="emit('update:visible', $event)"
     >

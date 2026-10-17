@@ -62,7 +62,6 @@ defineExpose({ focus });
                 show-clear
                 append-to="self"
                 panel-class="client-results"
-                unstyled
                 @complete="complete"
                 @option-select="selectClient($event.value)"
             >

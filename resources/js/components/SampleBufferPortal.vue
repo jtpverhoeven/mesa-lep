@@ -53,7 +53,7 @@ let searchTimer = null;
 function runSelectedAction() {
     if (!action.value || !store.selected.length) return;
     if (action.value === 'delete') {
-        confirm.require({ message: `${store.selected.length} bufferregel(s) definitief verwijderen?`, header: 'Verwijderen bevestigen', acceptLabel: 'Verwijderen', rejectLabel: 'Annuleren', acceptClass: 'button primary', rejectClass: 'button', accept: () => execute({}) });
+        confirm.require({ message: `${store.selected.length} bufferregel(s) definitief verwijderen?`, header: 'Verwijderen bevestigen', acceptLabel: 'Verwijderen', rejectLabel: 'Annuleren', rejectProps: { severity: 'secondary' }, accept: () => execute({}) });
         return;
     }
     if (action.value === 'commit' && store.tab === 'staged_tht') {
@@ -116,7 +116,7 @@ onMounted(() => store.load());
 </script>
 
 <template>
-    <Toast position="top-right" /><ConfirmDialog :draggable="false" :unstyled="true" :pt="confirmDialogPassThrough" />
+    <Toast position="top-right" /><ConfirmDialog :draggable="false" :pt="confirmDialogPassThrough" />
     <div class="sample-buffer-workspace">
         <div class="page-heading buffer-heading"><div><div class="eyebrow">Laboratorium / Monsters</div><h1>{{ title }}</h1></div><span class="buffer-total">{{ store.rows.length }} zichtbaar</span></div>
         <div v-if="store.error" class="notice error" role="alert">{{ store.error }}</div>

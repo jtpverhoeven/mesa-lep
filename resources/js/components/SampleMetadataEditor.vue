@@ -114,7 +114,7 @@ async function remove() {
         </div>
         <p v-if="error" class="metadata-error" role="alert">{{ error }}</p>
         <div v-if="metadata.length" class="table-scroll">
-            <DataTable :value="metadata" data-key="id" table-class="data-table metadata-table" :unstyled="true">
+            <DataTable :value="metadata" data-key="id" table-class="metadata-table">
                 <Column field="name" header="Naam"><template #body="{ data }"><strong>{{ data.name }}</strong></template></Column>
                 <Column field="value" header="Waarde"><template #body="{ data }"><span class="metadata-value">{{ data.value }}</span></template></Column>
                 <Column v-if="!readOnly" header="Acties">
