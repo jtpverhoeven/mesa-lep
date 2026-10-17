@@ -2,11 +2,13 @@
 
 namespace App\Actions\Results;
 
+use App\Calculations\Contracts\HandlesIncompleteResults;
+use App\Calculations\Contracts\ResultCalculation;
 use App\Calculations\ResultCalculationContext;
 
 class CheckAnalysisResultsComplete
 {
-    public function handle(ResultCalculationContext $context): bool
+    public function handle(ResultCalculationContext $context, ?ResultCalculation $calculator = null): bool
     {
         $expectedRows = $this->expectedRows($context);
 
@@ -27,8 +29,9 @@ class CheckAnalysisResultsComplete
                 return false;
             }
 
-            foreach ($result->data as $value) {
-                if ($value === '' || $value === null) {
+            foreach ($result->data as $field => $value) {
+                if (($value === '' || $value === null)
+                    && ! ($calculator instanceof HandlesIncompleteResults && $calculator->allowsEmptyResultField($result->data, $field))) {
                     return false;
                 }
             }

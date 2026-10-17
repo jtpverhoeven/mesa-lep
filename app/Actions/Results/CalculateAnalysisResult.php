@@ -4,6 +4,7 @@ namespace App\Actions\Results;
 
 use App\Actions\Confirmations\ApplyConfirmationWorkflowToResult;
 use App\Actions\Confirmations\ResolveConfirmationDecision;
+use App\Calculations\Contracts\HandlesIncompleteResults;
 use App\Calculations\ResultCalculationCache;
 use App\Calculations\ResultCalculationContext;
 use App\Calculations\ResultCalculationResolver;
@@ -49,12 +50,14 @@ class CalculateAnalysisResult
 
             $context = $this->calculationContext($analysis);
 
-            $calculator = null;
+            $calculator = $this->calculations->resolve($context->assay);
 
-            if (! $this->resultsComplete->handle($context)) {
-                $calculation = $this->incompleteResult();
+            if (! $this->resultsComplete->handle($context, $calculator)) {
+                $calculation = $calculator instanceof HandlesIncompleteResults
+                    ? $calculator->incompleteResult($context)
+                    : $this->incompleteResult();
+                $calculator = null;
             } else {
-                $calculator = $this->calculations->resolve($context->assay);
                 $calculation = $this->cache->stamp(
                     $calculator->calculate($context),
                     $context,

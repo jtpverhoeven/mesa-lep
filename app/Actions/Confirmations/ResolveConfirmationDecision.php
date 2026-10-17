@@ -17,7 +17,7 @@ class ResolveConfirmationDecision
     {
         $assay = $context->assay;
         $trigger = ConfirmationTrigger::fromCalculation($baseCalculation, $context);
-        $baseReady = (bool) ($baseCalculation['isReady'] ?? false);
+        $baseReady = (bool) ($baseCalculation['calculationReady'] ?? $baseCalculation['isReady'] ?? false);
 
         if ((int) $assay->confirmation !== 1 || ! $baseReady || ! $trigger->eligible) {
             return $this->result('not_applicable', (int) $analysis->conf_requested, false, null, $trigger);

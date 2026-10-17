@@ -23,11 +23,13 @@ class ApplyConfirmationWorkflowToResult
         if ($workflow['status'] === 'enabled_complete' && $calculator !== null && $snapshot instanceof ConfirmationSnapshot) {
             $confirmedContext = $context->withConfirmation($snapshot);
             $calculation = $this->cache->stamp($calculator->calculate($confirmedContext), $confirmedContext, $calculator);
+        } elseif ($workflow['status'] === 'disabled' && $calculator !== null && isset($baseCalculation['confirmationPendingResult'])) {
+            $calculation = $this->cache->stamp($calculator->calculate($context), $context, $calculator);
         } elseif ($calculator !== null) {
             $calculation = $this->cache->stamp($calculation, $context, $calculator);
         }
 
-        $calculation['calculationReady'] = (bool) ($baseCalculation['isReady'] ?? false);
+        $calculation['calculationReady'] = (bool) ($baseCalculation['calculationReady'] ?? $baseCalculation['isReady'] ?? false);
         $calculation['confirmation'] = [
             'status' => $workflow['status'],
             'decision' => $workflow['decision'],
@@ -59,6 +61,10 @@ class ApplyConfirmationWorkflowToResult
 
     private function waitingResult(array $calculation): array
     {
+        if (isset($calculation['confirmationPendingResult']) && is_array($calculation['confirmationPendingResult'])) {
+            return array_replace($calculation, $calculation['confirmationPendingResult']);
+        }
+
         $calculation['output'] = ['result' => 'Bevestiging wacht'];
         $calculation['outputEn'] = ['result' => 'Confirmation pending'];
         $calculation['reportIn'] = 'result';
