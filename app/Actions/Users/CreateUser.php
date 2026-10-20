@@ -15,12 +15,13 @@ class CreateUser
             $user = User::create([
                 'name' => trim($data['first_name'].' '.$data['last_name']),
                 'email' => $data['email'],
+                'alias' => $data['alias'] ?? null,
                 'password' => $data['password'],
                 'enabled' => $data['enabled'],
             ]);
 
             $user->profile()->create(Arr::only($data, [
-                'username', 'title', 'first_name', 'last_name', 'gender', 'job_title',
+                'title', 'first_name', 'last_name', 'gender', 'job_title',
                 'phone_number', 'locale', 'avatar_path', 'dashboard_layout',
             ]));
             $user->syncRoles(Role::query()->whereKey($data['roles'] ?? [])->get());

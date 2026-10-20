@@ -40,13 +40,15 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::authenticateUsing(function (Request $request): ?User {
             $login = Str::lower((string) $request->input('login'));
 
-            $user = User::query()
+            $users = User::query()
                 ->where('enabled', true)
                 ->where(function ($query) use ($login) {
                     $query->whereRaw('lower(email) = ?', [$login])
-                        ->orWhereHas('profile', fn ($profile) => $profile->whereRaw('lower(username) = ?', [$login]));
+                        ->orWhereRaw('lower(alias) = ?', [$login]);
                 })
-                ->first();
+                ->limit(2)
+                ->get();
+            $user = $users->count() === 1 ? $users->first() : null;
 
             return $user && Hash::check($request->string('password')->toString(), $user->password)
                 ? $user

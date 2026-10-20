@@ -24,7 +24,7 @@ class UserController extends Controller
             ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhereHas('profile', fn ($profile) => $profile->where('username', 'like', "%{$search}%"));
+                    ->orWhere('alias', 'like', "%{$search}%");
             }))
             ->orderBy('name')
             ->paginate(25)
@@ -52,7 +52,6 @@ class UserController extends Controller
         if (! $user->profile) {
             [$firstName, $lastName] = array_pad(explode(' ', trim($user->name), 2), 2, '');
             $user->setRelation('profile', new Profile([
-                'username' => $user->email,
                 'first_name' => $firstName,
                 'last_name' => $lastName,
                 'locale' => Str::before(app()->getLocale(), '_'),

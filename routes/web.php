@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Projects\GetProjectOverview;
+use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\AssayController;
 use App\Http\Controllers\AssayFieldController;
 use App\Http\Controllers\AssayTypeController;
@@ -41,13 +42,13 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserGroupController;
 use App\Models\Assay;
 use Illuminate\Support\Facades\Route;
+use Mpdf\Mpdf;
 
+Route::get('/pdf-debug', function () {
 
-Route::get('/pdf-debug', function(){
-
-$mpdf = new \Mpdf\Mpdf();
-$mpdf->WriteHTML('<h1>Hello world!</h1>');
-$mpdf->Output();
+    $mpdf = new Mpdf;
+    $mpdf->WriteHTML('<h1>Hello world!</h1>');
+    $mpdf->Output();
 
 });
 
@@ -56,6 +57,16 @@ Route::redirect('/', '/dashboard')->name('welcome');
 Route::view('/dashboard', 'dashboard')
     ->middleware('auth')
     ->name('dashboard');
+
+Route::middleware('auth')->prefix('account/settings')->name('account.')->group(function () {
+    Route::get('/', [AccountSettingsController::class, 'edit'])->name('settings');
+    Route::put('/profile', [AccountSettingsController::class, 'updateProfile'])->name('profile.update');
+    Route::put('/alias', [AccountSettingsController::class, 'updateAlias'])->name('alias.update');
+    Route::put('/password', [AccountSettingsController::class, 'updatePassword'])->middleware('throttle:6,1,account-password')->name('password.update');
+    Route::get('/images/{kind}', [AccountSettingsController::class, 'showImage'])->whereIn('kind', ['avatar', 'nl', 'en'])->name('images.show');
+    Route::post('/images/{kind}', [AccountSettingsController::class, 'storeImage'])->whereIn('kind', ['avatar', 'nl', 'en'])->middleware('throttle:20,1,account-image')->name('images.store');
+    Route::delete('/images/{kind}', [AccountSettingsController::class, 'destroyImage'])->whereIn('kind', ['avatar', 'nl', 'en'])->name('images.destroy');
+});
 
 Route::get('/laboratory/revisions', [ChangeRevisionController::class, 'index'])
     ->middleware('auth')->name('revisions.index');

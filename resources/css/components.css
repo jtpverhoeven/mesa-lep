@@ -1,4 +1,40 @@
 @layer components {
+    .account-settings {
+        @apply mx-auto grid max-w-6xl grid-cols-1 items-start gap-6 lg:grid-cols-[210px_minmax(0,1fr)];
+    }
+
+    .account-settings-nav {
+        @apply flex flex-wrap gap-1 lg:sticky lg:top-0 lg:flex-col;
+    }
+
+    .account-settings-nav a {
+        @apply flex items-center gap-3 rounded-control px-3 py-2.5 text-muted hover:bg-surface-alt hover:text-ink;
+    }
+
+    .settings-panel {
+        @apply grid min-w-0 grid-cols-1 scroll-mt-6 gap-6 rounded-control border border-line bg-surface p-5 sm:p-6;
+    }
+
+    .settings-panel h2 {
+        @apply mb-1 text-base font-semibold text-ink;
+    }
+
+    .avatar-cropper {
+        @apply h-80 min-w-0 overflow-hidden rounded-control border border-line;
+    }
+
+    .avatar-cropper cropper-canvas {
+        @apply h-full w-full;
+    }
+
+    .signature-preview {
+        @apply flex h-32 items-center justify-center overflow-hidden rounded-control border border-line bg-surface-alt p-3;
+    }
+
+    .signature-preview img {
+        @apply max-h-full max-w-full object-contain;
+    }
+
     .button {
         @apply inline-flex min-h-[34px] items-center justify-center gap-[7px] rounded-control border border-control-border bg-surface px-3 py-1.5 font-semibold text-ink;
         font: inherit;
@@ -72,7 +108,7 @@
         min-height: 34px;
     }
 
-    :where([data-pc-name='checkbox'], [data-pc-name='radiobutton']) {
+    :where([data-pc-name='checkbox'], [data-pc-name='radiobutton'], [data-pc-name='avatar']) {
         flex-shrink: 0;
     }
 

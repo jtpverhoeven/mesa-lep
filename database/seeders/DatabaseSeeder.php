@@ -30,11 +30,11 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Joost Verhoeven',
                 'password' => 'check',
                 'enabled' => true,
+                'alias' => 'admin',
             ],
         );
 
         $administrator->profile()->updateOrCreate([], [
-            'username' => 'admin',
             'first_name' => 'Joost',
             'last_name' => 'Verhoeven',
             'job_title' => 'Coder',

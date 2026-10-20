@@ -1,5 +1,6 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
+import AccountSettings from './components/AccountSettings.vue';
 import AssayFieldForm from './components/AssayFieldForm.vue';
 import AssayDirectory from './components/AssayDirectory.vue';
 import AssayConfirmationEditor from './components/AssayConfirmationEditor.vue';
@@ -50,6 +51,7 @@ app.use(OpenVue, mesaTheme);
 app.use(ConfirmationService);
 app.use(ToastService);
 app.use(SfxPlugin);
+app.component('account-settings', AccountSettings);
 app.component('assay-field-form', AssayFieldForm);
 app.component('assay-directory', AssayDirectory);
 app.component('assay-confirmation-editor', AssayConfirmationEditor);

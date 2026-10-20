@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\AvailableLogin;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
-class StoreUserRequest extends FormRequest
+class StoreUserRequest extends UpdateAccountAliasRequest
 {
     public function authorize(): bool
     {
@@ -16,11 +16,11 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'username' => ['required', 'string', 'max:255', 'unique:profiles,username'],
+            'alias' => ['bail', 'nullable', 'string', 'max:255', new AvailableLogin],
             'title' => ['nullable', 'string', 'max:50'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email', new AvailableLogin],
             'password' => ['required', 'confirmed', Password::default()],
             'gender' => ['nullable', 'string', 'max:20'],
             'job_title' => ['nullable', 'string', 'max:150'],

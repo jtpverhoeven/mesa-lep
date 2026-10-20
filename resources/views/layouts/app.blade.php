@@ -30,8 +30,8 @@
                         <a href="{{ route('beheer.dashboard') }}" @class(['selected' => request()->is('admin*')])>Beheer</a>
                     @endif
                 </nav>
-                <user-menu v-bind="{{ Illuminate\Support\Js::from(['name' => auth()->user()->name, 'email' => auth()->user()->email, 'logoutUrl' => route('logout'), 'csrf' => csrf_token()]) }}">
-                    <form method="POST" action="{{ route('logout') }}">@csrf<button class="button" type="submit">Uitloggen</button></form>
+                <user-menu v-bind="{{ Illuminate\Support\Js::from(['name' => auth()->user()->name, 'email' => auth()->user()->email, 'avatarUrl' => \App\Support\AccountImages::url(auth()->user(), 'avatar'), 'settingsUrl' => route('account.settings'), 'logoutUrl' => route('logout'), 'csrf' => csrf_token()]) }}">
+                    {{-- <form method="POST" action="{{ route('logout') }}">@csrf<button class="button" type="submit">Uitloggen</button></form> --}}
                 </user-menu>
             @else
                 <span class="topbar-label">Laboratorium informatiesysteem</span>
@@ -39,6 +39,7 @@
         </header>
         <div class="workspace">
             @auth
+                @unless(request()->routeIs('account.*'))
                 <aside class="sidebar">
                     {{-- <div class="sidebar-heading"><span class="eyebrow">Werkruimte</span><strong>{{ request()->is('admin*') ? 'Beheer' : 'LIMS' }}</strong></div> --}}
                     <nav aria-label="Werkruimtenavigatie">
@@ -103,6 +104,7 @@
                     </nav>
                     <div class="sidebar-footer">MESA <span>{{ app()->environment() }}</span></div>
                 </aside>
+                @endunless
             @endauth
             <main id="content" class="main-content">
                 @if(session('success'))<div class="notice success" role="status">{{ session('success') }}</div>@endif

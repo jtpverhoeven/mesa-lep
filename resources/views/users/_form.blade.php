@@ -4,7 +4,7 @@
     $selectedRoles = array_map('intval', old('roles', $editedUser?->roles->pluck('id')->all() ?? []));
 @endphp
 <fieldset class="form-section"><legend>Account</legend><div class="form-grid">
-    <div class="field"><label for="username">Gebruikersnaam</label><input id="username" name="username" value="{{ old('username', $profile?->username) }}" maxlength="255" required autofocus></div>
+    <div class="field"><label for="alias">Systeemalias</label><input id="alias" name="alias" value="{{ old('alias', $editedUser?->alias) }}" maxlength="255" autocomplete="username" autofocus><small class="muted">Optionele inlognaam naast het e-mailadres.</small></div>
     <div class="field"><label for="email">E-mailadres</label><input type="email" id="email" name="email" value="{{ old('email', $editedUser?->email) }}" maxlength="255" required></div>
     <div class="field"><label for="password">{{ $editedUser ? 'Nieuw wachtwoord' : 'Wachtwoord' }}</label><input type="password" id="password" name="password" autocomplete="new-password" @required(! $editedUser)></div>
     <div class="field"><label for="password_confirmation">Wachtwoord herhalen</label><input type="password" id="password_confirmation" name="password_confirmation" autocomplete="new-password" @required(! $editedUser)></div>

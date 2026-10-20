@@ -15,6 +15,7 @@ class UpdateUser
             $userData = [
                 'name' => trim($data['first_name'].' '.$data['last_name']),
                 'email' => $data['email'],
+                'alias' => $data['alias'] ?? null,
                 'enabled' => $data['enabled'],
             ];
 
@@ -26,7 +27,7 @@ class UpdateUser
             $user->profile()->updateOrCreate(
                 ['user_id' => $user->id],
                 Arr::only($data, [
-                    'username', 'title', 'first_name', 'last_name', 'gender', 'job_title',
+                    'title', 'first_name', 'last_name', 'gender', 'job_title',
                     'phone_number', 'locale', 'avatar_path', 'dashboard_layout',
                 ]),
             );

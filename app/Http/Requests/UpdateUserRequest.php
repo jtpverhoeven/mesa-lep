@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\AvailableLogin;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
-class UpdateUserRequest extends FormRequest
+class UpdateUserRequest extends UpdateAccountAliasRequest
 {
     public function authorize(): bool
     {
@@ -18,11 +18,11 @@ class UpdateUserRequest extends FormRequest
         $user = $this->route('user');
 
         return [
-            'username' => ['required', 'string', 'max:255', Rule::unique('profiles')->ignore($user->profile?->id)],
+            'alias' => ['bail', 'nullable', 'string', 'max:255', new AvailableLogin($user->id)],
             'title' => ['nullable', 'string', 'max:50'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user)],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user), new AvailableLogin($user->id)],
             'password' => ['nullable', 'confirmed', Password::default()],
             'gender' => ['nullable', 'string', 'max:20'],
             'job_title' => ['nullable', 'string', 'max:150'],

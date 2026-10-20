@@ -27,5 +27,4 @@
 * Printer connection test (if this is posible on zebra)
 * Create a default test label 
 * If a reference is set, we should also show in normal lims result if it's over the limit. 
-
-* 
+* "Social" like ways of tagging users in basically any section of the application. 
