@@ -118,7 +118,7 @@ onMounted(() => store.load());
 <template>
     <Toast position="top-right" /><ConfirmDialog :draggable="false" :pt="confirmDialogPassThrough" />
     <div class="sample-buffer-workspace">
-        <div class="page-heading buffer-heading"><div><div class="eyebrow">Laboratorium / Monsters</div><h1>{{ title }}</h1></div><span class="buffer-total">{{ store.rows.length }} zichtbaar</span></div>
+        <!-- <div class="page-heading buffer-heading"><div><div class="eyebrow">Laboratorium / Monsters</div><h1>{{ title }}</h1></div><span class="buffer-total">{{ store.rows.length }} zichtbaar</span></div> -->
         <div v-if="store.error" class="notice error" role="alert">{{ store.error }}</div>
         <nav v-if="initialTab !== 'staged_tht'" class="buffer-tabs" aria-label="Voorportaal categorieën">
             <button v-for="tab in tabs" :key="tab.id" type="button" :aria-selected="store.tab === tab.id" @click="store.setTab(tab.id)"><component :is="tab.icon" :size="16" />{{ tab.label }}<span>{{ store.counts[tab.id] ?? 0 }}</span></button>

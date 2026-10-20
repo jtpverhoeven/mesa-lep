@@ -1,22 +1,20 @@
 # Roadmap
 
-- Resesarch profile widget is kind of ugly and needs to be fixed. Specifically the reference settings are difficult
-    - On following that:  reference changing on exsiting samples intergration
-
+- regression on client wishes (add sfx for client wishes present)
 
 - Research profiles
-    - SHould allow deleting individual analyses on sample create screens.
+    - Should allow deleting individual analyses on sample create screens.
 
-    
+   
 
 - User printers
 
 - Report generation
     Depends on:
-    - Referentie bronnen (en ook implementeren in analysis)
     - Footer & Headers
     - Veto results    
 
+- Metadata change tracker error. puts from -> to as key->value
 
 
 #The DELETE method is not supported for route laboratory/samples/lookup/26101022. Supported methods: GET, HEAD.

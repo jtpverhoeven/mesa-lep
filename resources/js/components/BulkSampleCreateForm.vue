@@ -43,7 +43,7 @@ onMounted(async () => {
 
 <template>
     <Toast position="top-right" />
-    <div class="page-heading"><h1>{{ store.legionella ? 'Legionella aanmelden' : 'RODAC aanmelden' }}</h1></div>
+    <!-- <div class="page-heading"><h1>{{ store.legionella ? 'Legionella aanmelden' : 'RODAC aanmelden' }}</h1></div> -->
     <div v-if="store.error || store.errorMessages.length" class="notice error" role="alert"><strong>{{ store.error || 'Controleer de invoer.' }}</strong><ul v-if="store.errorMessages.length"><li v-for="message in store.errorMessages" :key="message">{{ message }}</li></ul></div>
     <div v-if="store.loading" class="sample-loading"><LoaderCircle class="spin" :size="22" />Formulier laden</div>
     <form v-else @submit.prevent="submit">

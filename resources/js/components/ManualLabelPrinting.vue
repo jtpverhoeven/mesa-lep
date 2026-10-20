@@ -170,10 +170,10 @@ onMounted(() => focusInput(barcodeInput.value));
         <div v-if="status" class="notice success" role="status">{{ status }}</div>
 
         <div class="grid min-w-0 grid-cols-1 items-start gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <div class="min-w-0">
-                <form @submit.prevent="print('scan')">
-                    <fieldset class="form-section" :disabled="busy">
-                        <legend><Barcode :size="15" aria-hidden="true" />Scan barcode</legend>
+            <div class="sample-create-column">
+                <form class="sample-panel" @submit.prevent="print('scan')">
+                    <h2 id="print-scan-title"><Barcode :size="16" aria-hidden="true" />Scan barcode</h2>
+                    <fieldset class="sample-panel-body min-w-0" aria-labelledby="print-scan-title" :disabled="busy">
                         <div class="field">
                             <label for="print-barcode" class="sr-only">Barcode</label>
                             <InputText id="print-barcode" ref="barcodeInput" v-model="form.barcode" placeholder="Barcode" maxlength="64" autocomplete="off" :disabled="busy" :invalid="Boolean(errors.barcode)" fluid />
@@ -187,9 +187,9 @@ onMounted(() => focusInput(barcodeInput.value));
                     </fieldset>
                 </form>
 
-                <form @submit.prevent="print('date_range')">
-                    <fieldset class="form-section" :disabled="busy">
-                        <legend><CalendarDays :size="15" aria-hidden="true" />Print datum bereik</legend>
+                <form class="sample-panel" @submit.prevent="print('date_range')">
+                    <h2 id="print-date-range-title"><CalendarDays :size="16" aria-hidden="true" />Print datum bereik</h2>
+                    <fieldset class="sample-panel-body min-w-0" aria-labelledby="print-date-range-title" :disabled="busy">
                         <div class="grid gap-3">
                             <div class="field"><label id="print-date-type-label">Datumtype</label><Select v-model="form.range_type_select" :options="options.dateTypes" option-label="name" option-value="id" aria-labelledby="print-date-type-label" :disabled="busy" append-to="self" fluid /></div>
                             <div class="field"><label for="print-date-start">Van</label><DatePicker v-model="form.range_start" input-id="print-date-start" date-format="dd-mm-yy" :disabled="busy" :invalid="Boolean(errors.range_start) || invalidDateEntries.range_start" append-to="self" fluid @input="trackDateInput('range_start', $event)" @date-select="acceptDate('range_start')" /></div>
@@ -202,9 +202,9 @@ onMounted(() => focusInput(barcodeInput.value));
                     </fieldset>
                 </form>
 
-                <form @submit.prevent="print('sample_range')">
-                    <fieldset class="form-section" :disabled="busy">
-                        <legend><FlaskConical :size="15" aria-hidden="true" />Print monster bereik</legend>
+                <form class="sample-panel" @submit.prevent="print('sample_range')">
+                    <h2 id="print-sample-range-title"><FlaskConical :size="16" aria-hidden="true" />Print monster bereik</h2>
+                    <fieldset class="sample-panel-body min-w-0" aria-labelledby="print-sample-range-title" :disabled="busy">
                         <div class="grid gap-3">
                             <div class="field"><label for="print-range-start">Van</label><InputText id="print-range-start" ref="rangeStartInput" v-model="form.bar_range_start" maxlength="64" autocomplete="off" :disabled="busy" :invalid="Boolean(errors.bar_range_start)" fluid @keydown.enter.prevent="focusInput(rangeStopInput)" /></div>
                             <div class="field"><label for="print-range-stop">Tot en met</label><InputText id="print-range-stop" ref="rangeStopInput" v-model="form.bar_range_stop" maxlength="64" autocomplete="off" :disabled="busy" :invalid="Boolean(errors.bar_range_stop)" fluid /></div>
@@ -218,58 +218,66 @@ onMounted(() => focusInput(barcodeInput.value));
                     </fieldset>
                 </form>
 
-                <fieldset class="form-section" :disabled="busy">
-                    <legend><CalendarDays :size="15" aria-hidden="true" />Datum instellen</legend>
-                    <div class="field"><label for="print-inoculation-date">Print stickers voor inzetdag</label><DatePicker v-model="form.date_offset" input-id="print-inoculation-date" date-format="dd-mm-yy" :disabled="busy" :invalid="Boolean(errors.date_offset) || invalidDateEntries.date_offset" append-to="self" fluid @input="trackDateInput('date_offset', $event)" @date-select="acceptDate('date_offset')" /></div>
-                </fieldset>
+                <section class="sample-panel">
+                    <h2 id="print-date-title"><CalendarDays :size="16" aria-hidden="true" />Datum instellen</h2>
+                    <fieldset class="sample-panel-body min-w-0" aria-labelledby="print-date-title" :disabled="busy">
+                        <div class="field"><label for="print-inoculation-date">Print stickers voor inzetdag</label><DatePicker v-model="form.date_offset" input-id="print-inoculation-date" date-format="dd-mm-yy" :disabled="busy" :invalid="Boolean(errors.date_offset) || invalidDateEntries.date_offset" append-to="self" fluid @input="trackDateInput('date_offset', $event)" @date-select="acceptDate('date_offset')" /></div>
+                    </fieldset>
+                </section>
             </div>
 
-            <div class="min-w-0">
-                <fieldset class="form-section" :disabled="busy">
-                    <legend><Settings2 :size="15" aria-hidden="true" />Print opties</legend>
-                    <div class="grid gap-5">
-                        <div class="grid max-h-72 gap-3 overflow-y-auto pr-1">
-                            <label v-for="profile in options.profiles" :key="profile.id" class="print-check"><Checkbox v-model="form.profile_ids" :input-id="`print-profile-${profile.id}`" :value="profile.id" :disabled="busy || form.duplicate_label" /><span>{{ profile.name }}</span></label>
-                            <p v-if="!options.profiles.length" class="muted">Geen printprofielen beschikbaar.</p>
+            <div class="sample-create-column">
+                <section class="sample-panel">
+                    <h2 id="print-options-title"><Settings2 :size="16" aria-hidden="true" />Print opties</h2>
+                    <fieldset class="sample-panel-body min-w-0" aria-labelledby="print-options-title" :disabled="busy">
+                        <div class="grid gap-5">
+                            <div class="grid max-h-72 gap-3 overflow-y-auto pr-1">
+                                <label v-for="profile in options.profiles" :key="profile.id" class="print-check"><Checkbox v-model="form.profile_ids" :input-id="`print-profile-${profile.id}`" :value="profile.id" :disabled="busy || form.duplicate_label" /><span>{{ profile.name }}</span></label>
+                                <p v-if="!options.profiles.length" class="muted">Geen printprofielen beschikbaar.</p>
+                            </div>
+                            <label class="print-check"><Checkbox v-model="form.duplicate_label" input-id="print-duplicate" binary :disabled="busy" /><span>Dupliceer label</span></label>
+                            <div class="print-inline-option flex flex-wrap items-center gap-x-1 gap-y-2">
+                                <label class="print-check"><Checkbox v-model="form.also_print" input-id="print-extra" binary :disabled="busy" /><span>Print ook</span></label>
+                                <label for="print-extra-copies" class="sr-only">Aantal extra labels</label>
+                                <InputNumber v-model="form.also_print_amount" class="print-copy-count" input-id="print-extra-copies" :min="1" :max="9999" :use-grouping="false" :disabled="busy || !form.also_print" />
+                                <span class="shrink-0">keer label</span>
+                                <label id="print-extra-design-label" class="sr-only">Extra label</label>
+                                <Select v-model="form.also_print_selection" class="print-extra-design" :options="options.labels" option-label="name" option-value="id" aria-labelledby="print-extra-design-label" :disabled="busy || !form.also_print" append-to="self" filter />
+                            </div>
+                            <div class="print-inline-option flex flex-wrap items-center gap-x-1 gap-y-2">
+                                <label class="print-check"><Checkbox v-model="form.print_sample" input-id="print-sample" binary aria-label="Monster labels" :disabled="busy || form.duplicate_label" /><span>Print</span></label>
+                                <label for="print-sample-copies" class="sr-only">Aantal monsterlabels</label>
+                                <InputNumber v-model="form.print_sample_amount" class="print-copy-count" input-id="print-sample-copies" :min="1" :max="9999" :use-grouping="false" :disabled="busy || !form.print_sample || form.duplicate_label" />
+                                <span>monster labels</span>
+                            </div>
+                            <Button type="button" severity="secondary" :disabled="busy" :aria-expanded="advanced" aria-controls="print-advanced" @click="advanced = !advanced">
+                                <ChevronUp v-if="advanced" :size="15" aria-hidden="true" /><ChevronDown v-else :size="15" aria-hidden="true" />Geavanceerde opties
+                            </Button>
                         </div>
-                        <label class="print-check"><Checkbox v-model="form.duplicate_label" input-id="print-duplicate" binary :disabled="busy" /><span>Dupliceer label</span></label>
-                        <div class="print-inline-option flex flex-wrap items-center gap-x-1 gap-y-2">
-                            <label class="print-check"><Checkbox v-model="form.also_print" input-id="print-extra" binary :disabled="busy" /><span>Print ook</span></label>
-                            <label for="print-extra-copies" class="sr-only">Aantal extra labels</label>
-                            <InputNumber v-model="form.also_print_amount" class="print-copy-count" input-id="print-extra-copies" :min="1" :max="9999" :use-grouping="false" :disabled="busy || !form.also_print" />
-                            <span class="shrink-0">keer label</span>
-                            <label id="print-extra-design-label" class="sr-only">Extra label</label>
-                            <Select v-model="form.also_print_selection" class="print-extra-design" :options="options.labels" option-label="name" option-value="id" aria-labelledby="print-extra-design-label" :disabled="busy || !form.also_print" append-to="self" filter />
+                    </fieldset>
+                </section>
+                <section v-show="advanced" id="print-advanced" class="sample-panel">
+                    <h2 id="print-advanced-title"><Tag :size="16" aria-hidden="true" />Geavanceerde opties</h2>
+                    <fieldset class="sample-panel-body min-w-0" aria-labelledby="print-advanced-title" :disabled="busy">
+                        <div class="grid gap-4">
+                            <div class="field"><label id="print-assay-type-label">Beperk tot analysetype</label><Select v-model="form.assay_type_select" :options="assayOptions" option-label="name" option-value="id" aria-labelledby="print-assay-type-label" :disabled="busy" append-to="self" fluid /></div>
+                            <div class="field"><label id="print-sample-design-label">Monsterlabel</label><Select v-model="form.sample_label_select" :options="labelOptions" option-label="name" option-value="id" aria-labelledby="print-sample-design-label" :disabled="busy" append-to="self" filter fluid /></div>
+                            <div class="field"><label id="print-assay-design-label">Analyselabel</label><Select v-model="form.assay_label_select" :options="labelOptions" option-label="name" option-value="id" aria-labelledby="print-assay-design-label" :disabled="busy" append-to="self" filter fluid /></div>
                         </div>
-                        <div class="print-inline-option flex flex-wrap items-center gap-x-1 gap-y-2">
-                            <label class="print-check"><Checkbox v-model="form.print_sample" input-id="print-sample" binary aria-label="Monster labels" :disabled="busy || form.duplicate_label" /><span>Print</span></label>
-                            <label for="print-sample-copies" class="sr-only">Aantal monsterlabels</label>
-                            <InputNumber v-model="form.print_sample_amount" class="print-copy-count" input-id="print-sample-copies" :min="1" :max="9999" :use-grouping="false" :disabled="busy || !form.print_sample || form.duplicate_label" />
-                            <span>monster labels</span>
-                        </div>
-                        <Button type="button" severity="secondary" :disabled="busy" :aria-expanded="advanced" aria-controls="print-advanced" @click="advanced = !advanced">
-                            <ChevronUp v-if="advanced" :size="15" aria-hidden="true" /><ChevronDown v-else :size="15" aria-hidden="true" />Geavanceerde opties
-                        </Button>
-                    </div>
-                </fieldset>
-                <fieldset v-show="advanced" id="print-advanced" class="form-section" :disabled="busy">
-                    <legend><Tag :size="15" aria-hidden="true" />Geavanceerde opties</legend>
-                    <div class="grid gap-4">
-                        <div class="field"><label id="print-assay-type-label">Beperk tot analysetype</label><Select v-model="form.assay_type_select" :options="assayOptions" option-label="name" option-value="id" aria-labelledby="print-assay-type-label" :disabled="busy" append-to="self" fluid /></div>
-                        <div class="field"><label id="print-sample-design-label">Monsterlabel</label><Select v-model="form.sample_label_select" :options="labelOptions" option-label="name" option-value="id" aria-labelledby="print-sample-design-label" :disabled="busy" append-to="self" filter fluid /></div>
-                        <div class="field"><label id="print-assay-design-label">Analyselabel</label><Select v-model="form.assay_label_select" :options="labelOptions" option-label="name" option-value="id" aria-labelledby="print-assay-design-label" :disabled="busy" append-to="self" filter fluid /></div>
-                    </div>
-                </fieldset>
+                    </fieldset>
+                </section>
             </div>
 
-            <fieldset class="form-section min-w-0" :disabled="busy">
-                <legend><Printer :size="15" aria-hidden="true" />Print opties</legend>
-                <div class="field"><label id="print-printer-label">Print naar</label><Select v-model="form.printer" :options="printerOptions" option-label="name" option-value="id" aria-labelledby="print-printer-label" :disabled="busy" append-to="self" filter fluid /></div>
-            </fieldset>
+            <section class="sample-panel">
+                <h2 id="print-printer-title"><Printer :size="16" aria-hidden="true" />Print opties</h2>
+                <fieldset class="sample-panel-body min-w-0" aria-labelledby="print-printer-title" :disabled="busy">
+                    <div class="field"><label id="print-printer-label">Print naar</label><Select v-model="form.printer" :options="printerOptions" option-label="name" option-value="id" aria-labelledby="print-printer-label" :disabled="busy" append-to="self" filter fluid /></div>
+                </fieldset>
+            </section>
 
-            <form class="min-w-0" @submit.prevent="printLegionella">
-                <fieldset class="form-section" :disabled="busy">
-                    <legend><Printer :size="15" aria-hidden="true" />Legionella stickers</legend>
+            <form class="sample-panel" @submit.prevent="printLegionella">
+                <h2 id="print-legionella-title"><Printer :size="16" aria-hidden="true" />Legionella stickers</h2>
+                <fieldset class="sample-panel-body min-w-0" aria-labelledby="print-legionella-title" :disabled="busy">
                     <div class="grid gap-3">
                         <div class="field"><label id="print-legionella-matrix-label">Matrix</label><Select v-model="legionella.leg_matrix" :options="legionellaMatrices" aria-labelledby="print-legionella-matrix-label" :disabled="busy" :invalid="Boolean(errors.leg_matrix)" append-to="self" fluid /></div>
                         <div class="field"><label for="print-legionella-start">Van</label><InputNumber ref="legionellaStartInput" v-model="legionella.leg_from" input-id="print-legionella-start" :min="0" :use-grouping="false" :disabled="busy" :invalid="Boolean(errors.leg_from)" fluid /></div>
@@ -291,7 +299,6 @@ onMounted(() => focusInput(barcodeInput.value));
 </template>
 
 <style scoped>
-.form-section legend { display:flex; align-items:center; gap:7px; }
 .print-check { display:flex; align-items:flex-start; gap:9px; cursor:pointer; }
 .print-check span { min-width:0; overflow-wrap:anywhere; line-height:20px; }
 .print-inline-option .print-check { align-items:center; }
