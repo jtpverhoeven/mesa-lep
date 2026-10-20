@@ -11,6 +11,8 @@
             'revisions' => route('revisions.index'),
             'options' => route('samples.lookup.options', ['sample' => '__SAMPLE__']),
             'research' => route('samples.lookup.research', ['sample' => '__SAMPLE__']),
+            'references' => route('samples.lookup.references', ['sample' => '__SAMPLE__', 'analysis' => '__ANALYSIS__']),
+            'updateReferences' => route('samples.lookup.references.update', ['sample' => '__SAMPLE__', 'analysis' => '__ANALYSIS__']),
             'productGroups' => route('samples.lookup.product-groups', ['sample' => '__SAMPLE__']),
             'updateProductGroup' => route('samples.lookup.product-group.update', ['sample' => '__SAMPLE__']),
             'sampleMetadata' => route('samples.metadata.store', ['sample' => '__SAMPLE__']),

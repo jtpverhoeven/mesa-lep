@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Imports\DecodeCsvJsonAttributes;
+use App\Actions\Imports\InsertLegacyCsvBatch;
 use App\Models\Assay;
 use App\Models\AssayField;
 use App\Models\AssayProfile;
@@ -36,6 +38,8 @@ use Throwable;
 
 class ImportLegacyCsvDirectoryCommand extends Command
 {
+    private const BATCH_SIZE = 500;
+
     private ?Generator $faker = null;
 
     protected $signature = 'legacy:import-csv
@@ -76,7 +80,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
         'labelevents.csv' => LabelEvent::class,
     ];
 
-    public function handle(): int
+    public function handle(DecodeCsvJsonAttributes $decodeJsonAttributes, InsertLegacyCsvBatch $insertBatch): int
     {
         $directory = $this->resolveDirectory((string) $this->argument('directory'));
 
@@ -102,7 +106,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
 
             $foundFiles++;
             $importedModelClasses[] = $modelClass;
-            [$fileImported, $fileFailures] = $this->importFile($path, $modelClass);
+            [$fileImported, $fileFailures] = $this->importFile($path, $modelClass, $decodeJsonAttributes, $insertBatch);
             $imported += $fileImported;
             $failures += $fileFailures;
         }
@@ -130,7 +134,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
      * @param  class-string<Model>  $modelClass
      * @return array{int, int}
      */
-    private function importFile(string $path, string $modelClass): array
+    private function importFile(string $path, string $modelClass, DecodeCsvJsonAttributes $decodeJsonAttributes, InsertLegacyCsvBatch $insertBatch): array
     {
         $filename = basename($path);
         $handle = fopen($path, 'rb');
@@ -140,6 +144,9 @@ class ImportLegacyCsvDirectoryCommand extends Command
 
             return [0, 1];
         }
+
+        $imported = 0;
+        $failures = 0;
 
         try {
             if (fread($handle, 3) !== "\xEF\xBB\xBF") {
@@ -170,8 +177,8 @@ class ImportLegacyCsvDirectoryCommand extends Command
                 throw new RuntimeException('unknown database columns: '.implode(', ', $unknownColumns));
             }
 
-            $imported = 0;
-            $failures = 0;
+            $query = $model->newModelQuery();
+            $batch = [];
             $line = 1;
 
             while (($row = fgetcsv($handle, escape: '')) !== false) {
@@ -188,21 +195,29 @@ class ImportLegacyCsvDirectoryCommand extends Command
                     continue;
                 }
 
-                $attributes = array_combine($headers, array_map([$this, 'normalizeValue'], $row));
-                $attributes = $this->decodeJsonAttributes($model, $attributes);
-                $attributes = $this->anonymizeClient($modelClass, $attributes);
-
                 try {
-                    DB::transaction(function () use ($modelClass, $attributes): void {
-                        $model = new $modelClass;
-                        $model->forceFill($attributes);
-                        $model->save();
-                    });
-                    $imported++;
+                    $attributes = array_combine($headers, array_map([$this, 'normalizeValue'], $row));
+                    $attributes = $decodeJsonAttributes->handle($model, $attributes);
+                    $attributes = $this->anonymizeClient($modelClass, $attributes);
+                    $attributes = $query->fillForInsert([$attributes])[0];
+                    $batch[] = ['line' => $line, 'attributes' => $attributes];
                 } catch (Throwable $exception) {
                     $this->error("{$filename}: line {$line}: {$exception->getMessage()}");
                     $failures++;
                 }
+
+                if (count($batch) === self::BATCH_SIZE) {
+                    [$batchImported, $batchFailures] = $this->importBatch($filename, $model, $batch, $insertBatch);
+                    $imported += $batchImported;
+                    $failures += $batchFailures;
+                    $batch = [];
+                }
+            }
+
+            if ($batch !== []) {
+                [$batchImported, $batchFailures] = $this->importBatch($filename, $model, $batch, $insertBatch);
+                $imported += $batchImported;
+                $failures += $batchFailures;
             }
 
             $this->line("{$filename}: {$imported} imported, {$failures} failed.");
@@ -211,38 +226,34 @@ class ImportLegacyCsvDirectoryCommand extends Command
         } catch (Throwable $exception) {
             $this->error("{$filename}: {$exception->getMessage()}");
 
-            return [0, 1];
+            return [$imported, $failures + 1];
         } finally {
             fclose($handle);
         }
     }
 
+    /**
+     * @param  list<array{line: int, attributes: array<string, mixed>}>  $batch
+     * @return array{int, int}
+     */
+    private function importBatch(string $filename, Model $model, array $batch, InsertLegacyCsvBatch $insertBatch): array
+    {
+        $result = $insertBatch->handle($model, $batch);
+
+        if ($result['retried']) {
+            $this->warn("{$filename}: batch insert failed; retried rows individually.");
+        }
+
+        foreach ($result['errors'] as $line => $message) {
+            $this->error("{$filename}: line {$line}: {$message}");
+        }
+
+        return [$result['imported'], count($result['errors'])];
+    }
+
     private function normalizeValue(mixed $value): mixed
     {
         return in_array($value, ['NULL', 'NA'], true) ? null : $value;
-    }
-
-    /**
-     * @param  array<string, mixed>  $attributes
-     * @return array<string, mixed>
-     */
-    private function decodeJsonAttributes(Model $model, array $attributes): array
-    {
-        foreach ($model->getCasts() as $attribute => $cast) {
-            if (! in_array($cast, ['array', 'json'], true) || ! isset($attributes[$attribute]) || ! is_string($attributes[$attribute])) {
-                continue;
-            }
-
-            $decoded = json_decode($attributes[$attribute], true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new RuntimeException("{$attribute} contains invalid JSON: ".json_last_error_msg());
-            }
-
-            $attributes[$attribute] = $decoded;
-        }
-
-        return $attributes;
     }
 
     /**

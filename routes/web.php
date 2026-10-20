@@ -87,6 +87,8 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
     Route::get('/projects/{project}/samples/{sample}/details', [ProjectSearchController::class, 'showSample'])->scopeBindings()->name('samples.lookup.details');
     Route::patch('/projects/{project}/samples/{sample}/details', [ProjectSearchController::class, 'updateSample'])->scopeBindings()->name('samples.lookup.details.update');
     Route::get('/{sample}/options', [SampleLookupController::class, 'options'])->middleware('can:samples.assign-research')->name('samples.lookup.options');
+    Route::get('/{sample}/analyses/{analysis}/references', [SampleLookupController::class, 'references'])->scopeBindings()->middleware('can:samples.update-research')->name('samples.lookup.references');
+    Route::patch('/{sample}/analyses/{analysis}/references', [SampleLookupController::class, 'updateReferences'])->scopeBindings()->name('samples.lookup.references.update');
     Route::get('/{sample}/product-groups', [SampleLookupController::class, 'productGroups'])->name('samples.lookup.product-groups');
     Route::patch('/{sample}/product-group', [SampleLookupController::class, 'updateProductGroup'])->name('samples.lookup.product-group.update');
     Route::post('/{sample}/research', [SampleLookupController::class, 'update'])->name('samples.lookup.research');

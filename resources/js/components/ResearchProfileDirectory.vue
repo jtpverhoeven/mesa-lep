@@ -24,16 +24,16 @@ onMounted(() => {
         <div v-if="store.message" class="notice success" role="status">{{ store.message }}</div>
         <div v-if="store.error" class="notice error" role="alert">{{ store.error }}</div>
         <div class="directory-toolbar">
-            <label class="directory-search"><Search :size="16" aria-hidden="true" /><span class="sr-only">Profielen zoeken</span><input v-model="query" type="search" placeholder="Zoek op profielnaam" @input="search"></label>
+            <label class="directory-search"><Search :size="16" aria-hidden="true" /><span class="sr-only">Zoek op klantnaam of profielnaam</span><input v-model="query" type="search" placeholder="Zoek op klantnaam of profielnaam" @input="search"></label>
             <a class="button" :href="endpoints.bulkPage"><ListChecks :size="16" />Bulkwijziging</a>
             <a class="button primary" :href="endpoints.create"><CopyPlus :size="16" />Profiel toevoegen</a>
         </div>
         <div class="table-scroll">
             <table class="data-table profile-directory-table">
-                <thead><tr><th>ID</th><th>Naam</th><th>Bereik</th><th>Portal</th><th>LIMS</th><th>Acties</th></tr></thead>
+                <thead><tr><th>ID</th><th>Klantnaam</th><th>Profielnaam</th><th>Portal</th><th>LIMS</th><th>Acties</th></tr></thead>
                 <tbody>
-                    <tr v-for="profile in store.profiles" :key="profile.id">
-                        <td>{{ profile.id }}</td><td><strong>{{ profile.name }}</strong></td><td>{{ profile.scope }}</td>
+                    <tr v-for="profile in store.sortedProfiles" :key="profile.id">
+                        <td>{{ profile.id }}</td><td>{{ profile.scope }}</td><td>{{ profile.name }}</td>
                         <td>{{ profile.portal_visible ? 'Ja' : 'Nee' }}</td><td>{{ profile.lims_visible ? 'Ja' : 'Nee' }}</td>
                         <td><a class="icon-button" :href="endpoints.edit.replace('__ID__', profile.id)" title="Bewerken"><Pencil :size="16" /></a><button class="icon-button danger" type="button" title="Verwijderen" @click="store.remove(profile.id)"><Trash2 :size="16" /></button></td>
                     </tr>

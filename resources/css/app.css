@@ -250,7 +250,7 @@ button.selected-research-title { cursor:pointer; }
 .category-options .muted { grid-column:1/-1; padding:16px; margin:0; }
 .empty-state { padding:36px 16px; text-align:center; color:var(--muted); }
 .profile-directory-table td { white-space:normal; }
-.profile-editor-grid { display:grid; grid-template-columns:minmax(300px, 36%) minmax(0, 64%); gap:16px; margin:0; padding:0; border:0; }
+.profile-editor-grid { display:grid; grid-template-columns:minmax(300px, 36%) minmax(0, 1fr); gap:16px; margin:0; padding:0; border:0; }
 .profile-editor-column { display:grid; gap:14px; align-content:start; min-width:0; }
 .profile-panel { min-width:0; border:1px solid var(--line); background:var(--surface); }
 .profile-panel h2 { display:flex; align-items:center; gap:7px; min-height:38px; margin:0; padding:9px 11px; border-bottom:1px solid var(--line); background:var(--surface-alt); font-size:12px; font-weight:700; }
@@ -263,13 +263,8 @@ button.selected-research-title { cursor:pointer; }
 .profile-assay-list { max-height:390px; overflow:auto; }
 .profile-assay-list > button { display:flex; justify-content:space-between; align-items:center; gap:10px; width:100%; min-height:46px; padding:8px 11px; border:0; border-bottom:1px solid var(--line); background:var(--surface); color:var(--ink); text-align:left; font:inherit; cursor:pointer; }
 .profile-assay-list > button:hover { background:var(--accent-faint); color:var(--accent); }
-.profile-assay-list span,.selected-assays td:nth-child(2),.bulk-profile-list span { display:flex; flex-direction:column; gap:3px; }
-.profile-assay-list small,.selected-assays small,.bulk-profile-list small { color:var(--muted); font-size:11px; }
-.selected-assays { white-space:normal; min-width:950px; }
-.selected-assays th,.selected-assays td { padding:8px; vertical-align:top; }
-.selected-assays textarea { min-width:130px; width:100%; resize:vertical; border:1px solid #9eabb2; background:var(--surface); color:var(--ink); padding:6px; font:inherit; }
-.selected-assays input { width:72px; min-height:32px; border:1px solid #9eabb2; background:var(--surface); color:var(--ink); padding:5px; font:inherit; }
-.selected-assays .icon-button { width:28px; height:28px; margin:0 2px 3px 0; }
+.profile-assay-list span,.bulk-profile-list span { display:flex; flex-direction:column; gap:3px; }
+.profile-assay-list small,.bulk-profile-list small { color:var(--muted); font-size:11px; }
 .profile-save-panel .profile-panel-body { display:flex; justify-content:space-between; align-items:end; gap:12px; }
 .profile-save-panel .revision-picker { flex-direction:column; align-items:flex-start; }
 .notice > svg { vertical-align:-3px; margin-right:5px; }

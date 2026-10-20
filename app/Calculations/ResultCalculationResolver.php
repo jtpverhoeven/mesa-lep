@@ -10,6 +10,30 @@ use LogicException;
 
 class ResultCalculationResolver
 {
+    /**
+     * @return array<string, string>|null
+     */
+    public function referenceOutputs(Assay $assay): ?array
+    {
+        try {
+            $identifier = $this->scriptIdentifier($assay->script);
+        } catch (LogicException) {
+            return null;
+        }
+
+        if ($identifier === null) {
+            return blank($assay->script) ? config('result-calculations.default_reference_outputs') : null;
+        }
+
+        $outputs = config('result-calculations.reference_outputs', []);
+
+        if (! is_array($outputs)) {
+            throw new LogicException('Reference output configuration must be an array.');
+        }
+
+        return array_change_key_case($outputs, CASE_LOWER)[$identifier] ?? null;
+    }
+
     public function resolve(Assay $assay): ResultCalculation
     {
         $calculators = config('result-calculations.calculators', []);

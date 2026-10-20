@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 
 class BulkChangeResearchProfiles
 {
+    public function __construct(private ValidateResearchProfileReferences $validateReferences) {}
+
     public function handle(array $data): int
     {
         return DB::transaction(function () use ($data) {
@@ -39,13 +41,15 @@ class BulkChangeResearchProfiles
                     $position === false ? $assays->push($newAssay) : $assays->put($position, $newAssay);
                 }
 
-                $revision->assayProfiles()->createMany($assays->values()->map(function ($assay, int $index) {
+                $rows = $assays->values()->map(function ($assay, int $index) {
                     $attributes = is_array($assay) ? $assay : $assay->only([
                         'assay', 'dillutions', 'replicates', 'reference', 'hidden', 'conf_trip', 'reference_source',
                     ]);
 
                     return [...$attributes, 'project_order' => $index + 1];
-                })->all());
+                })->all();
+                $this->validateReferences->handle($rows, $profile->global ? null : (int) $profile->client);
+                $revision->assayProfiles()->createMany($rows);
                 $profile->update(['active' => 0]);
                 $changed++;
             }

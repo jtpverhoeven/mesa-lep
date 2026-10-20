@@ -14,17 +14,27 @@ within the current application theme.
 - Remove individual analyses and move analyses up/down using existing actions.
 - Stored completion percentage, predicted completion date, and read-only notes.
 - Shared Pinia state and reusable lookup research/debug components.
+- Reference editing for loose (roaming) analyses, using the workflow's output
+  fields and global/client reference sources. Profile analyses cannot be edited.
+  Every non-empty value (including `0`) requires a source. "Referentie verwijderen"
+  clears all reference values and the source without changing other settings.
+  Saving invalidates the stored calculation and queues recalculation.
+  Existing unprefixed output keys (for example `kve`) bind to the corresponding
+  workflow field instead of adding a second `ref_kve` input. Their storage keys
+  remain unchanged when editing.
+  Apply the `expand_roaming_reference_values` migration to allow multi-output
+  reference JSON longer than the legacy 32-character storage limit.
 
 `samples.view` is required for lookup. Adding requires `samples.assign-research`;
-removing/reordering requires `samples.update-research`. Locked or authorized
+removing/reordering/reference editing requires `samples.update-research`. Locked or authorized
 projects cannot be changed. Analyses with stored results, readiness, or
 confirmation activity cannot be removed by this initial implementation.
 Repeated assay assignments remain supported by the existing legacy actions.
 
 ## Placeholders
 
-Result input, result calculation/units, confirmations, revisions, dilution and
-reference editing, sample-detail/note editing, portal metadata, product groups,
+Result input, result calculation/units, confirmations, revisions, dilution
+editing, sample-detail/note editing, portal metadata, product groups,
 THT operations, documents, and collaborative user-presence locks are not implemented.
 The result panes and placeholder controls show sample, sampleanalysis, assay,
 profile, and roaming IDs where applicable. They do not send result or portal
@@ -50,8 +60,8 @@ research-option responses cannot overwrite newer state.
 ## Checks
 
 ```sh
-./vendor/bin/sail artisan test --compact tests/Feature/SampleLookupTest.php
-./vendor/bin/sail node --test tests/Unit/sampleLookupStore.test.js
+./vendor/bin/sail artisan test --compact tests/Feature/SampleLookupTest.php tests/Feature/SampleAnalysisReferencesTest.php
+./vendor/bin/sail node --test tests/Unit/sampleLookupStore.test.js tests/Unit/sampleAnalysisReferencesStore.test.js
 ./vendor/bin/sail npm run build
 ```
 

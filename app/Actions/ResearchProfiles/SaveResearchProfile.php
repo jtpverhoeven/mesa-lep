@@ -2,13 +2,14 @@
 
 namespace App\Actions\ResearchProfiles;
 
-use App\Models\ReferenceSource;
 use App\Models\ResearchProfile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class SaveResearchProfile
 {
+    public function __construct(private ValidateResearchProfileReferences $validateReferences) {}
+
     public function handle(array $data, ?ResearchProfile $profile = null): ResearchProfile
     {
         return DB::transaction(function () use ($data, $profile) {
@@ -25,7 +26,7 @@ class SaveResearchProfile
                 'lims_visible' => (int) $data['lims_visible'],
             ];
 
-            $this->validateReferenceSources($data['assays'] ?? [], $data['global'] ? null : (int) $data['client']);
+            $this->validateReferences->handle($data['assays'] ?? [], $data['global'] ? null : (int) $data['client']);
 
             if ($profile) {
                 $saved = $profile->replicate();
@@ -41,30 +42,6 @@ class SaveResearchProfile
 
             return $saved->fresh(['assayProfiles.assayRecord']);
         });
-    }
-
-    private function validateReferenceSources(array $assays, ?int $client): void
-    {
-        $sourceIds = collect($assays)
-            ->pluck('reference_source')
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->unique();
-
-        if ($sourceIds->isEmpty()) {
-            return;
-        }
-
-        $availableSources = ReferenceSource::query()
-            ->availableForClient($client)
-            ->whereKey($sourceIds)
-            ->count();
-
-        if ($availableSources !== $sourceIds->count()) {
-            throw ValidationException::withMessages([
-                'assays' => 'Een geselecteerde referentiebron is niet beschikbaar voor dit profiel.',
-            ]);
-        }
     }
 
     private function assays(array $assays): array

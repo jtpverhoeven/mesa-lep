@@ -63,7 +63,8 @@
         @apply bg-field-focus;
     }
 
-    :where([data-pc-name='inputtext'], [data-pc-name='pcinputtext'], [data-pc-name='textarea'], [data-pc-name='select'], [data-pc-name='multiselect'], [data-pc-name='button']) {
+    :where([data-pc-name='inputtext'], [data-pc-name='pcinputtext'], [data-pc-name='pcfilter'], [data-pc-name='textarea'], [data-pc-name='select'], [data-pc-name='multiselect'], [data-pc-name='button']),
+    :where([data-pc-name='select'], [data-pc-name='multiselect']):not(.p-inputfield-sm, .p-inputfield-lg) > [data-pc-section='label'] {
         font-size: inherit;
     }
 

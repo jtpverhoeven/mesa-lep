@@ -1,11 +1,12 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { ArrowDown, ArrowUp, Barcode, Plus, Star, Trash2, X } from '@lucide/vue';
 import Dialog from 'openvue/dialog';
 import { useSampleLookupStore } from '../stores/sampleLookupStore';
 import { useSampleResearchStore } from '../stores/sampleResearchStore';
 import SampleResearchSelector from './SampleResearchSelector.vue';
 import SelectedSampleResearch from './SelectedSampleResearch.vue';
+import SampleAnalysisReferencesDialog from './SampleAnalysisReferencesDialog.vue';
 import { createAppDialogPassThrough } from '../dialogPassThrough';
 
 defineProps({ permissions: { type: Object, required: true } });
@@ -24,6 +25,7 @@ const groups = computed(() => {
     }
     return groups;
 });
+watch(() => store.selectedId, () => store.closeReferences());
 </script>
 
 <template>
@@ -34,7 +36,7 @@ const groups = computed(() => {
                 <button class="icon-button" title="Analyse omhoog" :disabled="!store.selected || store.saving || store.readOnly || store.selectedId === store.data?.analyses[0]?.id" @click="store.move(-1)"><ArrowUp :size="15" /></button>
                 <button class="icon-button" title="Analyse omlaag" :disabled="!store.selected || store.saving || store.readOnly || store.selectedId === store.data?.analyses.at(-1)?.id" @click="store.move(1)"><ArrowDown :size="15" /></button>
                 <button class="icon-button danger" title="Analyse verwijderen" :disabled="!store.selected || store.saving || store.readOnly" @click="removing = store.selected"><Trash2 :size="15" /></button>
-                <button class="icon-button" title="Referentiewaarden wijzigen" :disabled="!store.selected" @click="store.placeholder('Referentiewaarden wijzigen')"><Star :size="15" /></button>
+                <button class="icon-button" title="Referentiewaarden wijzigen" :disabled="!store.canEditReferences" @click="store.openReferences()"><Star :size="15" /></button>
             </template>
         </span></h2>
         <div class="sample-panel-body lookup-analysis-list">
@@ -47,6 +49,7 @@ const groups = computed(() => {
                     <span class="lookup-status" :class="{ ready: analysis.is_ready }">{{ analysis.is_ready ? 'Gereed' : 'Open' }}<small v-if="analysis.conf_requested">{{ Number(analysis.conf_requested) === 2 ? 'Bevestiging afgewezen' : 'Bevestiging gevraagd' }}</small></span>
                 </button>
             </section>
+            <SampleAnalysisReferencesDialog v-if="permissions.edit" />
         </div>
     </section>
     <Dialog v-model:visible="store.adding" modal :draggable="false" :dismissable-mask="false" :close-on-escape="!store.saving" :closable="false" :block-scroll="true" :pt="addDialogPassThrough">

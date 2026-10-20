@@ -1,17 +1,25 @@
 import { defineStore } from 'pinia';
 import { useSampleResearchStore } from './sampleResearchStore.js';
+import { createAssayDraft, referenceSourceProblem, referenceValues } from '../researchProfileAssays.js';
 
 export const useSampleLookupStore = defineStore('sampleLookup', {
-    state: () => ({ endpoints: {}, data: null, barcode: '', loading: false, saving: false, error: '', selectedId: null, scannedPlateFollowNumber: null, plateFocusRevision: 0, tab: 'general', adding: false, requestId: 0, debug: null, resultData: null, resultsLoading: false, resultSaving: {}, resultError: '', calculation: null, calculationLoading: false, calculationError: '', calculationRevision: 0, resultRequestId: 0, detailsVisible: false, detailsData: null, detailsLoading: false, detailsSaving: {}, detailsError: '', detailsRequestId: 0 }),
+    state: () => ({ endpoints: {}, data: null, barcode: '', loading: false, saving: false, error: '', selectedId: null, scannedPlateFollowNumber: null, plateFocusRevision: 0, tab: 'general', adding: false, requestId: 0, debug: null, resultData: null, resultsLoading: false, resultSaving: {}, resultError: '', calculation: null, calculationLoading: false, calculationError: '', calculationRevision: 0, resultRequestId: 0, detailsVisible: false, detailsData: null, detailsLoading: false, detailsSaving: {}, detailsError: '', detailsRequestId: 0, referencesVisible: false, referencesLoading: false, referencesError: '', referenceDraft: null, referenceSources: [], referencesRequestId: 0 }),
     getters: {
         selected: (state) => state.data?.analyses.find((analysis) => analysis.id === state.selectedId) ?? null,
         progress: (state) => state.data?.progress ?? 0,
         readOnly: (state) => Boolean(Number(state.data?.project?.locked) || Number(state.data?.project?.auth_status) || state.detailsData?.read_only),
         detailsBusy: (state) => state.detailsLoading || Object.keys(state.detailsSaving).length > 0,
+        canEditReferences() {
+            return Boolean(this.selected && Number(this.selected.profile) === 0 && !this.readOnly && !this.loading && !this.saving);
+        },
+        referenceProblem() {
+            return this.referenceDraft ? referenceSourceProblem(this.referenceDraft, this.referenceSources, !this.referencesLoading, 'dit monster') : '';
+        },
     },
     actions: {
         async lookup(barcode = this.barcode) {
             if (this.saving || Object.keys(this.detailsSaving).length) return null;
+            this.closeReferences();
             const requestId = ++this.requestId;
             const scannedBarcode = String(barcode ?? '').trim();
             const [sampleBarcode, analysisFollowNumber, plateFollowNumber] = scannedBarcode.split('.');
@@ -151,6 +159,71 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
             const research = useSampleResearchStore();
             research.configure(this.endpoints.options.replace('__SAMPLE__', this.data.sample.id));
             await research.load(this.data.sample.client);
+        },
+        closeReferences() {
+            if (this.saving) return;
+            this.referencesRequestId++;
+            this.referencesVisible = false;
+            this.referencesLoading = false;
+            this.referenceDraft = null;
+            this.referenceSources = [];
+            this.referencesError = '';
+        },
+        async openReferences() {
+            if (!this.canEditReferences) return;
+            const analysisId = this.selectedId;
+            const requestId = ++this.referencesRequestId;
+            this.referencesVisible = true;
+            this.referencesLoading = true;
+            this.referencesError = '';
+            this.referenceDraft = null;
+            this.referenceSources = [];
+            try {
+                const endpoint = this.endpoints.references.replace('__SAMPLE__', this.data.sample.id).replace('__ANALYSIS__', analysisId);
+                const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+                const result = await response.json();
+                if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Referentiewaarden konden niet worden geladen.');
+                if (requestId !== this.referencesRequestId || this.selectedId !== analysisId) return;
+                this.referenceDraft = createAssayDraft(result.data);
+                this.referenceSources = result.data.reference_sources;
+            } catch (error) {
+                if (requestId === this.referencesRequestId) this.referencesError = error.message;
+            } finally {
+                if (requestId === this.referencesRequestId) this.referencesLoading = false;
+            }
+        },
+        async saveReferences(clear = false) {
+            if (!this.canEditReferences || this.referencesLoading || !this.referenceDraft || this.referenceDraft.analysis_id !== this.selectedId) return false;
+            if (!clear && this.referenceProblem) {
+                this.referencesError = this.referenceProblem;
+                return false;
+            }
+            const analysisId = this.referenceDraft.analysis_id;
+            this.saving = true;
+            this.referencesError = '';
+            try {
+                const endpoint = this.endpoints.updateReferences.replace('__SAMPLE__', this.data.sample.id).replace('__ANALYSIS__', analysisId);
+                const response = await fetch(endpoint, {
+                    method: 'PATCH',
+                    headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '' },
+                    body: JSON.stringify({
+                        reference: clear ? {} : referenceValues(this.referenceDraft),
+                        reference_source: clear ? null : this.referenceDraft.reference_source || null,
+                    }),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Referentiewaarden konden niet worden opgeslagen.');
+                this.data = result.data;
+            } catch (error) {
+                this.referencesError = error.message;
+                return false;
+            } finally {
+                this.saving = false;
+            }
+            this.closeReferences();
+            this.markCalculationQueued(analysisId);
+            await this.loadResults(analysisId);
+            return true;
         },
         clearResults() {
             this.resultRequestId++;

@@ -27,9 +27,13 @@ export const useResearchProfileStore = defineStore('researchProfiles', {
     state: () => ({
         endpoints: {}, profiles: [], profile: null, revisions: [], matrices: [], assays: [], referenceSources: [],
         loading: false, saving: false, error: '', message: '', query: '',
+        referenceSourcesLoading: false, referenceSourcesError: '', referenceSourceRequest: 0,
     }),
     getters: {
         assayById: (state) => (id) => state.assays.find((assay) => Number(assay.id) === Number(id)),
+        sortedProfiles: (state) => [...state.profiles].sort((first, second) =>
+            first.scope.localeCompare(second.scope, 'nl', { sensitivity: 'base' })
+            || first.name.localeCompare(second.name, 'nl', { sensitivity: 'base' })),
     },
     actions: {
         configure(endpoints) {
@@ -67,12 +71,18 @@ export const useResearchProfileStore = defineStore('researchProfiles', {
         },
         async loadReferenceSources(client = null) {
             if (!this.endpoints.referenceSources) return;
+            const requestId = ++this.referenceSourceRequest;
+            this.referenceSourcesLoading = true;
+            this.referenceSourcesError = '';
             try {
                 const url = new URL(this.endpoints.referenceSources, window.location.origin);
                 if (client) url.searchParams.set('client', client);
-                this.referenceSources = (await request(url)).data;
+                const sources = (await request(url)).data;
+                if (requestId === this.referenceSourceRequest) this.referenceSources = sources;
             } catch (error) {
-                this.error = error.message;
+                if (requestId === this.referenceSourceRequest) this.referenceSourcesError = error.message;
+            } finally {
+                if (requestId === this.referenceSourceRequest) this.referenceSourcesLoading = false;
             }
         },
         async save(payload) {

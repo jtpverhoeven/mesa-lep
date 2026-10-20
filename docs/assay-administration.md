@@ -69,6 +69,78 @@ sample analysis, results, and reporting are also outside this pass.
 
 ## Applying and testing
 
+### Research-profile reference fields
+
+The research-profile editor shows selected analyses read-only. **Bewerken** opens
+a draft dialog; applying changes updates the local profile, while cancelling
+discards them. Saving the profile still creates a revision.
+
+Workflow reference fields are declared in
+`config/result-calculations.php` under `reference_outputs`, keyed by the
+case-insensitive legacy `file:` identifier. Each entry maps an output name to its
+display label, for example `['ph' => 'pH', 'temperature' => 'Temperatuur']`.
+Add all expected reference outputs when introducing a workflow. These declarations
+also cover legacy workflows whose calculators have not yet been ported; no legacy
+PHP is executed to discover fields. A blank script uses the default calculator's
+`result` output. Unknown or inline workflows show an explicit configuration warning
+instead of guessing output names; existing reference keys remain editable.
+
+Reference values retain their legacy `ref_<output>` keys in `assayprofiles.reference`.
+Existing unprefixed keys such as `kve` are also retained and bind to the same
+workflow output without generating a duplicate prefixed input.
+An entered value, including zero, requires a reference source available to the
+profile (global, or belonging to its client). Save, copy, and bulk actions enforce
+this rule transactionally. Empty reference fields do not require a source.
+
+Run `vendor/bin/sail artisan test --compact tests/Feature/ResearchProfileEditorTest.php`
+for the editor payload, reference-source safeguards, and revision/copy regressions.
+Run `vendor/bin/sail node --test tests/Unit/researchProfileEditor.test.js` for draft
+isolation, output-field mapping, client-side validation, and source-loading races.
+
+### Legacy CSV profile imports
+
+Both `legacy:import-csv` and `db:import-csv` decode profile `dillutions` and
+`reference` JSON before assigning those attributes to Eloquent. The shared
+`DecodeCsvJsonAttributes` action also handles ordinary `array`/`json` casts;
+untyped legacy JSON columns, such as assay `custom_fields`, remain raw strings.
+Normal and double-encoded profile objects/arrays are accepted. Empty cells,
+legacy null markers, and JSON null become empty maps. Storage remains a single
+JSON object, including for empty maps; output keys, zero values, and empty
+reference values are retained.
+
+The directory importer preserves exported IDs, revisions, ordering, flags, and
+reference-source IDs. It reports malformed or non-array profile JSON with its
+file, CSV record number, and attribute, skips that row, and returns a failing
+exit code rather than silently replacing the settings with `{}`. Valid rows
+still import, matching the command's existing per-row failure handling.
+Historical references are preserved even when their source is missing; the
+editor's source validation still applies when those profiles are edited.
+
+The directory importer streams each file and writes at most 500 rows in one SQL
+insert/transaction, including the final partial batch. Eloquent's `fillForInsert`
+prepares defaults, casts, and mutators before buffering each row, so the JSON
+conversion above is retained without serializing values twice. A failed database
+batch is rolled back and retried row by row using those same prepared values.
+Bad rows are reported at their original CSV record number; good rows and earlier
+batches are kept, and later files still import. PostgreSQL sequences are reset
+after the import as before. Client anonymization also happens before batching.
+
+Legacy bulk imports intentionally skip individual model lifecycle events
+(`saving`, `creating`, `created`, `saved`). The generic `db:import-csv` command
+continues creating Eloquent models individually and retains those events.
+
+**The directory importer truncates all registered import tables, including when
+only some CSV files are supplied.** It is for replacing a database from exports,
+not merging into a database that has newer edits. Fixing the import conversion
+does not repair already imported empty settings. Back up the database and use a
+separately reviewed, ID-matched repair for those records instead of rerunning a
+partial directory import.
+
+Run `vendor/bin/sail artisan test --compact tests/Feature/ImportLegacyCsvDirectoryCommandTest.php tests/Feature/ImportCsvCommandTest.php`
+for JSON conversion, legacy storage preservation, row-level failure reporting,
+bounded SQL insert counts, retry handling, lifecycle behavior, and existing
+printing-import compatibility.
+
 Run `php artisan migrate` against the intended Laravel database. The migration
 creates new tables; it does not import records or adopt pre-existing legacy tables.
 Back up and reconcile any existing tables before applying it to such a database.

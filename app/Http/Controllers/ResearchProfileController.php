@@ -6,12 +6,14 @@ use App\Actions\Clients\SearchClients;
 use App\Actions\ResearchProfiles\BulkChangeResearchProfiles;
 use App\Actions\ResearchProfiles\CopyResearchProfileAssays;
 use App\Actions\ResearchProfiles\SaveResearchProfile;
+use App\Calculations\ResultCalculationResolver;
 use App\Http\Requests\BulkChangeResearchProfilesRequest;
 use App\Http\Requests\SaveResearchProfileRequest;
 use App\Models\Assay;
 use App\Models\Matrix;
 use App\Models\ReferenceSource;
 use App\Models\ResearchProfile;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -36,10 +38,13 @@ class ResearchProfileController extends Controller
 
     public function list(Request $request): JsonResponse
     {
+        $search = $request->string('query')->trim()->toString();
         $profiles = ResearchProfile::query()
             ->with('clientRecord:id,name,active')
             ->where('active', 1)
-            ->when($request->string('query')->trim()->isNotEmpty(), fn ($query) => $query->where('name', 'like', '%'.$request->string('query')->trim().'%'))
+            ->when($search !== '', fn (Builder $query) => $query->where(fn (Builder $query) => $query
+                ->whereLike('name', '%'.$search.'%')
+                ->orWhereHas('clientRecord', fn (Builder $client) => $client->whereLike('name', '%'.$search.'%'))))
             ->where(fn ($query) => $query->where('client', 0)->orWhereHas('clientRecord', fn ($client) => $client->where('active', 1)))
             ->orderBy('name')
             ->get();
@@ -51,12 +56,12 @@ class ResearchProfileController extends Controller
         ])]);
     }
 
-    public function data(?ResearchProfile $researchProfile = null): JsonResponse
+    public function data(ResultCalculationResolver $calculations, ?ResearchProfile $researchProfile = null): JsonResponse
     {
         $researchProfile?->load([
             'clientRecord:id,name,reference',
             'assayProfiles' => fn ($query) => $query->where('hidden', 0),
-            'assayProfiles.assayRecord:id,name',
+            'assayProfiles.assayRecord:id,name,dillution,replicates,script',
             'assayProfiles.referenceSource:id,name,client',
         ]);
         $referenceSourceClient = $researchProfile && ! $researchProfile->global ? (int) $researchProfile->client : null;
@@ -70,6 +75,7 @@ class ResearchProfileController extends Controller
                 'assays' => $researchProfile->assayProfiles->map(fn ($item) => [
                     ...$item->only(['assay', 'dillutions', 'replicates', 'reference', 'conf_trip', 'reference_source', 'project_order']),
                     'name' => $item->assayRecord?->name,
+                    'configuration' => $item->assayRecord ? $this->assayConfiguration($item->assayRecord, $calculations) : null,
                     'reference_source_record' => $item->referenceSource ? [
                         'id' => $item->referenceSource->id,
                         'name' => $item->referenceSource->localizedName(),
@@ -81,9 +87,10 @@ class ResearchProfileController extends Controller
             ]),
             'matrices' => Matrix::query()->orderBy('name')->get(['id', 'name']),
             'assays' => Assay::query()->with('matrixContents:assay_base,matrix')->where('active', 1)->orderBy('name')
-                ->get(['id', 'original_id', 'name', 'dillution', 'replicates'])
+                ->get(['id', 'original_id', 'name', 'dillution', 'replicates', 'script'])
                 ->map(fn ($assay) => [
                     ...$assay->only(['id', 'original_id', 'name', 'dillution', 'replicates']),
+                    'configuration' => $this->assayConfiguration($assay, $calculations),
                     'matrices' => $assay->matrixContents->pluck('matrix')->values(),
                 ]),
             'reference_sources' => $this->referenceSourceOptions($referenceSourceClient),
@@ -151,5 +158,18 @@ class ResearchProfileController extends Controller
                 'client' => $source->client,
             ])
             ->all();
+    }
+
+    private function assayConfiguration(Assay $assay, ResultCalculationResolver $calculations): array
+    {
+        $outputs = $calculations->referenceOutputs($assay);
+
+        return [
+            'dillution' => (bool) $assay->dillution,
+            'replicates' => (bool) $assay->replicates,
+            'reference_outputs' => $outputs === null ? null : collect($outputs)->map(
+                fn (string $label, string $name) => ['key' => 'ref_'.$name, 'name' => $name, 'label' => $label],
+            )->values()->all(),
+        ];
     }
 }

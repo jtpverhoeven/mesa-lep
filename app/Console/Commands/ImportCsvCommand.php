@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Imports\DecodeCsvJsonAttributes;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Throwable;
@@ -14,7 +15,7 @@ class ImportCsvCommand extends Command
 
     protected $description = 'Import a CSV file as new Eloquent models';
 
-    public function handle(): int
+    public function handle(DecodeCsvJsonAttributes $decodeJsonAttributes): int
     {
         $filename = (string) $this->argument('filename');
         $path = $this->resolvePath($filename);
@@ -47,7 +48,7 @@ class ImportCsvCommand extends Command
             return self::FAILURE;
         }
 
-        $headers = fgetcsv($handle);
+        $headers = fgetcsv($handle, escape: '');
 
         if ($headers === false || $headers === [] || count(array_filter($headers, fn ($header) => trim((string) $header) !== '')) !== count($headers)) {
             fclose($handle);
@@ -68,7 +69,9 @@ class ImportCsvCommand extends Command
         $imported = 0;
 
         try {
-            while (($row = fgetcsv($handle)) !== false) {
+            $model = new $modelClass;
+
+            while (($row = fgetcsv($handle, escape: '')) !== false) {
                 if ($row === [null]) {
                     continue;
                 }
@@ -77,7 +80,8 @@ class ImportCsvCommand extends Command
                     throw new \RuntimeException('A CSV row has a different number of columns than the header row.');
                 }
 
-                $modelClass::create(array_combine($headers, $row));
+                $attributes = $decodeJsonAttributes->handle($model, array_combine($headers, $row));
+                $modelClass::create($attributes);
                 $imported++;
             }
         } catch (Throwable $exception) {

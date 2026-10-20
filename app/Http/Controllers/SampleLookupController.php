@@ -4,11 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Actions\ProductGroups\UpdateSampleProductGroup;
 use App\Actions\SampleAnalyses\GetSampleAnalysisOptions;
+use App\Actions\SampleAnalyses\GetSampleAnalysisReferences;
+use App\Actions\SampleAnalyses\UpdateRoamingAnalysis;
 use App\Actions\Samples\LookupSample;
 use App\Actions\Samples\UpdateLookupResearch;
 use App\Http\Requests\StoreSampleRequest;
+use App\Http\Requests\UpdateSampleAnalysisReferencesRequest;
 use App\Models\ProductGroup;
 use App\Models\Sample;
+use App\Models\SampleAnalysis;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -31,6 +35,23 @@ class SampleLookupController extends Controller
     public function options(Sample $sample, GetSampleAnalysisOptions $options): JsonResponse
     {
         return response()->json(['data' => $options->handle($sample->client)]);
+    }
+
+    public function references(Sample $sample, SampleAnalysis $analysis, GetSampleAnalysisReferences $references): JsonResponse
+    {
+        return response()->json(['data' => $references->handle($analysis)]);
+    }
+
+    public function updateReferences(
+        UpdateSampleAnalysisReferencesRequest $request,
+        Sample $sample,
+        SampleAnalysis $analysis,
+        UpdateRoamingAnalysis $update,
+        LookupSample $lookup,
+    ): JsonResponse {
+        $update->handle($analysis, $request->validated());
+
+        return response()->json(['data' => $lookup->handle($sample->barcode)]);
     }
 
     public function productGroups(Sample $sample): JsonResponse
