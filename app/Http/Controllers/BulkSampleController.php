@@ -33,19 +33,6 @@ class BulkSampleController extends Controller
             ->withCount('samples')->get(['id', 'project_name', 'project_date'])]);
     }
 
-    public function clientDetails(string $registrationType, Client $client): JsonResponse
-    {
-        $files = json_decode($client->attachment ?: '{}', true) ?: [];
-
-        return response()->json(['data' => [
-            'reference' => $client->reference,
-            'telephone' => $client->telephone,
-            'address' => trim($client->street_name.' '.$client->street_number.' '.$client->postal_code.' '.$client->place),
-            'notes' => $client->notes,
-            'files' => collect($files)->map(fn (array $file) => ['name' => $file['file_description'] ?? 'Bestand'])->values(),
-        ]]);
-    }
-
     public function preview(Request $request, string $registrationType, BarcodeGenerator $barcodes): JsonResponse
     {
         $data = $request->validate([

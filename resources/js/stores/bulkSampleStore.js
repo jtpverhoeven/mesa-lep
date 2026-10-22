@@ -3,7 +3,6 @@ import { useClientSelectorStore } from './clientSelectorStore';
 import { useProjectSelectorStore } from './projectSelectorStore';
 
 let previewRequest;
-let detailsRequest;
 
 function headers() {
     return { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content };
@@ -12,7 +11,7 @@ function headers() {
 export const useBulkSampleStore = defineStore('bulkSampleRegistration', {
     state: () => ({
         type: '', endpoints: {}, rows: [], profiles: [], samplingMethods: [], defaultProfile: '', defaultSamplingMethod: 0,
-        count: 0, form: { sampling_method: 0, sample_note: '' }, clientDetails: null,
+        count: 0, form: { sampling_method: 0, sample_note: '' },
         loading: false, submitting: false, previewing: false, error: '', previewError: '', errors: {},
     }),
     getters: {
@@ -24,7 +23,7 @@ export const useBulkSampleStore = defineStore('bulkSampleRegistration', {
         configure(type, endpoints) {
             this.type = type;
             this.endpoints = endpoints;
-            useClientSelectorStore().configure(endpoints.clientSearch);
+            useClientSelectorStore().configure(endpoints.clientSearch, endpoints.clientDetails);
             useProjectSelectorStore().configure(endpoints.clientProjects, endpoints.project, type === 'legionella');
         },
         async initialize() {
@@ -49,29 +48,12 @@ export const useBulkSampleStore = defineStore('bulkSampleRegistration', {
         async selectClient(client) {
             useClientSelectorStore().select(client);
             this.errors = {};
-            this.clientDetails = null;
-            detailsRequest?.abort();
-            const request = new AbortController();
-            detailsRequest = request;
-            await Promise.all([
-                useProjectSelectorStore().loadForClient(client.id),
-                (async () => {
-                    try {
-                        const response = await fetch(this.endpoints.clientDetails.replace('__CLIENT__', client.id), { headers: { Accept: 'application/json' }, signal: request.signal });
-                        if (!response.ok) throw new Error();
-                        this.clientDetails = (await response.json()).data;
-                    } catch (error) {
-                        if (error.name !== 'AbortError') this.error = 'Klantgegevens konden niet worden opgehaald.';
-                    }
-                })(),
-            ]);
+            await useProjectSelectorStore().loadForClient(client.id);
             this.renumberRows();
         },
         clearClient() {
-            detailsRequest?.abort();
             useClientSelectorStore().clear();
             useProjectSelectorStore().loadForClient(null);
-            this.clientDetails = null;
             this.renumberRows();
         },
         resizeRows(count) {

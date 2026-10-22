@@ -28,7 +28,7 @@ export const useCreateSampleStore = defineStore('createSample', {
     actions: {
         configure(endpoints) {
             this.endpoints = endpoints;
-            useClientSelectorStore().configure(endpoints.clientSearch);
+            useClientSelectorStore().configure(endpoints.clientSearch, endpoints.clientDetails);
             useProjectSelectorStore().configure(endpoints.clientProjects, endpoints.project);
             useSampleResearchStore().configure(endpoints.analysisOptions);
         },

@@ -4,20 +4,21 @@
 
 - Research profiles
     - Should allow deleting individual analyses on sample create screens.
-
-   
+  
 
 - User printers
 
 - Report generation
     Depends on:
-    - Footer & Headers
+    - Thinkin how to create and show templates?
     - Veto results    
+    - Footer & Headers
+        
+   
+# Known bugs
 
 - Metadata change tracker error. puts from -> to as key->value
-
-
-#The DELETE method is not supported for route laboratory/samples/lookup/26101022. Supported methods: GET, HEAD.
+- The DELETE method is not supported for route laboratory/samples/lookup/26101022. Supported methods: GET, HEAD. (on changing/delete colonies in confirmation window, needs checking)
 
 
 # Ideas - Improvements after code base done

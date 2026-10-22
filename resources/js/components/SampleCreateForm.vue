@@ -53,7 +53,7 @@ onMounted(async () => {
         <div v-if="store.loading" class="sample-loading"><LoaderCircle class="spin" :size="22" aria-hidden="true" />Formulier laden</div>
         <div v-else class="sample-create-grid">
             <div class="sample-create-column">
-                <section class="sample-panel"><h2><Building2 :size="16" aria-hidden="true" />Klant</h2><div class="sample-panel-body form-grid"><sample-client-selector ref="clientSelector" /></div></section>
+                <section class="sample-panel"><h2><Building2 :size="16" aria-hidden="true" />Klant</h2><div class="sample-panel-body form-grid"><sample-client-selector ref="clientSelector" show-details /></div></section>
                 <section class="sample-panel"><h2><BriefcaseBusiness :size="16" aria-hidden="true" />Projectinformatie</h2><div class="sample-panel-body form-grid"><sample-project-editor /></div></section>
             </div>
             <div class="sample-create-column">

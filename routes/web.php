@@ -187,6 +187,7 @@ Route::middleware(['auth', 'can:samples.create'])->prefix('laboratory')->group(f
     Route::get('/samples/create', [SampleController::class, 'create'])->name('samples.create');
     Route::get('/samples/create/data', [SampleController::class, 'formData'])->name('samples.form-data');
     Route::get('/samples/clients/search', [SampleController::class, 'searchClients'])->name('samples.clients.search');
+    Route::get('/samples/clients/{client}/details', [SampleController::class, 'clientDetails'])->name('samples.clients.details');
     Route::get('/samples/clients/{client}/projects', [SampleController::class, 'clientProjects'])->name('samples.projects.index');
     Route::get('/samples/clients/{client}/analysis-options', [SampleController::class, 'analysisOptions'])->name('samples.analysis-options');
     Route::get('/samples/projects/{project}', [SampleController::class, 'project'])->name('samples.projects.show');
@@ -196,7 +197,6 @@ Route::middleware(['auth', 'can:samples.create'])->prefix('laboratory')->group(f
         Route::get('/create', [BulkSampleController::class, 'create'])->name('samples.bulk.create');
         Route::get('/create/data', [BulkSampleController::class, 'formData'])->name('samples.bulk.form-data');
         Route::get('/clients/{client}/projects', [BulkSampleController::class, 'clientProjects'])->name('samples.bulk.projects');
-        Route::get('/clients/{client}/details', [BulkSampleController::class, 'clientDetails'])->name('samples.bulk.client-details');
         Route::post('/preview', [BulkSampleController::class, 'preview'])->name('samples.bulk.preview');
         Route::post('/', [BulkSampleController::class, 'store'])->name('samples.bulk.store');
     });

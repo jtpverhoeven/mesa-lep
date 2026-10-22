@@ -52,6 +52,19 @@ class SampleController extends Controller
         return response()->json(['data' => $projects]);
     }
 
+    public function clientDetails(Client $client): JsonResponse
+    {
+        $files = json_decode($client->attachment ?: '{}', true) ?: [];
+
+        return response()->json(['data' => [
+            'reference' => $client->reference,
+            'telephone' => $client->telephone,
+            'address' => trim($client->street_name.' '.$client->street_number.' '.$client->postal_code.' '.$client->place),
+            'notes' => $client->notes,
+            'files' => collect($files)->map(fn (array $file) => ['name' => $file['file_description'] ?? 'Bestand'])->values(),
+        ]]);
+    }
+
     public function project(Project $project): JsonResponse
     {
         return response()->json(['data' => [

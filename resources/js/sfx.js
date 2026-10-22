@@ -2,6 +2,7 @@ import { inject } from 'vue';
 
 const sounds = Object.freeze({
     chat: '/sfx/chat.mp3',
+    clientwishes: '/sfx/clientwishes.mp3',
     confirmations: '/sfx/confirmations.mp3',
     do: '/sfx/do.mp3',
     error: '/sfx/error.mp3',
