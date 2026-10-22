@@ -40,6 +40,7 @@ use App\Http\Controllers\SampleProcedureFieldController;
 use App\Http\Controllers\SampleRegisterController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserGroupController;
+use App\Http\Controllers\VetoResultController;
 use App\Models\Assay;
 use Illuminate\Support\Facades\Route;
 use Mpdf\Mpdf;
@@ -126,6 +127,8 @@ Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects/se
     Route::patch('/{project}/samples/{sample}', [ProjectSearchController::class, 'updateSample'])->scopeBindings()->name('projects.search.samples.update');
     Route::delete('/{project}/samples/{sample}', [ProjectSearchController::class, 'destroySample'])->middleware('can:projects.samples.remove')->scopeBindings()->name('projects.search.samples.destroy');
     Route::get('/{project}/samples/{sample}/analyses/{analysis}/results', [ProjectSearchController::class, 'showSampleAnalysisResults'])->scopeBindings()->name('projects.search.samples.results.show');
+    Route::put('/{project}/samples/{sample}/analyses/{analysis}/veto', [VetoResultController::class, 'update'])->scopeBindings()->name('projects.search.samples.veto.update');
+    Route::delete('/{project}/samples/{sample}/analyses/{analysis}/veto', [VetoResultController::class, 'update'])->scopeBindings()->name('projects.search.samples.veto.destroy');
     Route::get('/{project?}', [ProjectSearchController::class, 'index'])->whereNumber('project')->name('projects.search');
 });
 

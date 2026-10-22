@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -76,6 +77,16 @@ class SampleAnalysis extends Model
     public function results(): HasMany
     {
         return $this->hasMany(Result::class, 'sa_id')->orderByDesc('df')->orderBy('rep');
+    }
+
+    public function vetoResults(): HasMany
+    {
+        return $this->hasMany(VetoResult::class, 'said')->orderBy('id');
+    }
+
+    protected function hasVetoResult(): Attribute
+    {
+        return Attribute::get(fn (): bool => $this->vetoResults->isNotEmpty());
     }
 
     public function isRoaming(): bool

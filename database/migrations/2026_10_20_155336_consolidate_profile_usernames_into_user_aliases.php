@@ -43,6 +43,10 @@ return new class extends Migration
                 DB::table('users')->where('id', $id)->update(['alias' => $alias]);
             }
 
+            if (DB::getDriverName() === 'sqlite') {
+                Schema::table('profiles', fn (Blueprint $table) => $table->dropUnique(['username']));
+            }
+
             Schema::table('profiles', fn (Blueprint $table) => $table->dropColumn('username'));
         });
     }

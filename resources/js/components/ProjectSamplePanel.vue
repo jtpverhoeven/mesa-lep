@@ -13,7 +13,11 @@ import ProjectSampleResults from './ProjectSampleResults.vue';
 import SampleMetadataEditor from './SampleMetadataEditor.vue';
 import ShowRevisions from './ShowRevisions.vue';
 
-defineProps({ canUpdate: { type: Boolean, required: true }, canDelete: { type: Boolean, default: false } });
+defineProps({
+    canUpdate: { type: Boolean, required: true },
+    canDelete: { type: Boolean, default: false },
+    canVeto: { type: Boolean, default: false },
+});
 
 const store = useProjectSearchStore();
 const deleteDialogVisible = ref(false);
@@ -54,7 +58,7 @@ async function confirmDelete() {
                     <Tab value="files"><FileText :size="14" />Bestanden</Tab>
                 </TabList>
             </Tabs>
-            <ProjectSampleResults />
+            <ProjectSampleResults :can-veto="canVeto" />
         </template>
         <p v-else class="empty-state">Selecteer een monster uit de projectinhoud.</p>
         <ShowRevisions v-model:visible="revisionsVisible" :endpoint="store.endpoints.revisions" scope="sample" :scope-id="store.selectedSampleId" :project-id="store.selectedProjectId" title="Monsterrevisies" />

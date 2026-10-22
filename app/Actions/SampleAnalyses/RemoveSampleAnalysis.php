@@ -29,6 +29,7 @@ class RemoveSampleAnalysis
 
             Result::query()->where('sa_id', $analysis->id)->delete();
             RoamingAnalysis::query()->where('said', $analysis->id)->delete();
+            $analysis->vetoResults()->delete();
             $analysis->delete();
 
             SampleAnalysis::query()

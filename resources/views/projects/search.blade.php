@@ -18,6 +18,11 @@
                 'sample' => '__SAMPLE__',
                 'analysis' => '__ANALYSIS__',
             ]),
+            'veto' => route('projects.search.samples.veto.update', [
+                'project' => '__PROJECT__',
+                'sample' => '__SAMPLE__',
+                'analysis' => '__ANALYSIS__',
+            ]),
         ],
         'permissions' => $permissions,
     ]) }}"></project-search>

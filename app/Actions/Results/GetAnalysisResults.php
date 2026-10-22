@@ -18,6 +18,7 @@ class GetAnalysisResults
         private GetConfirmation $confirmation,
         private GetMetaAnalysisResults $metaResults,
         private GetMetaAnalysisParent $metaParent,
+        private ApplyVetoResults $applyVetoes,
     ) {}
 
     public function handle(SampleAnalysis $analysis): array
@@ -30,10 +31,14 @@ class GetAnalysisResults
                 'roamingAnalysis',
                 'roamingSettings',
                 'confirmationRecord',
+                'vetoResults',
             ])
             ->findOrFail($analysis->getKey());
         $results = app(CreateAnalysisResults::class)->handle($analysis);
         $calculationState = $this->calculationState($analysis);
+        if (is_array($calculationState['calculation'])) {
+            $calculationState['calculation'] = $this->applyVetoes->handle($analysis, $calculationState['calculation']);
+        }
         $reportIn = $calculationState['calculation']['reportIn'] ?? null;
         $references = $analysis->calculationSettings()?->reference ?? [];
         $assayFields = json_decode($analysis->assayRecord?->custom_fields ?: '{}', true);
@@ -64,6 +69,10 @@ class GetAnalysisResults
             'unit' => is_array($assayFields) ? ($assayFields['resultin'] ?? null) : null,
             'reference' => $reportIn === null ? null : ($references['ref_'.$reportIn] ?? null),
             'confirmation' => $this->confirmation->handle($analysis),
+            'veto_results' => $analysis->vetoResults->unique('parameter')->map->only([
+                'parameter', 'result', 'reason', 'disposition',
+            ])->values()->all(),
+            'veto_requires_disposition' => in_array((int) $analysis->assayRecord?->type, [2, 4], true),
         ];
     }
 

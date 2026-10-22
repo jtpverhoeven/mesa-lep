@@ -6,6 +6,6 @@ use Illuminate\Support\Facades\Broadcast;
 
 Broadcast::channel('samples.{sampleId}', function (User $user, int $sampleId) {
     return $user->enabled
-        && $user->can('samples.view')
+        && $user->canAny(['samples.view', 'projects.view'])
         && Sample::query()->whereKey($sampleId)->exists();
 });

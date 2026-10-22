@@ -48,6 +48,7 @@ class ProjectSearchTest extends TestCase
         ]);
         $analysis->roamingSettings()->create(['assay' => 1, 'dillutions' => '[]', 'reference' => '']);
         $analysis->confirmationRecord()->create(['note' => 'Confirmation']);
+        $analysis->vetoResults()->create(['parameter' => 'result', 'result' => '0', 'reason' => 'Controle']);
 
         $this->deleteJson(route('projects.search.samples.destroy', ['project' => $project, 'sample' => $sample]))->assertStatus($status);
 
@@ -58,6 +59,7 @@ class ProjectSearchTest extends TestCase
             $this->assertDatabaseMissing('results', ['sa_id' => $analysis->id]);
             $this->assertDatabaseMissing('roaminganalysis', ['said' => $analysis->id]);
             $this->assertDatabaseMissing('confirmations', ['said' => $analysis->id]);
+            $this->assertDatabaseMissing('vetoresults', ['said' => $analysis->id]);
         } else {
             $this->assertDatabaseHas('samples', ['id' => $sample->id]);
             $this->assertDatabaseHas('metadata', ['id' => $metadata->id]);
@@ -65,6 +67,7 @@ class ProjectSearchTest extends TestCase
             $this->assertDatabaseHas('results', ['sa_id' => $analysis->id]);
             $this->assertDatabaseHas('roaminganalysis', ['said' => $analysis->id]);
             $this->assertDatabaseHas('confirmations', ['said' => $analysis->id]);
+            $this->assertDatabaseHas('vetoresults', ['said' => $analysis->id]);
         }
     }
 

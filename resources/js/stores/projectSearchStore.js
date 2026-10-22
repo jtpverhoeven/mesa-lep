@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 let activeSearchRequest;
 let activeProjectRequest;
 let activeSampleRequest;
+const analysisResultRevisions = new Map();
 
 async function responseData(response) {
     const payload = await response.json();
@@ -17,6 +18,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
         sampleData: null, analysisResults: {}, loadingSample: false, savingSample: {},
         projectActionLoading: false, projectActionError: '', deletingSample: false,
         searched: false, error: '', sampleError: '',
+        savingVeto: false, vetoError: '',
     }),
     getters: {
         selectedSample: (state) => state.projectData?.samples.find(
@@ -129,22 +131,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
                 if (activeSampleRequest !== request) return null;
                 this.sampleData = data;
 
-                const outcomes = await Promise.all(data.analyses.map(async (analysis) => {
-                    try {
-                        const resultResponse = await fetch(this.endpoints.results
-                            .replace('__PROJECT__', this.selectedProjectId)
-                            .replace('__SAMPLE__', this.selectedSampleId)
-                            .replace('__ANALYSIS__', analysis.id), {
-                            headers: { Accept: 'application/json' },
-                            signal: request.signal,
-                        });
-                        return [analysis.id, { data: await responseData(resultResponse), error: '' }];
-                    } catch (error) {
-                        if (error.name === 'AbortError') throw error;
-                        return [analysis.id, { data: null, error: error.message }];
-                    }
-                }));
-                if (activeSampleRequest === request) this.analysisResults = Object.fromEntries(outcomes);
+                await this.refreshAnalysisResults();
                 return true;
             } catch (error) {
                 if (error.name === 'AbortError') return null;
@@ -177,6 +164,94 @@ export const useProjectSearchStore = defineStore('projectSearch', {
                 return false;
             } finally {
                 this.deletingSample = false;
+            }
+        },
+        async refreshAnalysisResults() {
+            await Promise.all((this.sampleData?.analyses ?? []).map((analysis) => this.refreshAnalysisResult(analysis.id)));
+        },
+        async refreshAnalysisResult(analysisId) {
+            if (!this.sampleData?.analyses.some((analysis) => Number(analysis.id) === Number(analysisId))) return;
+
+            const request = activeSampleRequest;
+            const projectId = this.selectedProjectId;
+            const sampleId = this.selectedSampleId;
+            const revision = (analysisResultRevisions.get(analysisId) ?? 0) + 1;
+            analysisResultRevisions.set(analysisId, revision);
+            const isCurrent = () => activeSampleRequest === request
+                && this.selectedProjectId === projectId && this.selectedSampleId === sampleId
+                && analysisResultRevisions.get(analysisId) === revision;
+
+            try {
+                const response = await fetch(this.endpoints.results
+                    .replace('__PROJECT__', projectId)
+                    .replace('__SAMPLE__', sampleId)
+                    .replace('__ANALYSIS__', analysisId), {
+                    headers: { Accept: 'application/json' },
+                    signal: request?.signal,
+                });
+                const data = await responseData(response);
+                if (isCurrent()) this.applyAnalysisResult(analysisId, data);
+            } catch (error) {
+                if (error.name !== 'AbortError' && isCurrent()) {
+                    this.analysisResults[analysisId] = { data: null, error: error.message };
+                }
+            }
+        },
+        applyAnalysisResult(analysisId, data) {
+            this.analysisResults[analysisId] = { data, error: '' };
+            const analysis = this.sampleData?.analyses.find((item) => Number(item.id) === Number(analysisId));
+            if (analysis) Object.assign(analysis, data.analysis);
+        },
+        applyCalculationFailure(event) {
+            if (Number(event.sample_id) !== Number(this.selectedSampleId)) return;
+            const analysisId = Number(event.analysis_id);
+            analysisResultRevisions.set(analysisId, (analysisResultRevisions.get(analysisId) ?? 0) + 1);
+            this.analysisResults[analysisId] = { data: null, error: event.message || 'Eindresultaat kon niet worden berekend.' };
+        },
+        reportRealtimeError() {
+            for (const result of Object.values(this.analysisResults)) {
+                if (result.data?.calculation_queued) result.error = 'Live updates zijn niet beschikbaar. Selecteer het monster opnieuw.';
+            }
+        },
+        async changeVeto(analysisId, payload, remove = false) {
+            if (!this.sampleData || this.sampleReadOnly || this.savingVeto) return false;
+
+            const projectId = this.selectedProjectId;
+            const sampleId = this.selectedSampleId;
+            const sampleRequest = activeSampleRequest;
+            this.savingVeto = true;
+            this.vetoError = '';
+
+            try {
+                const response = await fetch(this.endpoints.veto
+                    .replace('__PROJECT__', projectId)
+                    .replace('__SAMPLE__', sampleId)
+                    .replace('__ANALYSIS__', analysisId), {
+                    method: remove ? 'DELETE' : 'PUT',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await responseData(response);
+
+                if (this.selectedProjectId === projectId && this.selectedSampleId === sampleId
+                    && activeSampleRequest === sampleRequest) {
+                    analysisResultRevisions.set(analysisId, (analysisResultRevisions.get(analysisId) ?? 0) + 1);
+                    this.applyAnalysisResult(analysisId, data);
+                    await this.refreshProject(projectId);
+                }
+
+                return true;
+            } catch (error) {
+                if (this.selectedProjectId === projectId && this.selectedSampleId === sampleId) {
+                    this.vetoError = error.message;
+                }
+                return false;
+            } finally {
+                this.savingVeto = false;
             }
         },
         async updateSampleField(source, field, value) {

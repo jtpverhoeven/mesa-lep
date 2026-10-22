@@ -1,6 +1,7 @@
 <script setup>
-import { onMounted } from 'vue';
+import { onBeforeUnmount, onMounted, watch } from 'vue';
 import { LoaderCircle } from '@lucide/vue';
+import { getEcho } from '../echo.js';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
 import ProjectDetailsPanel from './ProjectDetailsPanel.vue';
 import ProjectSamplePanel from './ProjectSamplePanel.vue';
@@ -14,6 +15,39 @@ const props = defineProps({
 });
 const store = useProjectSearchStore();
 store.configure(props.endpoints);
+let realtimeClient;
+let subscribedSampleId = null;
+let realtimeFailed = false;
+
+watch(() => store.selectedSampleId, (sampleId) => {
+    if (subscribedSampleId !== null) realtimeClient?.leave(`samples.${subscribedSampleId}`);
+    subscribedSampleId = sampleId;
+    realtimeFailed = false;
+    if (sampleId === null) return;
+
+    realtimeClient = getEcho();
+    realtimeClient.private(`samples.${sampleId}`)
+        .subscribed(() => {
+            if (store.selectedSampleId === sampleId) store.refreshAnalysisResults();
+        })
+        .listen('.analysis.result.calculated', (event) => {
+            if (Number(event.sample_id) === Number(store.selectedSampleId)) store.refreshAnalysisResult(Number(event.analysis_id));
+        })
+        .listen('.analysis.result.calculation-failed', (event) => store.applyCalculationFailure(event))
+        .error(() => {
+            if (store.selectedSampleId !== sampleId) return;
+            realtimeFailed = true;
+            store.reportRealtimeError();
+        });
+}, { flush: 'sync' });
+
+watch(() => store.loadingSample, (loading) => {
+    if (!loading && realtimeFailed) store.reportRealtimeError();
+});
+
+onBeforeUnmount(() => {
+    if (subscribedSampleId !== null) realtimeClient?.leave(`samples.${subscribedSampleId}`);
+});
 
 onMounted(() => {
     if (props.initialProjectId !== null) store.selectProject(props.initialProjectId);
@@ -35,7 +69,7 @@ function displayDate(value) {
                 <ProjectDetailsPanel v-if="store.selectedProjectId" />
             </div>
             <ProjectSamplesPanel v-if="store.selectedProjectId" :can-manage-authorization="permissions.manageAuthorization" />
-            <ProjectSamplePanel v-if="store.selectedProjectId" :can-update="permissions.updateSample" :can-delete="permissions.deleteSample" />
+            <ProjectSamplePanel v-if="store.selectedProjectId" :can-update="permissions.updateSample" :can-delete="permissions.deleteSample" :can-veto="permissions.vetoResults" />
         </div>
         <section v-if="store.showsResults" class="sample-panel project-results-panel">
             <h2>Gevonden projecten <LoaderCircle v-if="store.searching" class="spin" :size="15" /></h2>

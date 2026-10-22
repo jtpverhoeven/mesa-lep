@@ -26,6 +26,7 @@ class ProjectSearchController extends Controller
                 'updateSample' => $request->user()->can('samples.update'),
                 'deleteSample' => $request->user()->can('projects.samples.remove'),
                 'manageAuthorization' => $request->user()->can('projects.authorisation.manage'),
+                'vetoResults' => $request->user()->can('results.veto'),
             ],
         ]);
     }

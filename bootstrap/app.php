@@ -17,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Console/Commands',
     ])
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trimStrings(except: ['zpl']);
+        $middleware->trimStrings(except: ['zpl', 'parameter']);
         $middleware->appendToGroup('web', EnsureUserIsEnabled::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

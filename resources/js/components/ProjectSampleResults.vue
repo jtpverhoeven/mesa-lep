@@ -1,10 +1,69 @@
 <script setup>
-import { computed } from 'vue';
-import { Check, Eye, EyeOff } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
+import { Check, Eye, EyeOff, Pencil, ShieldCheck } from '@lucide/vue';
 import DOMPurify from 'dompurify';
+import Button from 'openvue/button';
+import InputText from 'openvue/inputtext';
+import Select from 'openvue/select';
+import Textarea from 'openvue/textarea';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
+import AppDialog from './AppDialog.vue';
 
+const props = defineProps({ canVeto: { type: Boolean, default: false } });
 const store = useProjectSearchStore();
+const canEdit = computed(() => props.canVeto && !store.sampleReadOnly);
+const editor = ref(null);
+const vetoDetails = ref(null);
+const value = ref('');
+const reason = ref('');
+const disposition = ref(null);
+const removing = ref(false);
+const dispositions = [
+    { value: '+', label: 'Fout: Rood op rapport & portal - Deze waarde is Fout' },
+    { value: '-', label: 'Goed: Zwart op rapport & groen in portal - Deze waarde is een verwacht resultaat' },
+    { value: '.', label: 'Neutraal:  Zwart op rapport & grijs in portal - Aan deze waarde kan geen beoordeling worden gegeven' },
+];
+const canSubmit = computed(() => canEdit.value && reason.value.trim()
+    && (removing.value || (value.value.trim() && (!editor.value?.requiresDisposition || disposition.value !== null))));
+
+watch(() => [store.selectedProjectId, store.selectedSampleId, canEdit.value], () => {
+    editor.value = null;
+    vetoDetails.value = null;
+});
+
+function editVeto(analysis, result) {
+    store.vetoError = '';
+    removing.value = false;
+    value.value = result.veto?.result ?? '';
+    reason.value = result.veto?.reason ?? '';
+    disposition.value = result.veto?.disposition ?? null;
+    editor.value = {
+        analysisId: analysis.id,
+        name: analysis.name,
+        parameter: result.key,
+        unit: result.unit,
+        veto: result.veto,
+        requiresDisposition: analysis.requiresDisposition,
+    };
+}
+
+function startRemoval() {
+    removing.value = true;
+    reason.value = '';
+    store.vetoError = '';
+}
+
+async function submitVeto() {
+    if (!editor.value || !canSubmit.value || store.savingVeto) return;
+
+    const success = await store.changeVeto(editor.value.analysisId, {
+        parameter: editor.value.parameter,
+        value: value.value,
+        reason: reason.value,
+        disposition: disposition.value,
+    }, removing.value);
+    if (success) editor.value = null;
+}
 
 function display(value) {
     const normalized = value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '-');
@@ -47,12 +106,17 @@ const analyses = computed(() => (store.sampleData?.analyses ?? []).map((analysis
     const response = store.analysisResults[analysis.id];
     const calculation = response?.data?.calculation;
     let results = visibleResults(calculation, response?.data?.unit);
+    results = results.map((result) => ({
+        ...result,
+        veto: response?.data?.veto_results?.find((veto) => veto.parameter === result.key),
+    }));
 
     if (!results.length) {
         results = [{
             key: 'empty',
             unit: response?.data?.unit || '-',
-            value: display(response?.error || response?.data?.calculation_unavailable || 'Nog geen uitslag beschikbaar.'),
+            value: display(response?.error || response?.data?.calculation_unavailable
+                || (response?.data?.calculation_queued ? 'Eindresultaat berekenen...' : 'Nog geen uitslag beschikbaar.')),
         }];
     }
 
@@ -61,6 +125,7 @@ const analyses = computed(() => (store.sampleData?.analyses ?? []).map((analysis
         results,
         reference: response?.data?.reference,
         ready: Boolean(calculation?.isReady ?? analysis.is_ready),
+        requiresDisposition: Boolean(response?.data?.veto_requires_disposition),
     };
 }));
 
@@ -77,52 +142,96 @@ function reference(value) {
 </script>
 
 <template>
-    <div class="project-sample-results">
+    <div class="border-t border-line pt-2">
         <p v-if="!analyses.length" class="empty-state">Geen onderzoek voor dit monster.</p>
-        <div v-else class="project-result-scroll">
-            <table class="project-result-table">
+        <div v-else class="overflow-x-auto">
+            <table class="result-table">
+                <caption class="sr-only">Analyseresultaten voor het geselecteerde monster</caption>
                 <thead>
-                    <tr><th>Analyse</th><th>Eenheid</th><th>Resultaat</th><th>Status</th></tr>
+                    <tr>
+                        <th scope="col">Eenheid</th>
+                        <th scope="col" class="w-full">Resultaat</th>
+                        <th scope="col">Status</th>
+                    </tr>
                 </thead>
                 <tbody v-for="analysis in analyses" :key="analysis.id">
+                    <tr>
+                        <th scope="rowgroup" colspan="3" class="bg-surface-alt font-medium wrap-anywhere">{{ analysis.name }}</th>
+                    </tr>
                     <tr v-for="(result, index) in analysis.results" :key="`${analysis.id}:${result.key}`">
-                        <td v-if="index === 0" :rowspan="analysis.results.length" class="project-result-assay">{{ analysis.name }}</td>
-                        <td class="project-result-unit">{{ result.unit }}</td>
-                        <td class="project-result-value">
-                            <span v-html="result.value"></span>
-                            <template v-for="addendum in result.addenda" :key="addendum.label">
-                                <sup v-if="addendum.marker" class="project-result-addendum" :title="addendum.label">{{ addendum.marker }}</sup>
-                                <small v-else class="project-result-addendum-text">{{ addendum.label }}</small>
-                            </template>
-                            <small v-if="index === 0"><em>Ref: {{ reference(analysis.reference) }}</em></small>
+                        <td class="whitespace-nowrap">{{ result.unit }}</td>
+                        <td class="wrap-anywhere">
+                            <div class="flex items-center gap-1">
+                                <span class="min-w-0">
+                                    <span class="font-medium" v-html="result.value"></span>
+                                    <template v-for="addendum in result.addenda" :key="addendum.label">
+                                        <sup v-if="addendum.marker" class="ml-0.5 font-semibold text-danger" :title="addendum.label">{{ addendum.marker }}</sup>
+                                        <span v-else class="ml-1 text-muted">{{ addendum.label }}</span>
+                                    </template>
+                                </span>
+                                <Button v-if="canEdit && result.key !== 'empty'" class="result-table-action" severity="secondary" variant="text"
+                                    :aria-label="`${result.veto ? 'Veto bewerken' : 'Veto instellen'}: ${analysis.name}, ${result.unit}`"
+                                    :title="result.veto ? 'Veto bewerken' : 'Veto instellen'"
+                                    :disabled="store.savingVeto" @click="editVeto(analysis, result)">
+                                    <Pencil :size="14" />
+                                </Button>
+                            </div>
+                            <p v-if="index === 0" class="mt-1 text-muted">Ref: {{ reference(analysis.reference) }}</p>
                         </td>
-                        <td class="project-result-status">
-                            <Check v-if="analysis.ready" class="project-result-ready" :size="13" aria-label="Gereed" />
-                            <component :is="confirmationStatus(analysis).icon" v-if="confirmationStatus(analysis)" :size="13" :aria-label="confirmationStatus(analysis).label" />
+                        <td>
+                            <div class="flex items-center gap-1 text-muted">
+                                <Check v-if="analysis.ready" class="shrink-0 text-success" :size="14" role="img" aria-label="Gereed" />
+                                <component :is="confirmationStatus(analysis).icon" v-if="confirmationStatus(analysis)" class="shrink-0" :size="14" role="img" :aria-label="confirmationStatus(analysis).label" />
+                                <Button v-if="result.veto" class="result-table-action" variant="text"
+                                    :aria-label="`Veto reden bekijken: ${analysis.name}, ${result.unit}`" title="Veto reden bekijken"
+                                    @click="vetoDetails = { name: analysis.name, unit: result.unit, reason: result.veto.reason }">
+                                    <ShieldCheck :size="14" />
+                                </Button>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
+        <AppDialog :visible="vetoDetails !== null" title="Reden vetoresultaat" @update:visible="!$event && (vetoDetails = null)">
+            <div v-if="vetoDetails" class="grid gap-3 p-4">
+                <p class="font-semibold">{{ vetoDetails.name }} - {{ vetoDetails.unit }}</p>
+                <p class="whitespace-pre-wrap wrap-anywhere">{{ vetoDetails.reason || 'Geen reden vastgelegd in de legacygegevens.' }}</p>
+            </div>
+            <template #footer>
+                <Button severity="secondary" label="Sluiten" @click="vetoDetails = null" />
+            </template>
+        </AppDialog>
+        <AppDialog :visible="editor !== null" :title="removing ? 'Vetoresultaat verwijderen' : 'Vetoresultaat instellen'"
+            :closable="!store.savingVeto" :dismissable-mask="!store.savingVeto" :close-on-escape="!store.savingVeto"
+            @update:visible="!$event && (editor = null)">
+            <form v-if="editor" id="project-veto-form" class="grid gap-4 p-4" @submit.prevent="submitVeto">
+                <p class="font-semibold">{{ editor.name }} - {{ editor.unit }}</p>
+                <p v-if="removing" class="text-muted">Het automatisch berekende resultaat wordt opnieuw gebruikt. Geef een nieuwe reden voor het verwijderen op.</p>
+                <div v-if="!removing" class="field">
+                    <label for="veto-value">Vetoresultaat</label>
+                    <InputText id="veto-value" v-model="value" required maxlength="512" :disabled="store.savingVeto" autofocus />
+                </div>
+                <div v-if="!removing && editor.requiresDisposition" class="field">
+                    <label id="veto-disposition-label" for="veto-disposition">Type uitslag</label>
+                    <Select v-model="disposition" input-id="veto-disposition" aria-labelledby="veto-disposition-label" :options="dispositions" option-label="label"
+                        option-value="value" placeholder="Selecteer een van deze opties" :disabled="store.savingVeto" />
+                </div>
+                <div class="field">
+                    <label for="veto-reason">{{ removing ? 'Reden verwijderen' : 'Reden wijziging' }} (verplicht)</label>
+                    <Textarea id="veto-reason" v-model="reason" required maxlength="512" rows="3" :disabled="store.savingVeto" />
+                </div>
+                <p v-if="store.vetoError" class="text-danger" role="alert">{{ store.vetoError }}</p>
+            </form>
+            <template #footer>
+                <div class="flex w-full flex-wrap justify-end gap-2">
+                    <Button v-if="editor?.veto && !removing" severity="danger" variant="outlined" label="Veto verwijderen"
+                        :disabled="store.savingVeto" @click="startRemoval" />
+                    <Button severity="secondary" label="Annuleren" :disabled="store.savingVeto" @click="editor = null" />
+                    <Button type="submit" form="project-veto-form" :severity="removing ? 'danger' : 'primary'"
+                        :label="removing ? 'Verwijderen bevestigen' : 'Opslaan'" :loading="store.savingVeto" :disabled="!canSubmit || store.savingVeto" />
+                </div>
+            </template>
+        </AppDialog>
     </div>
 </template>
-
-<style scoped>
-.project-sample-results { padding-top:5px; border-top:1px solid var(--line); }
-.project-result-scroll { overflow-x:auto; }
-.project-result-table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:11px; line-height:1.35; }
-.project-result-table th,.project-result-table td { padding:4px 5px; border:1px solid var(--line); text-align:left; vertical-align:top; overflow-wrap:anywhere; }
-.project-result-table th { background:var(--surface-alt); font-weight:700; }
-.project-result-table th:first-child { width:40%; }
-.project-result-table th:nth-child(2) { width:15%; }
-.project-result-table th:nth-child(4) { width:54px; }
-.project-result-table tbody + tbody tr:first-child > * { border-top-color:#9eabb2; }
-.project-result-assay { font-weight:500; }
-.project-result-unit { white-space:normal; }
-.project-result-value small { display:block; margin-top:2px; color:var(--muted); }
-.project-result-addendum,.project-result-addendum-text { margin-left:2px; color:#903e32; font-weight:700; }
-.project-result-addendum-text { display:inline !important; }
-.project-result-status { color:var(--muted); text-align:right !important; white-space:nowrap; }
-.project-result-status svg { display:inline-block; margin-left:3px; vertical-align:middle; }
-.project-result-ready { color:#247448; }
-</style>

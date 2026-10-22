@@ -88,6 +88,9 @@ class ResultCalculationCache
                 ? $context->analysis->sampleRecord?->sample_extra
                 : null,
             'confirmation_decision' => (int) $context->analysis->conf_requested,
+            'veto_results' => $context->analysis->vetoResults->map->only([
+                'id', 'parameter', 'result', 'reason', 'disposition',
+            ])->all(),
             'confirmation_record' => $confirmation?->only([
                 'said', 'in_use', 'racetrack', 'metadata', 'isReady', 'data',
             ]),

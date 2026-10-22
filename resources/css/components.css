@@ -1,4 +1,28 @@
 @layer components {
+    .result-table {
+        @apply w-full border-collapse text-left text-xs leading-normal text-ink;
+    }
+
+    .result-table th, .result-table td {
+        @apply border-b border-line px-3 py-2 align-top;
+    }
+
+    .result-table thead th {
+        @apply bg-surface-header font-semibold text-muted;
+    }
+
+    .result-table tbody + tbody tr:first-child > * {
+        @apply border-t-2 border-line;
+    }
+
+    .result-table tbody:hover {
+        @apply bg-surface-alt;
+    }
+
+    .result-table-action {
+        @apply size-6 min-h-0 shrink-0 p-0;
+    }
+
     .account-settings {
         @apply mx-auto grid max-w-6xl grid-cols-1 items-start gap-6 lg:grid-cols-[210px_minmax(0,1fr)];
     }

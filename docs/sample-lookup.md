@@ -57,7 +57,47 @@ current analysis exactly once. Frontend writes are single-flight and navigation
 is disabled while saving. Read requests use generation IDs so stale barcode or
 research-option responses cannot overwrite newer state.
 
-## Checks
+## Veto results in project lookup
+
+Result overrides are managed only on the project lookup page, in the sample
+results table. The `results.veto` permission is required in addition to project
+access. An authorized or locked project cannot be changed; deauthorize it before
+editing or removing a veto.
+
+The pencil beside a result opens its veto editor. The final Status column groups
+readiness, confirmation, and veto indicators. Clicking the veto shield opens a
+read-only reason dialog, also on authorized projects; reasons are not shown inline.
+
+Apply the `create_vetoresults_table` migration before using this feature. It keeps
+the legacy `vetoresults` table and its `id`, `said`, `parameter`, `result`,
+`reason`, and `disposition` columns without timestamps or new import constraints.
+`SampleAnalysis::vetoResults()` exposes the relationship; `has_veto_result`
+reports whether any veto records exist without modifying the stored-result cast.
+
+The shared calculation actions apply overrides to both `output` and `outputEn`,
+retain the automatic value in `vetoOverWrite`, and expose reasons in
+`vetoReasons[said][parameter]`. Cached results, authorization snapshots, and
+calculation broadcasts use this same path. No reporting-only override system is
+introduced. Raw measurement data and calculation/confirmation readiness remain
+unchanged by a veto.
+
+Saving and editing require a nonblank reason. Removal requires its own new
+reason and restores the current calculated value. Each change is recorded with
+change-tracker type `11`, the project, sample, analysis, before/after values, user,
+and reason. The project's `last_edit` is updated in the same transaction.
+Border and meta assays (legacy types `2` and `4`) require `+`, `-`, or `.`;
+other assays retain the calculated disposition unless an explicit one is stored
+or textual veto output implies `-`, matching legacy behavior.
+Unlike the old loose-false comparison, an explicit `0` is a valid override.
+
+Veto regression checks:
+
+```sh
+./vendor/bin/sail artisan test --compact tests/Feature/VetoResultTest.php tests/Feature/ProjectSearchTest.php
+./vendor/bin/sail node --test tests/Unit/projectSearchStore.test.js
+```
+
+## Lookup checks
 
 ```sh
 ./vendor/bin/sail artisan test --compact tests/Feature/SampleLookupTest.php tests/Feature/SampleAnalysisReferencesTest.php

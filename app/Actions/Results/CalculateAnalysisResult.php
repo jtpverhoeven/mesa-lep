@@ -24,6 +24,7 @@ class CalculateAnalysisResult
         private ApplyConfirmationWorkflowToResult $applyConfirmation,
         private GetMetaAnalysisResults $metaResults,
         private GetMetaAnalysisParent $metaParent,
+        private ApplyVetoResults $applyVetoes,
     ) {}
 
     public function handle(SampleAnalysis $analysis): array
@@ -38,12 +39,13 @@ class CalculateAnalysisResult
                     'confirmationRecord',
                     'roamingAnalysis',
                     'roamingSettings',
+                    'vetoResults',
                 ])
                 ->lockForUpdate()
                 ->findOrFail($analysis->getKey());
 
             if ($analysis->projectRecord?->auth_status && ! empty($analysis->storedResult)) {
-                return $analysis->storedResult;
+                return $this->applyVetoes->handle($analysis, $analysis->storedResult);
             }
 
             $context = $this->calculationContext($analysis);
@@ -52,13 +54,14 @@ class CalculateAnalysisResult
 
             if (($analysis->storedResult['confirmation']['decision_required'] ?? false) === true
                 && $this->cache->isCurrent($analysis->storedResult, $context, $calculator)) {
-                return $analysis->storedResult;
+                return $this->applyVetoes->handle($analysis, $analysis->storedResult);
             }
 
             if (! $this->resultsComplete->handle($context, $calculator)) {
                 $calculation = $calculator instanceof HandlesIncompleteResults
                     ? $calculator->incompleteResult($context)
                     : $this->incompleteResult();
+                $calculation = $this->cache->stamp($calculation, $context, $calculator);
                 $calculator = null;
             } else {
                 $calculation = $this->cache->stamp(
@@ -70,6 +73,7 @@ class CalculateAnalysisResult
 
             $workflow = $this->resolveConfirmation->handle($analysis, $context, $calculation);
             $calculation = $this->applyConfirmation->handle($context, $calculator, $calculation, $workflow);
+            $calculation = $this->applyVetoes->handle($analysis, $calculation);
 
             $isReady = (bool) ($calculation['isReady'] ?? false);
             $calculation['isReady'] = $isReady;
