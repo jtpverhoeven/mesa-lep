@@ -32,7 +32,10 @@ class AssayConfirmationAdministrationTest extends TestCase
         DB::purge('sqlite');
 
         $this->migration()->up();
+        (require database_path('migrations/2026_09_08_000001_add_active_to_assayfields_table.php'))->up();
         $this->confirmationMigration()->up();
+        (require database_path('migrations/2026_09_20_115010_create_portal_assay_tables.php'))->up();
+        (require database_path('migrations/2026_10_24_122322_create_report_generation_tables.php'))->up();
     }
 
     protected function tearDown(): void

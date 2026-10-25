@@ -14,6 +14,9 @@ use App\Models\ClientCategory;
 use App\Models\ClientCategoryAssignment;
 use App\Models\ClientPortalAssay;
 use App\Models\Cvar;
+use App\Models\DocgenAssociation;
+use App\Models\DocgenTemplate;
+use App\Models\Footer;
 use App\Models\LabelDesign;
 use App\Models\LabelEvent;
 use App\Models\Matrix;
@@ -78,6 +81,9 @@ class ImportLegacyCsvDirectoryCommand extends Command
         'printers.csv' => Printer::class,
         'labeldesigns.csv' => LabelDesign::class,
         'labelevents.csv' => LabelEvent::class,
+        'docgentemplates.csv' => DocgenTemplate::class,
+        'docgenassociations.csv' => DocgenAssociation::class,
+        'footers.csv' => Footer::class,
     ];
 
     public function handle(DecodeCsvJsonAttributes $decodeJsonAttributes, InsertLegacyCsvBatch $insertBatch): int

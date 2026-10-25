@@ -17,7 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Console/Commands',
     ])
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trimStrings(except: ['zpl', 'parameter']);
+        $middleware->trimStrings(except: [
+            'zpl', 'parameter',
+            fn (Request $request): bool => $request->is('admin/footers', 'admin/footers/*'),
+        ]);
         $middleware->appendToGroup('web', EnsureUserIsEnabled::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

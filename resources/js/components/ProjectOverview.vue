@@ -177,7 +177,7 @@ onBeforeUnmount(() => {
                         <div class="overview-actions">
                             <a class="icon-button" :href="data.url" title="Project openen" aria-label="Project openen"><FolderOpen :size="16" /></a>
                             <button v-if="status === 'received' && data.all_samples_have_analysis" class="icon-button" type="button" title="Etiketten afdrukken (nog niet beschikbaar)" aria-label="Etiketten afdrukken" :disabled="!labelDate" @click="showPlaceholder('labels', data)"><Tags :size="16" /></button>
-                            <button v-else-if="status !== 'received'" class="icon-button" type="button" title="Projectrapport afdrukken (nog niet beschikbaar)" aria-label="Projectrapport afdrukken" @click="showPlaceholder('report', data)"><Printer :size="16" /></button>
+                            <a v-else-if="status !== 'received' && data.report_url" class="icon-button" :href="data.report_url" title="Rapport genereren" aria-label="Rapport genereren"><Printer :size="16" /></a>
                             <button v-if="['authorized', 'reported'].includes(status)" class="icon-button" type="button" title="Projectgegevens exporteren (nog niet beschikbaar)" aria-label="Projectgegevens exporteren" @click="showPlaceholder('export', data)"><Download :size="16" /></button>
                         </div>
                     </template>

@@ -23,6 +23,8 @@ class AssayAdministrationTest extends TestCase
         DB::purge('sqlite');
 
         $this->migration()->up();
+        (require database_path('migrations/2026_09_20_115010_create_portal_assay_tables.php'))->up();
+        (require database_path('migrations/2026_10_24_122322_create_report_generation_tables.php'))->up();
     }
 
     public function test_assay_configuration_and_revisions_preserve_legacy_storage(): void
@@ -127,6 +129,8 @@ class AssayAdministrationTest extends TestCase
 
     public function test_updating_an_assay_creates_a_revision_and_preserves_shared_legacy_payloads(): void
     {
+        (require database_path('migrations/2026_09_08_000001_add_active_to_assayfields_table.php'))->up();
+
         $type = AssayType::create([
             'name' => 'Chemistry', 'description' => '', 'added_by' => 42, 'added_date' => '1473249600',
         ]);

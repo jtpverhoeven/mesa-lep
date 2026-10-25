@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(ReportConfigurationSeeder::class);
+
         $administratorRole = Role::findOrCreate('administrator', 'web');
         $administratorRole->update(['superGroup' => true]);
         $administratorRole->syncPermissions(

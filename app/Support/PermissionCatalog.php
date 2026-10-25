@@ -63,6 +63,7 @@ class PermissionCatalog
                 'portal.access' => 'Voorportaal openen',
             ],
             'Rapportage en hulpmiddelen' => [
+                'reports.generate' => 'Rapporten genereren',
                 'labels.design' => 'Labelontwerppagina openen',
                 'labels.print-settings' => 'Labelprintconfiguratie aanpassen',
                 'logbooks.view' => 'Logboeken inzien',

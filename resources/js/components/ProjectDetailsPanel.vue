@@ -20,7 +20,7 @@ function displayDate(value) {
             Project
             <span class="lookup-tools">
                 <button class="icon-button" title="Projectrevisies" aria-label="Projectrevisies" :disabled="!store.projectData || store.loadingProject" @click="revisionsVisible = true"><FileClock :size="15" /></button>
-                <button class="icon-button" title="Rapportages (nog niet beschikbaar)" disabled><Printer :size="15" /></button>
+                <a v-if="store.projectData?.report_url" class="icon-button" :href="store.projectData.report_url" title="Rapport genereren" aria-label="Rapport genereren"><Printer :size="15" /></a>
                 <button class="icon-button" title="Project volgen (nog niet beschikbaar)" disabled><Star :size="15" /></button>
                 <button class="icon-button" title="Project wijzigen (nog niet beschikbaar)" disabled><Pencil :size="15" /></button>
             </span>
@@ -36,7 +36,7 @@ function displayDate(value) {
                 <div v-for="field in store.projectData.fields" :key="field.name"><dt>{{ field.label }}</dt><dd>{{ field.value }}</dd></div>
             </dl>
             <div v-if="store.projectData.project.locked" class="project-lock-warning">Autorisatie geblokkeerd: {{ store.projectData.project.lock_message || 'Geen reden opgegeven.' }}</div>
-            <div class="project-placeholder-row"><FileText :size="15" /><span>PDF, portal en rapportfuncties volgen in een latere fase.</span></div>
+            <div class="project-placeholder-row"><FileText :size="15" /><span>Verzenden en rapportrevisiebeheer volgen in een latere fase.</span></div>
             <div class="project-detail-actions"><button class="button primary" type="button" @click="store.backToResults()"><ArrowLeft :size="15" />Terug naar zoeken</button></div>
         </div>
         <p v-else class="empty-state">Selecteer een gevonden project.</p>

@@ -36,6 +36,16 @@ class Project extends Model
         return $this->belongsTo(User::class, 'rap_by');
     }
 
+    public function authorizedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'auth_by');
+    }
+
+    public function exports(): HasMany
+    {
+        return $this->hasMany(Export::class, 'project');
+    }
+
     public function sampleAnalyses(): HasMany
     {
         return $this->hasMany(SampleAnalysis::class, 'project')->orderBy('project_order');

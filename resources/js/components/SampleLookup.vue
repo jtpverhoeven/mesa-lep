@@ -195,7 +195,7 @@ onBeforeUnmount(() => {
                             <dl class="lookup-details">
                                 <dt>Project</dt>
                                 <dd>
-                                    <a v-if="permissions.viewProjects" :href="store.data.project_url">
+                                    <a v-if="permissions.viewProjects" class="text-link" :href="store.data.project_url">
                                         {{ store.data.project.project_name }}
                                     </a>
                                     <template v-else>{{ store.data.project.project_name }}</template>
@@ -204,6 +204,7 @@ onBeforeUnmount(() => {
                                 <dd>
                                     <a
                                         v-if="permissions.viewProjects && store.data.project.reference"
+                                        class="text-link"
                                         :href="store.data.project_url"
                                     >{{ store.data.project.reference }}</a>
                                     <template v-else>{{ store.data.project.reference || '-' }}</template>

@@ -12,6 +12,9 @@ use App\Http\Controllers\ClientCategoryController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CvarController;
+use App\Http\Controllers\DocgenAssociationController;
+use App\Http\Controllers\DocgenTemplateController;
+use App\Http\Controllers\FooterController;
 use App\Http\Controllers\LabelDesignController;
 use App\Http\Controllers\LabelEventController;
 use App\Http\Controllers\ManualLabelPrintingController;
@@ -25,6 +28,7 @@ use App\Http\Controllers\ProductGroupController;
 use App\Http\Controllers\ProjectAuthorizationController;
 use App\Http\Controllers\ProjectFieldController;
 use App\Http\Controllers\ProjectOverviewController;
+use App\Http\Controllers\ProjectReportController;
 use App\Http\Controllers\ProjectSearchController;
 use App\Http\Controllers\ReferenceSourceController;
 use App\Http\Controllers\ResearchProfileController;
@@ -138,6 +142,15 @@ Route::middleware(['auth', 'can:projects.authorisation.manage'])->prefix('labora
     Route::delete('/{project}/authorization', [ProjectAuthorizationController::class, 'destroy'])
         ->whereNumber('project')->name('projects.authorization.destroy');
 });
+
+Route::middleware(['auth', 'can:projects.view', 'can:reports.generate'])
+    ->prefix('laboratory/projects/{project}/reports')->where(['project' => '[0-9]+'])->group(function () {
+        Route::get('/', [ProjectReportController::class, 'index'])->name('projects.reports.index');
+        Route::get('/preferences', [ProjectReportController::class, 'preferences'])->name('projects.reports.preferences');
+        Route::post('/', [ProjectReportController::class, 'store'])->middleware('throttle:15,1')->name('projects.reports.store');
+        Route::get('/transactions/{transaction}', [ProjectReportController::class, 'batch'])->whereNumber('transaction')->name('projects.reports.batch');
+        Route::get('/{export}', [ProjectReportController::class, 'show'])->whereNumber('export')->scopeBindings()->name('projects.reports.show');
+    });
 
 Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects')->group(function () {
     foreach (GetProjectOverview::STATUSES as $status => $label) {
@@ -334,6 +347,11 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
     });
 
     Route::middleware('can:settings.advanced')->group(function () {
+        Route::resource('footers', FooterController::class)->except('show');
+        Route::resource('docgen-templates', DocgenTemplateController::class)->except('show');
+        Route::get('/docgen-templates/{docgenTemplate}/associations', [DocgenAssociationController::class, 'edit'])->name('docgen-associations.edit');
+        Route::put('/docgen-templates/{docgenTemplate}/associations', [DocgenAssociationController::class, 'update'])->name('docgen-associations.update');
+        Route::post('/docgen-templates/{docgenTemplate}/associations/copy', [DocgenAssociationController::class, 'copy'])->name('docgen-associations.copy');
         Route::get('/printers', [PrinterController::class, 'index'])->name('printers.index');
         Route::get('/printers/create', [PrinterController::class, 'create'])->name('printers.create');
         Route::post('/printers', [PrinterController::class, 'store'])->name('printers.store');

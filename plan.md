@@ -5,14 +5,13 @@
 - Research profiles
     - Should allow deleting individual analyses on sample create screens.
   
-
 - User printers
 
 - Report generation
     Depends on:
-    - Thinkin how to create and show templates?
-    - Veto results    
     - Footer & Headers
+    - Thinkin how to create and show templates?    
+    
         
    
 # Known bugs

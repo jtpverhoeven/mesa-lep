@@ -51,6 +51,16 @@ class SampleRegisterTest extends TestCase
             ->assertJsonPath('data.settings.dilution_at', 'DIL');
     }
 
+    public function test_data_returns_the_project_url_for_samples_in_the_list(): void
+    {
+        $sample = $this->sample('26091003');
+
+        $response = $this->getJson(route('samples.register.data', ['search' => $sample->barcode]));
+
+        $response->assertOk()
+            ->assertJsonPath('data.samples.0.project_url', route('projects.search', ['project' => $sample->project]));
+    }
+
     public function test_settings_are_persisted_and_used_when_a_sample_is_registered(): void
     {
         $sample = $this->sample('26091000');

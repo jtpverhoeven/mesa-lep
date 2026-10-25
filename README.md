@@ -43,3 +43,98 @@ Run the focused regression suite with:
 ```sh
 vendor/bin/sail artisan test --compact tests/Feature/AccountSettingsTest.php
 ```
+
+# Report generation
+
+Project search and project overviews link to **Rapport genereren** for users with
+both `projects.view` and `reports.generate`. Authorisation continues to use the
+existing project authorisation and frozen-result workflow, including vetoes and
+confirmations.
+
+Deploy the reporting schema and register the initial template without reseeding
+users:
+
+```sh
+vendor/bin/sail artisan migrate --no-interaction
+vendor/bin/sail artisan db:seed --class=ReportConfigurationSeeder --no-interaction
+vendor/bin/sail npm run build
+```
+
+Under **Beheer / Rapportage**, configure **Rapportsjablonen**, their
+**Analyse-associaties**, and **Rapportvoetteksten**. The initial renderer supports
+`maz2020`; other imported template definitions remain administrable but cannot
+yet produce PDFs. A template must be active and associated with every assay
+revision in the project, including non-reportable assays. New assay revisions
+inherit associations without removing historical ones.
+
+The page retains the legacy three-column arrangement: project details,
+order-specific preferences, previous PDFs and output settings on the left;
+parameter/order tabs and sample notes in the middle; report style, language,
+violation settings and execution on the right. The default parameter order
+interleaves analysis positions across samples, as the legacy sorter did.
+Templates are filtered by language and single-sample/overview layout. For
+`maz2020`, select individual reports or a combined report with **1 monster per
+pagina**. Unsupported layouts are not silently substituted.
+
+The page lists missing assay associations beside each template and shows
+missing footer/signature configuration beside the execution controls. It never
+automatically approves every assay for a template. The existing
+`legacy:import-csv` command now also registers `docgentemplates.csv`,
+`docgenassociations.csv`, and `footers.csv`, preserving imported IDs and text.
+**That command replaces all registered import tables**, not just reporting
+tables; use it only with the complete migration dataset and an appropriate backup.
+
+Import the approved certificate text into `footers` unchanged. Its selection
+uses the legacy `name` (template folder), `lang`, and `q` columns. The seeder
+deliberately does not supply replacement ISO wording. A missing footer is an
+explicit generation error. Authorised certificates also require the authorising
+user's Dutch signature on the private local disk at `signatures/{user_id}.png`;
+the port does not substitute an unsigned certificate or an invented error image.
+
+**Voorbeeld bekijken** renders a watermarked PDF in a new tab without issuing it.
+**Rapport maken** retains
+the legacy issuance metadata and, for authorised projects, advances print
+versions and sets the project export flags. The PDF and `exports` records are
+stored together with the existing type-10 audit event. Individual PDFs share a
+transaction and each receive a print version; a failed batch rolls back its
+metadata and removes files created by that attempt. Existing files are never
+overwritten. The raw PDF opens directly, or in a small PDF listing for individual
+reports. Email, sending, temporary reports, and revision management are not part
+of this pass.
+
+Existing non-empty report references are preserved. For a project without one,
+generation uses the same `MESA_PROJECT_REFERENCE` resolver as bulk registration:
+project ID (1), first sample ID (2), or first sample barcode (3). A blank override
+uses the cvar's configured default. A preview does not persist that reference;
+successful creation does. An unresolvable reference is an explicit error rather
+than a certificate with an empty number.
+
+Existing report files should be imported to the private local disk as
+`reportStorage/{hash}.pdf`. Legacy table names, identifiers, and export metadata
+are retained. No public storage link is needed.
+
+Reporting preferences use the existing client-portal service. An unavailable
+portal produces a visible warning rather than silently claiming preferences
+were loaded. The request uses `projects.portal_id`, not the LIMS project ID.
+Orders without customer preferences (including LIMS-originated orders) display
+the legacy defaults: Dutch, client-level violation highlighting, individual
+reports for normal samples and combined reports for special types. A
+**Opnieuw laden en toepassen** action fetches the order's current preferences
+without discarding the sample selection or parameter ordering. It retains the
+user's settings if the portal request fails. To enable the external preferences link, configure
+`GLASS_REPORT_PREFERENCES_URL` with the portal's actual UI URL; `{client}` and
+`{project}` are replaced with the LIMS client ID and portal project ID.
+
+Run the reporting regressions through Sail:
+
+```sh
+vendor/bin/sail artisan test --compact tests/Feature/ReportAdministrationTest.php tests/Feature/ProjectReportGenerationTest.php
+```
+
+The actual-PDF wording test uses `pdftotext` and reports a skip if it is absent.
+Install the optional inspection tools inside Sail to run that check:
+
+```sh
+vendor/bin/sail exec -u root laravel.test apt-get update
+vendor/bin/sail exec -u root laravel.test apt-get install -y --no-install-recommends poppler-utils
+```

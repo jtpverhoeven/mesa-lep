@@ -41,9 +41,12 @@ class ProjectSearchController extends Controller
         return response()->json(['data' => $search->handle($data['mode'], trim($data['query']))]);
     }
 
-    public function show(Project $project, GetProjectSearchDetails $details): JsonResponse
+    public function show(Request $request, Project $project, GetProjectSearchDetails $details): JsonResponse
     {
-        return response()->json(['data' => $details->handle($project)]);
+        return response()->json(['data' => [
+            ...$details->handle($project),
+            'report_url' => $request->user()->can('reports.generate') ? route('projects.reports.index', $project) : null,
+        ]]);
     }
 
     public function showSample(Project $project, Sample $sample, GetProjectSearchSample $details): JsonResponse

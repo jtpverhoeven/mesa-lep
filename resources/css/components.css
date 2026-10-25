@@ -1,4 +1,109 @@
 @layer components {
+    .assay-association-editor {
+        @apply grid max-w-[1100px] gap-5;
+    }
+
+    .assay-association-panel {
+        @apply grid min-w-0 gap-[18px];
+    }
+
+    .assay-association-editor .form-actions {
+        @apply flex flex-wrap justify-end gap-2;
+    }
+
+    .assay-association-heading {
+        @apply flex flex-wrap items-start justify-between gap-4;
+    }
+
+    .assay-association-heading h2 {
+        @apply m-0 text-base font-bold;
+    }
+
+    .assay-association-heading p {
+        @apply mt-[5px] text-ui text-muted;
+    }
+
+    .assay-association-filters {
+        @apply grid gap-[7px] text-xs;
+    }
+
+    .assay-association-filters label {
+        @apply flex max-w-[310px] items-center gap-1.5;
+    }
+
+    .assay-association-grid {
+        @apply grid grid-cols-1 border-t border-l border-line min-[761px]:grid-cols-3;
+    }
+
+    .assay-association-option {
+        @apply grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-[9px] gap-y-[5px] border-r border-b border-line p-2.5 text-ui wrap-anywhere;
+    }
+
+    .assay-association-name {
+        @apply min-w-0;
+    }
+
+    .assay-association-id {
+        @apply min-w-[30px] rounded-control border border-line bg-surface-alt px-[5px] py-0.5 text-center font-mono text-[11px] leading-none text-muted;
+    }
+
+    .assay-association-option small {
+        @apply col-start-2 col-end-[-1] text-muted;
+    }
+
+    .assay-association-option.inactive {
+        @apply bg-surface-alt;
+    }
+
+    .assay-association-option.selected {
+        @apply bg-success-faint;
+        box-shadow: inset 4px 0 var(--success);
+    }
+
+    .assay-association-option.selected .assay-association-id {
+        @apply border-success bg-success-faint font-bold text-success;
+    }
+
+    .assay-association-option.unavailable {
+        @apply text-muted;
+    }
+
+    .report-generation-grid {
+        @apply grid items-start gap-3 lg:grid-cols-[minmax(0,5fr)_minmax(0,4fr)_minmax(0,3fr)];
+    }
+
+    .report-generation-column {
+        @apply grid min-w-0 gap-3;
+    }
+
+    .report-summary {
+        @apply grid gap-2;
+    }
+
+    .report-summary > div {
+        @apply grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start gap-2;
+    }
+
+    .report-summary dt {
+        @apply font-semibold;
+    }
+
+    .report-summary dd {
+        @apply min-w-0 wrap-anywhere;
+    }
+
+    .report-feedback {
+        @apply rounded-control border border-line bg-surface-alt p-3 text-ink;
+    }
+
+    .report-parameter-order {
+        @apply grid gap-1;
+    }
+
+    .report-parameter-order li {
+        @apply flex min-w-0 items-center gap-1 border-b border-line py-1;
+    }
+
     .result-table {
         @apply w-full border-collapse text-left text-xs leading-normal text-ink;
     }

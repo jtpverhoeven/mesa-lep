@@ -2,6 +2,7 @@
 
 namespace App\Actions\Assays;
 
+use App\Actions\DocgenTemplates\AssociateAssayRevisionWithDocgenTemplates;
 use App\Actions\PortalAssays\AssociateAssayRevisionWithPortalAssays;
 use App\Confirmations\AssayConfirmationConfiguration;
 use App\Models\Assay;
@@ -10,7 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 class UpdateAssay
 {
-    public function __construct(private AssociateAssayRevisionWithPortalAssays $associateAssayRevisionWithPortalAssays) {}
+    public function __construct(
+        private AssociateAssayRevisionWithPortalAssays $associateAssayRevisionWithPortalAssays,
+        private AssociateAssayRevisionWithDocgenTemplates $associateAssayRevisionWithDocgenTemplates,
+    ) {}
 
     public function handle(Assay $assay, array $data): Assay
     {
@@ -27,6 +31,7 @@ class UpdateAssay
                 $updatedAssay->fill($attributes);
                 $updatedAssay->save();
                 $this->associateAssayRevisionWithPortalAssays->handle($assay, $updatedAssay);
+                $this->associateAssayRevisionWithDocgenTemplates->handle($assay, $updatedAssay);
                 $assay->update(['active' => 0]);
             }
 

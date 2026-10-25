@@ -3,6 +3,7 @@
 namespace App\Actions\Samples;
 
 use App\Actions\Printing\DispatchLabelEvents;
+use App\Actions\Projects\ResolveProjectReference;
 use App\Models\Project;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class CreateBulkSamples
 {
-    public function __construct(private CreateRegisteredSample $create, private BulkSampleRegistrationOptions $options, private DispatchLabelEvents $dispatchLabelEvents) {}
+    public function __construct(private CreateRegisteredSample $create, private ResolveProjectReference $reference, private DispatchLabelEvents $dispatchLabelEvents) {}
 
     public function handle(array $data, Closure $afterCreate): Collection
     {
@@ -47,13 +48,7 @@ class CreateBulkSamples
 
     private function updateReference(Project $project): void
     {
-        $firstSample = $project->samples()->oldest('id')->first(['id', 'barcode']);
-        $reference = match ($this->options->value('MESA_PROJECT_REFERENCE')) {
-            '1' => $project->id,
-            '2' => $firstSample?->id,
-            '3' => $firstSample?->barcode,
-            default => null,
-        };
+        $reference = $this->reference->handle($project);
 
         if ($reference !== null) {
             $project->update(['reference' => $reference]);

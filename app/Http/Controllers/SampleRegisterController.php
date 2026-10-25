@@ -285,6 +285,7 @@ class SampleRegisterController extends Controller
             'has_note' => filled($sample->sample_note),
             'flags' => $flags,
             'sample_type' => (string) $sample->sample_type,
+            'project_url' => $project ? route('projects.search', ['project' => $project->id]) : null,
         ];
     }
 

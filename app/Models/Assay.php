@@ -68,4 +68,10 @@ class Assay extends Model
         return $this->belongsToMany(PortalAssay::class, 'portalassaycontent', 'assay_id', 'common_id')
             ->withPivot(['id', 'original_id']);
     }
+
+    public function docgenTemplates(): BelongsToMany
+    {
+        return $this->belongsToMany(DocgenTemplate::class, 'docgenassociations', 'assay_id', 'occurs_in')
+            ->withPivot(['id', 'original_assay_id']);
+    }
 }

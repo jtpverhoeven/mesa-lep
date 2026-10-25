@@ -37,6 +37,7 @@ return [
 
     'glass' => [
         'base_url' => env('GLASS_API_URL', 'http://glass-api:81/api/v1'),
+        'report_preferences_url' => env('GLASS_REPORT_PREFERENCES_URL'),
     ],
 
 ];

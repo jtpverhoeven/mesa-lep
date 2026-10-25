@@ -11,6 +11,7 @@ import { createAppDialogPassThrough } from '../dialogPassThrough';
 
 const props = defineProps({
     endpoints: { type: Object, required: true },
+    permissions: { type: Object, required: true },
 });
 
 const listTypes = [
@@ -37,6 +38,7 @@ const sentinel = ref(null);
 const barcodeInput = ref(null);
 const sampleContextMenu = ref(null);
 const contextMenuBarcode = ref('');
+const contextMenuProjectUrl = ref(null);
 const locationDialogOpen = ref(false);
 const locationKind = ref('storage');
 const locationDraft = ref('');
@@ -52,11 +54,14 @@ const columnCount = computed(() => standardList.value ? 13 : 5);
 const locationDialogTitle = computed(() => locationKind.value === 'storage' ? 'Monster opslag' : 'Afweegstation');
 const locationDialogLabel = computed(() => locationKind.value === 'storage' ? 'Vriezer bak' : 'Afweegstation');
 const overwriteConfirmPassThrough = createAppDialogPassThrough({ titleId: 'sample-register-overwrite-title' });
-const sampleContextMenuItems = [
+const sampleContextMenuItems = computed(() => [
     { label: 'Monster openen', command: () => openSample(contextMenuBarcode.value) },
+    ...(props.permissions.viewProjects && contextMenuProjectUrl.value
+        ? [{ label: 'Project openen', command: () => openProject(contextMenuProjectUrl.value) }]
+        : []),
     { label: 'Barcode kopiëren', command: () => copyBarcode(contextMenuBarcode.value) },
     { label: 'Inzetten', command: () => registerSample(contextMenuBarcode.value) },
-];
+]);
 const sampleContextMenuPassThrough = { rootList: { style: { outline: 'none' } } };
 
 function csrfToken() {
@@ -205,6 +210,10 @@ function openSample(sampleBarcode) {
     window.location.assign(lookupUrl(sampleBarcode));
 }
 
+function openProject(projectUrl) {
+    if (projectUrl) window.location.assign(projectUrl);
+}
+
 async function copyBarcode(sampleBarcode) {
     try {
         await navigator.clipboard.writeText(sampleBarcode);
@@ -216,6 +225,7 @@ async function copyBarcode(sampleBarcode) {
 
 function showSampleContextMenu(event, sample) {
     contextMenuBarcode.value = sample.barcode;
+    contextMenuProjectUrl.value = sample.project_url;
     sampleContextMenu.value?.show(event);
 }
 

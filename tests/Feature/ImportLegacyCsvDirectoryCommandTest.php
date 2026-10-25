@@ -5,6 +5,9 @@ namespace Tests\Feature;
 use App\Models\Assay;
 use App\Models\AssayProfile;
 use App\Models\Client;
+use App\Models\DocgenAssociation;
+use App\Models\DocgenTemplate;
+use App\Models\Footer;
 use App\Models\LabelDesign;
 use App\Models\LabelEvent;
 use App\Models\Printer;
@@ -21,6 +24,40 @@ use Tests\TestCase;
 class ImportLegacyCsvDirectoryCommandTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_reporting_exports_preserve_legacy_ids_associations_and_exact_certificate_text(): void
+    {
+        DocgenTemplate::factory()->create();
+        $text = "  <p>Goedgekeurde tekst &amp; <strong>opmaak</strong>.</p>\n";
+        $exports = [
+            'docgentemplates.csv' => [
+                ['id', 'name', 'folder', 'active', 'view_order'],
+                [42, 'Certificaat 2020', 'maz2020', 1, 3],
+            ],
+            'docgenassociations.csv' => [
+                ['id', 'assay_id', 'original_assay_id', 'occurs_in'],
+                [78, 1539, 1234, 42],
+            ],
+            'footers.csv' => [
+                ['id', 'name', 'lang', 'q', 'data'],
+                [93, 'maz2020', 'nl', 1, $text],
+            ],
+        ];
+
+        $this->withCsvExports($exports, function (string $directory): void {
+            $this->artisan('legacy:import-csv', ['directory' => $directory])
+                ->expectsOutput('Imported 3 row(s) from 3 file(s).')->assertSuccessful();
+        });
+
+        $this->assertDatabaseCount('docgentemplates', 1);
+        $template = DocgenTemplate::query()->findOrFail(42);
+        $this->assertSame('maz2020', $template->folder);
+        $this->assertSame(42, DocgenAssociation::query()->findOrFail(78)->template->id);
+        $this->assertDatabaseHas('docgenassociations', ['id' => 78, 'assay_id' => 1539, 'original_assay_id' => 1234, 'occurs_in' => 42]);
+        $this->assertSame($text, Footer::query()->findOrFail(93)->data);
+        $this->assertGreaterThan(42, DocgenTemplate::factory()->create()->id);
+        $this->assertGreaterThan(93, Footer::factory()->create()->id);
+    }
 
     public function test_printing_exports_replace_existing_records_preserve_legacy_data_and_reset_id_sequences(): void
     {
