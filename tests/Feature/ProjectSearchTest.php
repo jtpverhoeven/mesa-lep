@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Project;
+use App\Models\ProjectField;
 use App\Models\Sample;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -105,6 +106,34 @@ class ProjectSearchTest extends TestCase
             ->assertJsonPath('data.url', url('/laboratory/projects/search/'.$project->id));
         $this->getJson(route('projects.search.data', ['mode' => 'reference', 'query' => 'Project water']))
             ->assertOk();
+    }
+
+    public function test_project_details_include_custom_fields_with_empty_values(): void
+    {
+        ProjectField::create([
+            'name' => 'project_bemonster_tijd', 'alias' => 'Tijd bemonstering',
+            'type' => 'text', 'std_value' => '', 'position' => 1,
+        ]);
+        ProjectField::create([
+            'name' => 'project_tijd_ontvangst', 'alias' => 'Tijd ontvangst',
+            'type' => 'text', 'std_value' => '', 'position' => 2,
+        ]);
+        $project = Project::create([
+            'client' => 1,
+            'subclient' => 0,
+            'project_name' => 'Project water',
+            'custom_fields' => json_encode([
+                'project_bemonster_tijd' => '',
+                'project_tijd_ontvangst' => '',
+            ]),
+        ]);
+
+        $this->getJson(route('projects.search.show', ['project' => $project]))
+            ->assertOk()
+            ->assertJsonPath('data.fields', [
+                ['name' => 'project_bemonster_tijd', 'label' => 'Tijd bemonstering', 'value' => ''],
+                ['name' => 'project_tijd_ontvangst', 'label' => 'Tijd ontvangst', 'value' => ''],
+            ]);
     }
 
     #[DataProvider('sampleExtraFields')]

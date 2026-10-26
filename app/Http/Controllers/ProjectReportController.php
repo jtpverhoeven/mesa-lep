@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Actions\Reports\GenerateProjectReports;
 use App\Actions\Reports\GetProjectReportOptions;
-use App\Actions\Reports\GetReportingPreferences;
 use App\Http\Requests\GenerateProjectReportRequest;
 use App\Models\Export;
 use App\Models\Project;
@@ -12,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -42,7 +42,6 @@ class ProjectReportController extends Controller
                 'footersUrl' => $request->user()->can('settings.advanced') ? route('footers.index') : null,
                 'canEditParameters' => $request->user()->can('reports.parameters.update'),
                 'templatesUrl' => $request->user()->can('settings.advanced') ? route('docgen-templates.index') : null,
-                'preferencesUrl' => route('projects.reports.preferences', $project),
                 'portalPreferencesUrl' => $this->portalPreferencesUrl($project),
                 'clientUrl' => $request->user()->can('clients.manage') ? route('clients.edit', $project->getRawOriginal('client')) : null,
                 'templates' => array_map(fn (array $template): array => [
@@ -64,10 +63,50 @@ class ProjectReportController extends Controller
         ]);
     }
 
-    public function preferences(Project $project, GetReportingPreferences $preferences): JsonResponse
+    public function overview(Request $request, Project $project): JsonResponse
     {
-        return response()->json(['data' => $preferences->handle($project)])
-            ->header('Cache-Control', 'private, no-store');
+        $data = $request->validate(['page' => ['sometimes', 'integer', 'min:1']]);
+        $disk = Storage::disk('local');
+        $exports = Export::query()
+            ->where('client', $project->getRawOriginal('client'))
+            ->with('projectRecord:id,reference')
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->paginate(25, [
+                'id', 'project', 'report_reference', 'true_reference', 'revision',
+                'print_version', 'date', 'type', 'hash',
+            ], 'page', (int) ($data['page'] ?? 1));
+
+        return response()->json([
+            'data' => $exports->getCollection()->map(function (Export $export) use ($disk): array {
+                $reportProject = $export->getRelation('projectRecord');
+                $hasPdf = $reportProject !== null
+                    && preg_match('/\A[0-9a-f]{64}\z/', $export->hash) === 1
+                    && $disk->exists($export->storagePath());
+
+                return [
+                    'id' => $export->id,
+                    'reference' => $export->report_reference ?: $export->true_reference ?: $reportProject?->reference ?: '-',
+                    'revision' => $export->revision,
+                    'print_version' => $export->print_version,
+                    'date' => is_numeric($export->date)
+                        ? Carbon::createFromTimestamp((int) $export->date, 'Europe/Amsterdam')->format('d-m-Y')
+                        : $export->date,
+                    'type' => match ((int) $export->type) {
+                        1 => 'Rapport',
+                        2 => 'Voorlopig rapport',
+                        3 => 'Rapport per monster',
+                        default => 'Onbekend',
+                    },
+                    'url' => $hasPdf ? route('projects.reports.show', [$reportProject, $export]) : null,
+                ];
+            })->values(),
+            'meta' => [
+                'current_page' => $exports->currentPage(),
+                'last_page' => $exports->lastPage(),
+                'total' => $exports->total(),
+            ],
+        ])->header('Cache-Control', 'private, no-store');
     }
 
     public function store(GenerateProjectReportRequest $request, Project $project, GenerateProjectReports $generate): Response|RedirectResponse

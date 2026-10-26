@@ -9,6 +9,12 @@ within the current application theme.
 - Barcode lookup, previous/next sample by ID, and navigation within the project.
 - Sample/client/project details, ordered custom fields, legacy extra fields,
   project-relative sample numbering, registration and stored status information.
+- The sample and project search pages share the project information panel and
+  its server-side calculations. It shows portal activity, lifecycle status,
+  authorization (including the author's avatar and date), PDF reporting,
+  project-wide inoculation date/time, sampling-to-analysis hours, and the
+  project's expected completion date. Portal status is fetched separately so
+  a portal outage does not prevent either page from loading.
 - Research grouped by profile group in legacy project/follow-number order.
 - Add research using the existing profile/roaming selector and settings dialog.
 - Remove individual analyses and move analyses up/down using existing actions.
@@ -101,6 +107,7 @@ Veto regression checks:
 
 ```sh
 ./vendor/bin/sail artisan test --compact tests/Feature/SampleLookupTest.php tests/Feature/SampleAnalysisReferencesTest.php
+./vendor/bin/sail artisan test --compact tests/Feature/ProjectInfoTest.php
 ./vendor/bin/sail node --test tests/Unit/sampleLookupStore.test.js tests/Unit/sampleAnalysisReferencesStore.test.js
 ./vendor/bin/sail npm run build
 ```

@@ -5,7 +5,7 @@
         <div><div class="eyebrow">Beheer / Rapportage</div><h1>Rapportvoetteksten</h1></div>
         <a class="button primary" href="{{ route('footers.create') }}">Voettekst toevoegen</a>
     </div>
-    <p class="muted">Certificaatinformatie wordt geselecteerd op sjabloonmap, taal en RvA-scope. Bestaande certificaatteksten blijven ongewijzigd opgeslagen.</p>
+    
     <div class="table-scroll">
         <table class="data-table">
             <thead><tr><th>ID</th><th>Sjabloonmap</th><th>Taal</th><th>In RvA-scope?</th><th>Acties</th></tr></thead>

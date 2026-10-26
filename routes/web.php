@@ -27,6 +27,7 @@ use App\Http\Controllers\PrintProfileController;
 use App\Http\Controllers\ProductGroupController;
 use App\Http\Controllers\ProjectAuthorizationController;
 use App\Http\Controllers\ProjectFieldController;
+use App\Http\Controllers\ProjectInfoController;
 use App\Http\Controllers\ProjectOverviewController;
 use App\Http\Controllers\ProjectReportController;
 use App\Http\Controllers\ProjectSearchController;
@@ -111,6 +112,12 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
     Route::get('/{barcode?}', [SampleLookupController::class, 'index'])->where('barcode', '[^/]{1,32}')->name('samples.lookup');
 });
 
+Route::middleware('auth')->prefix('laboratory/projects/{project}')->group(function () {
+    Route::get('/client-portal-status', [ProjectInfoController::class, 'portalStatus'])->name('projects.info.portal-status');
+    Route::get('/authorized-by/avatar', [ProjectInfoController::class, 'authorizedAvatar'])->name('projects.info.avatar');
+    Route::get('/order-form', [ProjectInfoController::class, 'orderForm'])->name('projects.info.order-form');
+});
+
 Route::middleware(['auth', 'can:samples.assign-research'])->prefix('laboratory/samples/assign-analyses')->group(function () {
     Route::get('/', [SampleAnalysisAssignmentController::class, 'index'])->name('samples.assign-analyses');
     Route::get('/data', [SampleAnalysisAssignmentController::class, 'data'])->name('samples.assign-analyses.data');
@@ -146,7 +153,7 @@ Route::middleware(['auth', 'can:projects.authorisation.manage'])->prefix('labora
 Route::middleware(['auth', 'can:projects.view', 'can:reports.generate'])
     ->prefix('laboratory/projects/{project}/reports')->where(['project' => '[0-9]+'])->group(function () {
         Route::get('/', [ProjectReportController::class, 'index'])->name('projects.reports.index');
-        Route::get('/preferences', [ProjectReportController::class, 'preferences'])->name('projects.reports.preferences');
+        Route::get('/overview', [ProjectReportController::class, 'overview'])->name('projects.reports.overview');
         Route::post('/', [ProjectReportController::class, 'store'])->middleware('throttle:15,1')->name('projects.reports.store');
         Route::get('/transactions/{transaction}', [ProjectReportController::class, 'batch'])->whereNumber('transaction')->name('projects.reports.batch');
         Route::get('/{export}', [ProjectReportController::class, 'show'])->whereNumber('export')->scopeBindings()->name('projects.reports.show');

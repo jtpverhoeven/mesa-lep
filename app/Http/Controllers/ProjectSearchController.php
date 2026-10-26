@@ -43,9 +43,12 @@ class ProjectSearchController extends Controller
 
     public function show(Request $request, Project $project, GetProjectSearchDetails $details): JsonResponse
     {
+        $canGenerateReports = $request->user()->can('reports.generate');
+
         return response()->json(['data' => [
             ...$details->handle($project),
-            'report_url' => $request->user()->can('reports.generate') ? route('projects.reports.index', $project) : null,
+            'report_url' => $canGenerateReports ? route('projects.reports.index', $project) : null,
+            'report_overview_url' => $canGenerateReports ? route('projects.reports.overview', $project) : null,
         ]]);
     }
 

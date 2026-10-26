@@ -10,6 +10,7 @@ import SampleLookupPlaceholder from './SampleLookupPlaceholder.vue';
 import SampleProductGroup from './SampleProductGroup.vue';
 import SampleMetadataEditor from './SampleMetadataEditor.vue';
 import SampleDetailsDialog from './SampleDetailsDialog.vue';
+import ProjectInfo from './ProjectInfo.vue';
 import ConfirmationDecisionDialog from './ConfirmationDecisionDialog.vue';
 import ConfirmationDialog from './ConfirmationDialog.vue';
 import { useConfirmationStore } from '../stores/confirmationStore';
@@ -191,49 +192,8 @@ onBeforeUnmount(() => {
                 <section class="sample-panel">
                     <h2>Project</h2>
                     <div class="sample-panel-body">
-                        <template v-if="store.data?.project">
-                            <dl class="lookup-details">
-                                <dt>Project</dt>
-                                <dd>
-                                    <a v-if="permissions.viewProjects" class="text-link" :href="store.data.project_url">
-                                        {{ store.data.project.project_name }}
-                                    </a>
-                                    <template v-else>{{ store.data.project.project_name }}</template>
-                                </dd>
-                                <dt>Referentie</dt>
-                                <dd>
-                                    <a
-                                        v-if="permissions.viewProjects && store.data.project.reference"
-                                        class="text-link"
-                                        :href="store.data.project_url"
-                                    >{{ store.data.project.reference }}</a>
-                                    <template v-else>{{ store.data.project.reference || '-' }}</template>
-                                </dd>
-                                <dt>Datum</dt>
-                                <dd>{{ date(store.data.project.project_date) }}</dd>
-                                <dt>Status</dt>
-                                <dd>{{ Number(store.data.project.auth_status) ? 'Geautoriseerd' : Number(store.data.project.is_ready) ? 'Gereed' : 'Open' }}</dd>
-                                <template v-for="field in store.data.project_fields" :key="field.name">
-                                    <dt>{{ field.label }}</dt>
-                                    <dd>{{ display(field.value) }}</dd>
-                                </template>
-                                <dt>Notities</dt>
-                                <dd>{{ store.data.project.project_notes || '-' }}</dd>
-                                <dt><label for="lookup-project-sample">Andere Monsters in project</label></dt>
-                                <dd>
-                                    <select
-                                        id="lookup-project-sample"
-                                        :value="store.data.sample.barcode"
-                                        :disabled="store.saving"
-                                        @change="store.lookup($event.target.value)"
-                                    >
-                                        <option v-for="sample in store.data.project_samples" :key="sample.id" :value="sample.barcode">
-                                            {{ sample.barcode }} · {{ sample.description }}
-                                        </option>
-                                    </select>
-                                </dd>
-                            </dl>
-                        </template><p v-else class="empty-state">Geen project geselecteerd.</p>
+                        <ProjectInfo v-if="store.data?.project_info" :info="store.data.project_info" mode="sample" :project-url="store.data.project_url" :can-view-project="permissions.viewProjects" :samples="store.data.project_samples" :current-barcode="store.data.sample.barcode" :disabled="store.saving" @select-sample="store.lookup" />
+                        <p v-else class="empty-state">Geen project geselecteerd.</p>
                     </div>
                 </section>
             </div>
@@ -281,7 +241,6 @@ onBeforeUnmount(() => {
 .lookup-progress progress { display:block; width:100%; height:6px; accent-color:var(--accent); }
 .lookup-progress > span { text-align:right; font-variant-numeric:tabular-nums; }
 .sample-lookup select { width:100%; min-width:0; margin-top:6px; }
-.lookup-details select { min-height:35px; padding:8px 10px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); font:inherit; }
 .lookup-note { white-space:pre-wrap; overflow-wrap:anywhere; }
 .lookup-warning { padding:10px; background:#fff3cf; color:#714d00; }
 .lookup-add-modal { width:min(760px, calc(100vw - 24px)); }

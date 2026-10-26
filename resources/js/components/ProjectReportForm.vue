@@ -33,8 +33,6 @@ const settingsChanged = computed(() => outputType.value !== String(preferences.v
     || language.value !== preferences.value.language
     || highlight.value !== String(preferences.value.showViolation)
     || (outputType.value === '1' && samplesPerPage.value !== Number(preferences.value.noSamples)));
-const refreshingPreferences = ref(false);
-const preferencesError = ref('');
 const submitErrors = ref([]);
 const errorPanel = ref(null);
 const submitting = ref(false);
@@ -103,30 +101,6 @@ function dropAssay(targetId) {
     draggingAssay.value = null;
 }
 
-function applyPreferences() {
-    outputType.value = String(preferences.value.pdfTypeSelect);
-    language.value = preferences.value.language;
-    samplesPerPage.value = Number(preferences.value.noSamples);
-    highlight.value = String(preferences.value.showViolation);
-}
-
-async function reloadPreferences() {
-    refreshingPreferences.value = true;
-    preferencesError.value = '';
-    try {
-        const response = await fetch(props.config.preferencesUrl, { headers: { Accept: 'application/json' } });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.message || 'Klantvoorkeuren konden niet worden geladen.');
-        if (payload.data.warning) throw new Error(payload.data.warning);
-        preferences.value = payload.data;
-        applyPreferences();
-    } catch (error) {
-        preferencesError.value = error.message;
-    } finally {
-        refreshingPreferences.value = false;
-    }
-}
-
 async function submit(event) {
     event.preventDefault();
     if (submitting.value) return;
@@ -161,9 +135,8 @@ async function submit(event) {
                         <div><dt>Klant</dt><dd><a v-if="config.clientUrl" class="text-link" :href="config.clientUrl">{{ config.clientName }}</a><span v-else>{{ config.clientName }}</span></dd></div>
                     </dl>
                     <section class="mt-3 border-t border-line pt-3" aria-labelledby="report-preferences">
-                        <h3 id="report-preferences" class="font-semibold">Portal Rapportage instellingen klant</h3>
-                        <p v-if="preferences.portalProjectId" class="mt-2 text-muted">Portalorder {{ preferences.portalProjectId }}</p>
-                        <p v-if="preferencesError || preferences.warning" class="report-feedback mt-2" role="alert">{{ preferencesError || preferences.warning }}</p>
+                        <h3 id="report-preferences" class="font-semibold">Portal Rapportage instellingen klant</h3>                        
+                        <p v-if="preferences.warning" class="report-feedback mt-2" role="alert">{{ preferences.warning }}</p>
                         <p v-else-if="preferences.foundSettings" class="report-feedback mt-2" role="status">{{ settingsChanged ? 'Klantvoorkeuren ingeladen, maar aangepast door gebruiker!' : 'Klantvoorkeuren succesvol geladen en toegepast.' }}</p>
                         <p v-else class="report-feedback mt-2" role="status">Geen klantvoorkeuren voor deze order gevonden. De standaardinstellingen worden gebruikt.</p>
                         <dl class="report-summary mt-3">
@@ -171,8 +144,7 @@ async function submit(event) {
                             <div><dt>Taal</dt><dd>{{ preferences.language === 'en' ? 'Engels' : 'Nederlands' }}</dd></div>
                             <div><dt>Overschrijdingen markeren</dt><dd>{{ Number(preferences.showViolation) === 1 ? 'Ja' : 'Nee' }}</dd></div>
                         </dl>
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            <Button type="button" severity="secondary" label="Opnieuw laden en toepassen" :loading="refreshingPreferences" :disabled="submitting" @click="reloadPreferences" />
+                        <div class="mt-3">
                             <a v-if="config.portalPreferencesUrl" class="text-link" :href="config.portalPreferencesUrl" target="_blank" rel="noopener noreferrer">Klantvoorkeuren in client-portal</a>
                         </div>
                         <p v-if="Number(config.project.special_type) === 2" class="report-feedback mt-3">Dit is een RODAC rapport, controleer handmatig rapport instellingen.</p>
@@ -296,8 +268,8 @@ async function submit(event) {
                         <strong>Rapport kan niet worden gemaakt</strong>
                         <ul class="mt-2 list-inside list-disc"><li v-for="error in submitErrors" :key="error">{{ error }}</li></ul>
                     </div>
-                    <Button type="submit" value="create" label="Rapport maken" :loading="submitting" :disabled="submitting || refreshingPreferences" />
-                    <Button type="submit" value="preview" label="Voorbeeld bekijken" severity="secondary" :disabled="submitting || refreshingPreferences" />
+                    <Button type="submit" value="create" label="Rapport maken" :loading="submitting" :disabled="submitting" />
+                    <Button type="submit" value="preview" label="Voorbeeld bekijken" severity="secondary" :disabled="submitting" />
                 </div>
             </section>
         </div>

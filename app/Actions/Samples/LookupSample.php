@@ -2,7 +2,7 @@
 
 namespace App\Actions\Samples;
 
-use App\Models\ProjectField;
+use App\Actions\Projects\GetProjectInfo;
 use App\Models\Sample;
 use App\Models\SampleField;
 use App\Models\SampleProcedure;
@@ -11,7 +11,7 @@ use App\Support\PredictedEndProgress;
 
 class LookupSample
 {
-    public function __construct(private PredictedEndProgress $progress) {}
+    public function __construct(private PredictedEndProgress $progress, private GetProjectInfo $projectInfo) {}
 
     public function handle(string $barcode): array
     {
@@ -20,6 +20,7 @@ class LookupSample
             'analyses.assayProfile', 'analyses.roamingAnalysis', 'metadata',
         ])->firstOrFail();
         $project = $sample->getRelation('project');
+        $info = $project ? $this->projectInfo->handle($project) : null;
         $client = $sample->getRelation('client');
         $projectSamples = $project?->samples()->orderBy('id')->get(['id', 'barcode', 'description']) ?? collect();
         $extraFieldNames = match ($sample->sample_type) {
@@ -51,9 +52,10 @@ class LookupSample
             'client' => $client?->only(['id', 'name']),
             'progress' => $this->progress->percentage($sample->date_registered, $sample->predicted_end, (int) $project?->auth_status === 1),
             'product_group' => $sample->productGroup?->only(['portal_id', 'name', 'default', 'visible']),
-            'project' => $project?->only(['id', 'project_name', 'reference', 'project_date', 'project_notes', 'auth_status', 'is_ready', 'locked', 'lock_message']),
+            'project' => $info['project'] ?? null,
+            'project_info' => $info,
             'project_url' => $project ? route('projects.search', ['project' => $project->id]) : null,
-            'project_fields' => $this->fields($project?->custom_fields, ProjectField::query()->orderBy('position')->get()),
+            'project_fields' => $info['fields'] ?? [],
             'project_samples' => $projectSamples,
             'analyses' => $sample->analyses->map(fn ($analysis) => [
                 ...$analysis->only(['id', 'profile_group', 'profile', 'assay', 'assay_base', 'roaming_id', 'follow_number', 'project_order', 'predicted_end', 'conf_requested', 'is_ready']),

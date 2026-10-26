@@ -221,63 +221,6 @@ class ProjectReportGenerationTest extends TestCase
         ];
     }
 
-    public function test_order_preferences_can_be_reloaded_using_the_portal_order_id_without_issuing_a_report(): void
-    {
-        $fixture = $this->fixture();
-        $fixture['project']->update(['portal_id' => 18]);
-        config(['services.glass.base_url' => 'http://portal.test/api']);
-        Http::preventStrayRequests();
-        Http::fake(['http://portal.test/api/report-preferences' => Http::response([
-            'status' => '200',
-            'preferences' => [
-                'foundSettings' => true, 'researchType' => 'global', 'reportOutputType' => 'individual',
-                'language' => 'nl', 'numberOfSamples' => '1', 'selectedContactLists' => [4, 7],
-            ],
-        ])]);
-
-        $this->getJson(route('projects.reports.preferences', $fixture['project']))
-            ->assertOk()
-            ->assertJsonPath('data.portalProjectId', 18)
-            ->assertJsonPath('data.foundSettings', true)
-            ->assertJsonPath('data.pdfTypeSelect', 0)
-            ->assertJsonPath('data.language', 'nl')
-            ->assertJsonPath('data.noSamples', 1)
-            ->assertJsonPath('data.activated_contact_groups', [4, 7]);
-
-        Http::assertSent(fn ($request): bool => $request->hasFile('id', 18) && ! $request->hasFile('id', $fixture['project']->id));
-        Http::assertSentCount(1);
-        $this->assertNotIssued($fixture['project']);
-    }
-
-    #[DataProvider('defaultReportTypes')]
-    public function test_orders_without_customer_preferences_expose_the_legacy_defaults(int $type, int $expectedOutput): void
-    {
-        $fixture = $this->fixture();
-        $fixture['project']->update(['special_type' => $type]);
-        Http::preventStrayRequests();
-
-        $this->getJson(route('projects.reports.preferences', $fixture['project']))
-            ->assertOk()->assertJsonPath('data.foundSettings', false)
-            ->assertJsonPath('data.language', 'nl')->assertJsonPath('data.noSamples', 5)
-            ->assertJsonPath('data.pdfTypeSelect', $expectedOutput)
-            ->assertJsonPath('data.showViolation', 1)->assertJsonPath('data.warning', null);
-
-        Http::assertNothingSent();
-    }
-
-    public static function defaultReportTypes(): array
-    {
-        return ['standard' => [0, 0], 'legionella' => [1, 1], 'rodac' => [2, 1]];
-    }
-
-    public function test_preferences_reload_retains_the_generation_permission_boundary(): void
-    {
-        $fixture = $this->fixture();
-        Gate::define('reports.generate', fn (): bool => false);
-
-        $this->getJson(route('projects.reports.preferences', $fixture['project']))->assertForbidden();
-    }
-
     public function test_report_page_explains_missing_associations_and_footers_without_hiding_the_template(): void
     {
         $fixture = $this->fixture();
@@ -318,6 +261,110 @@ class ProjectReportGenerationTest extends TestCase
 
         $this->assertSame(7, $fixture['project']->fresh()->print_version);
         $this->assertDatabaseCount('changetracker', 0);
+    }
+
+    public function test_client_report_overview_lists_the_clients_exports_with_metadata_and_available_pdf_links(): void
+    {
+        $fixture = $this->fixture();
+        $otherProject = Project::query()->create([
+            'client' => $fixture['client']->id,
+            'subclient' => 0,
+            'reference' => '261023',
+            'project_name' => 'Andere klantreferentie',
+        ]);
+        $otherClientProject = Project::query()->create([
+            'client' => $fixture['client']->id + 1,
+            'subclient' => 0,
+            'reference' => '999999',
+        ]);
+        $latest = Export::factory()->create([
+            'client' => $fixture['client']->id,
+            'project' => $fixture['project']->id,
+            'report_reference' => 'Klantreferentie',
+            'revision' => 4,
+            'print_version' => 11,
+            'date' => (string) Carbon::parse('2026-10-24 11:00:00', 'Europe/Amsterdam')->timestamp,
+            'type' => 1,
+        ]);
+        $preliminary = Export::factory()->create([
+            'client' => $fixture['client']->id,
+            'project' => $fixture['project']->id,
+            'report_reference' => 'Voorlopig rapport',
+            'date' => (string) Carbon::parse('2026-10-23 11:00:00', 'Europe/Amsterdam')->timestamp,
+            'type' => 2,
+        ]);
+        $perSample = Export::factory()->create([
+            'client' => $fixture['client']->id,
+            'project' => $otherProject->id,
+            'report_reference' => 'Andere klantreferentie',
+            'date' => (string) Carbon::parse('2026-10-22 11:00:00', 'Europe/Amsterdam')->timestamp,
+            'type' => 3,
+        ]);
+        $unknown = Export::factory()->create([
+            'client' => $fixture['client']->id,
+            'project' => $fixture['project']->id,
+            'date' => (string) Carbon::parse('2026-10-21 11:00:00', 'Europe/Amsterdam')->timestamp,
+            'type' => 9,
+        ]);
+        $otherClientExport = Export::factory()->create([
+            'client' => $fixture['client']->id + 1,
+            'project' => $otherClientProject->id,
+            'date' => (string) Carbon::parse('2026-10-25 11:00:00', 'Europe/Amsterdam')->timestamp,
+        ]);
+        Storage::disk('local')->put($latest->storagePath(), '%PDF-latest');
+        Storage::disk('local')->put($perSample->storagePath(), '%PDF-other-project');
+
+        $response = $this->getJson(route('projects.reports.overview', $fixture['project']));
+
+        $response->assertJsonPaths([
+            'data.0.id' => $latest->id,
+            'data.0.reference' => 'Klantreferentie',
+            'data.0.revision' => 4,
+            'data.0.print_version' => 11,
+            'data.0.date' => '24-10-2026',
+            'data.0.type' => 'Rapport',
+            'data.0.url' => route('projects.reports.show', [$fixture['project'], $latest]),
+            'data.1.date' => '23-10-2026',
+            'data.1.type' => 'Voorlopig rapport',
+            'data.1.url' => null,
+            'data.2.reference' => 'Andere klantreferentie',
+            'data.2.type' => 'Rapport per monster',
+            'data.2.url' => route('projects.reports.show', [$otherProject, $perSample]),
+            'data.3.type' => 'Onbekend',
+            'data.3.url' => null,
+            'meta.current_page' => 1,
+            'meta.last_page' => 1,
+            'meta.total' => 4,
+        ]);
+        $this->assertSame(
+            [$latest->id, $preliminary->id, $perSample->id, $unknown->id],
+            array_column($response->json('data'), 'id'),
+        );
+        $this->assertNotContains($otherClientExport->id, array_column($response->json('data'), 'id'));
+
+        $this->getJson(route('projects.search.show', $fixture['project']))
+            ->assertJsonPath('data.report_overview_url', route('projects.reports.overview', $fixture['project']));
+    }
+
+    public function test_client_report_overview_paginates_exports_and_rejects_invalid_pages(): void
+    {
+        $fixture = $this->fixture();
+        $exports = Export::factory()->count(26)->create([
+            'client' => $fixture['client']->id,
+            'project' => $fixture['project']->id,
+            'date' => (string) now()->timestamp,
+        ]);
+
+        $response = $this->getJson(route('projects.reports.overview', ['project' => $fixture['project'], 'page' => 2]));
+
+        $response->assertJsonPaths([
+            'data.0.id' => $exports->first()->id,
+            'meta.current_page' => 2,
+            'meta.last_page' => 2,
+            'meta.total' => 26,
+        ]);
+        $this->getJson(route('projects.reports.overview', ['project' => $fixture['project'], 'page' => 0]))
+            ->assertUnprocessable();
     }
 
     public function test_default_parameter_order_interleaves_sample_positions_like_the_legacy_sorter(): void
@@ -495,12 +542,15 @@ class ProjectReportGenerationTest extends TestCase
     {
         $project = Project::query()->create(['client' => 1, 'subclient' => 0]);
         $this->get(route('projects.reports.index', $project))->assertRedirect(route('login'));
+        $this->getJson(route('projects.reports.overview', $project))->assertUnauthorized();
         $this->postJson(route('projects.reports.store', $project), [])->assertUnauthorized();
         $this->actingAs(User::factory()->create(['enabled' => 1]));
         Gate::define('projects.view', fn (): bool => true);
         Gate::define('reports.generate', fn (): bool => false);
         $this->get(route('projects.reports.index', $project))->assertForbidden();
+        $this->getJson(route('projects.reports.overview', $project))->assertForbidden();
         $this->postJson(route('projects.reports.store', $project), [])->assertForbidden();
+        $this->getJson(route('projects.search.show', $project))->assertJsonPath('data.report_overview_url', null);
     }
 
     #[DataProvider('legacyIndicators')]
