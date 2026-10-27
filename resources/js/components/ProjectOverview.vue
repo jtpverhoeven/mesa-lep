@@ -182,7 +182,7 @@ onBeforeUnmount(() => {
                         </div>
                     </template>
                 </Column>
-                <template #empty><p class="empty-state" role="status">{{ loading ? 'Projecten laden...' : 'Geen projecten in deze status.' }}</p></template>
+                <template #empty><p class="empty-state" role="status">{{ loading ? 'Projecten laden...' : 'Geen projecten gevonden.' }}</p></template>
             </DataTable>
         </div>
         <div ref="sentinel" class="overview-load-sentinel" aria-hidden="true"></div>
@@ -202,6 +202,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .project-overview { min-width:0; }
+.project-overview > .table-scroll { border:0; }
+.overview-load-sentinel { height:1px; margin-top:-1px; pointer-events:none; }
 .overview-count { margin-left:auto; color:var(--muted); font-weight:400; }
 .overview-label-date { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; }
 .overview-label-date input { min-height:35px; padding:6px 9px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); font:inherit; }
@@ -224,7 +226,6 @@ onBeforeUnmount(() => {
 .overview-deadline.danger { color:#b14535; font-weight:700; }
 .overview-actions { display:flex; justify-content:flex-end; gap:4px; min-width:94px; }
 .overview-actions .icon-button { display:grid; place-items:center; text-decoration:none; flex:none; }
-.overview-load-sentinel { height:2px; }
 .overview-loading,.overview-load-error { display:flex; align-items:center; gap:8px; margin:0; }
 .overview-loading { color:var(--muted); font-size:12px; }
 .overview-placeholder-details { display:grid; grid-template-columns:80px minmax(0,1fr); gap:8px 12px; font-size:12px; }
