@@ -108,6 +108,18 @@ class ProjectSearchTest extends TestCase
             ->assertOk();
     }
 
+    public function test_project_details_include_both_report_links_for_the_selected_project_when_permitted(): void
+    {
+        Gate::define('reports.generate', fn (): bool => true);
+        $project = Project::create(['client' => 1, 'subclient' => 0, 'project_name' => 'Project water', 'is_ready' => 0]);
+
+        $this->getJson(route('projects.search.show', $project))
+            ->assertJsonPaths([
+                'data.report_url' => route('projects.reports.index', $project),
+                'data.temporary_report_url' => route('projects.reports.temporary.index', $project),
+            ]);
+    }
+
     public function test_project_details_include_custom_fields_with_empty_values(): void
     {
         ProjectField::create([

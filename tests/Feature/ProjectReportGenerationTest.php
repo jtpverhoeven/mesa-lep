@@ -55,6 +55,88 @@ class ProjectReportGenerationTest extends TestCase
         }
     }
 
+    #[DataProvider('projectAuthorizationStates')]
+    public function test_incomplete_projects_show_a_standalone_warning_without_loading_report_options_or_issuing(int $authorized): void
+    {
+        $fixture = $this->fixture();
+        $fixture['project']->update(['is_ready' => 0, 'auth_status' => $authorized, 'portal_id' => 123]);
+        Http::preventStrayRequests();
+
+        $this->get(route('projects.reports.index', $fixture['project']))
+            ->assertViewIs('reports.not-ready')
+            ->assertSeeText('Project niet afgerond')
+            ->assertSeeText('Weet u zeker dat u geen voorlopig rapport wilt aanmaken?')
+            ->assertSee(route('projects.reports.temporary.index', $fixture['project']))
+            ->assertSee(route('projects.reports.index', ['project' => $fixture['project'], 'continue' => 1]))
+            ->assertSee(route('projects.search', ['project' => $fixture['project']->id]))
+            ->assertSee(route('projects.overview.completed'))
+            ->assertSee(route('projects.overview.authorized'))
+            ->assertDontSee('<project-report-form', false);
+
+        $this->assertNotIssued($fixture['project']);
+        $this->assertDatabaseHas('projects', ['id' => $fixture['project']->id, 'is_ready' => 0, 'auth_status' => $authorized]);
+        Http::assertNothingSent();
+    }
+
+    #[DataProvider('projectAuthorizationStates')]
+    public function test_users_can_continue_from_the_warning_and_generate_an_incomplete_report(int $authorized): void
+    {
+        $fixture = $this->fixture();
+        $fixture['project']->update(['is_ready' => 0, 'auth_status' => $authorized]);
+        $continueUrl = route('projects.reports.index', ['project' => $fixture['project'], 'continue' => 1]);
+        $this->get(route('projects.reports.index', $fixture['project']))
+            ->assertViewIs('reports.not-ready')->assertSee($continueUrl);
+        $this->get($continueUrl)
+            ->assertViewIs('reports.index')
+            ->assertViewHas('form', fn (array $form): bool => $form['temporary'] === false
+                && $form['project']['is_ready'] === 0
+                && $form['action'] === route('projects.reports.store', $fixture['project']));
+
+        $response = $this->post(route('projects.reports.store', $fixture['project']), $this->reportOptions($fixture));
+
+        $export = Export::query()->sole();
+        $response->assertRedirect(route('projects.reports.show', [$fixture['project'], $export]))->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('exports', ['id' => $export->id, 'type' => 1, 'temporary' => 0, 'was_authorized' => $authorized]);
+        $this->assertDatabaseHas('projects', ['id' => $fixture['project']->id, 'is_ready' => 0, 'auth_status' => $authorized]);
+        $this->get($response->headers->get('Location'))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->get(route('projects.reports.index', $fixture['project']))->assertViewIs('reports.not-ready');
+    }
+
+    #[DataProvider('projectAuthorizationStates')]
+    public function test_ready_projects_open_report_settings_regardless_of_authorization(int $authorized): void
+    {
+        $fixture = $this->fixture();
+        $fixture['project']->update(['auth_status' => $authorized]);
+
+        $this->get(route('projects.reports.index', $fixture['project']))
+            ->assertViewIs('reports.index')
+            ->assertViewHas('temporary', false);
+    }
+
+    #[DataProvider('projectAuthorizationStates')]
+    public function test_preliminary_report_settings_open_directly_for_incomplete_projects(int $authorized): void
+    {
+        $fixture = $this->fixture();
+        $fixture['project']->update(['is_ready' => 0, 'auth_status' => $authorized]);
+        $this->allowTemporaryTemplates();
+
+        $this->get(route('projects.reports.temporary.index', $fixture['project']))
+            ->assertViewIs('reports.index')
+            ->assertViewHas('form', fn (array $form): bool => $form['temporary'] === true
+                && $form['action'] === route('projects.reports.temporary.store', $fixture['project']));
+
+        $this->assertNotIssued($fixture['project']);
+        $this->assertDatabaseHas('projects', ['id' => $fixture['project']->id, 'auth_status' => $authorized]);
+    }
+
+    public static function projectAuthorizationStates(): array
+    {
+        return [
+            'authorized' => [1],
+            'unauthorized' => [0],
+        ];
+    }
+
     public function test_creation_issues_a_real_inline_pdf_and_preserves_legacy_export_state_without_sending(): void
     {
         $fixture = $this->fixture();
@@ -574,6 +656,7 @@ class ProjectReportGenerationTest extends TestCase
     {
         $project = Project::query()->create(['client' => 1, 'subclient' => 0]);
         $this->get(route('projects.reports.index', $project))->assertRedirect(route('login'));
+        $this->get(route('projects.reports.index', ['project' => $project, 'continue' => 1]))->assertRedirect(route('login'));
         $this->getJson(route('projects.reports.overview', $project))->assertUnauthorized();
         $this->postJson(route('projects.reports.store', $project), [])->assertUnauthorized();
         $this->get(route('projects.reports.temporary.index', $project))->assertRedirect(route('login'));
@@ -582,11 +665,16 @@ class ProjectReportGenerationTest extends TestCase
         Gate::define('projects.view', fn (): bool => true);
         Gate::define('reports.generate', fn (): bool => false);
         $this->get(route('projects.reports.index', $project))->assertForbidden();
+        $this->get(route('projects.reports.index', ['project' => $project, 'continue' => 1]))->assertForbidden();
         $this->getJson(route('projects.reports.overview', $project))->assertForbidden();
         $this->postJson(route('projects.reports.store', $project), [])->assertForbidden();
         $this->get(route('projects.reports.temporary.index', $project))->assertForbidden();
         $this->postJson(route('projects.reports.temporary.store', $project), [])->assertForbidden();
-        $this->getJson(route('projects.search.show', $project))->assertJsonPath('data.report_overview_url', null);
+        $this->getJson(route('projects.search.show', $project))->assertJsonPaths([
+            'data.report_url' => null,
+            'data.temporary_report_url' => null,
+            'data.report_overview_url' => null,
+        ]);
     }
 
     #[DataProvider('legacyIndicators')]

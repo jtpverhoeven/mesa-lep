@@ -24,6 +24,10 @@ class ProjectReportController extends Controller
 {
     public function index(Request $request, Project $project, GetProjectReportOptions $options, bool $temporary = false): View
     {
+        if (! $temporary && (int) $project->is_ready !== 1 && ! $request->boolean('continue')) {
+            return view('reports.not-ready', ['project' => $project]);
+        }
+
         $data = $options->handle($project, $temporary);
 
         return view('reports.index', [

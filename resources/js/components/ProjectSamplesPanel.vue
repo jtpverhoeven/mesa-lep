@@ -20,14 +20,14 @@ const deauthorizationReason = ref('');
 const deauthorizationError = ref('');
 const authorizationChecks = computed(() => authorizationPrompt.value?.assessment?.checks.filter((check) => !check.passed) ?? []);
 
-const reportMenuItems = [
-    { label: 'Rapport genereren', icon: ExternalLink },
-    { label: 'Voorlopig rapport genereren', icon: ExternalLink },
+const reportMenuItems = computed(() => [
+    { label: 'Rapport genereren', icon: ExternalLink, url: store.projectData?.report_url, disabled: !store.projectData?.report_url },
+    { label: 'Voorlopig rapport genereren', icon: ExternalLink, url: store.projectData?.temporary_report_url, disabled: !store.projectData?.temporary_report_url },
     { separator: true },
     { label: 'Monster bestanden mailen', icon: Mail },
     { separator: true },
     { label: 'Data uitvoeren', icon: Download },
-];
+]);
 
 const projectMenuItems = computed(() => {
     const items = [];
@@ -167,7 +167,7 @@ function updateDeauthorizationDialog(visible) {
                     </button>
                     <Menu id="project-report-menu" ref="reportMenu" class="project-sample-menu" :model="reportMenuItems" popup aria-label="Rapportage-opties" @show="reportMenuOpen = true" @hide="reportMenuOpen = false">
                         <template #item="{ item, props: itemProps }">
-                            <a v-bind="itemProps.action">
+                            <a v-bind="itemProps.action" :href="item.url">
                                 <component :is="item.icon" :size="15" aria-hidden="true" />
                                 <span v-bind="itemProps.label">{{ item.label }}</span>
                             </a>

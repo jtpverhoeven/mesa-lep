@@ -48,6 +48,7 @@ class ProjectSearchController extends Controller
         return response()->json(['data' => [
             ...$details->handle($project),
             'report_url' => $canGenerateReports ? route('projects.reports.index', $project) : null,
+            'temporary_report_url' => $canGenerateReports ? route('projects.reports.temporary.index', $project) : null,
             'report_overview_url' => $canGenerateReports ? route('projects.reports.overview', $project) : null,
         ]]);
     }
