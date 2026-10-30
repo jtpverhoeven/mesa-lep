@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Actions\Projects\DeauthorizeProject;
 use App\Actions\Projects\ResolveProjectReference;
 use App\ChangeTracking\ChangeTracker;
 use App\Models\Export;
@@ -24,18 +25,23 @@ class GenerateProjectReports
         private RenderReportPdf $render,
         private ChangeTracker $changes,
         private ResolveProjectReference $reference,
+        private DeauthorizeProject $deauthorize,
     ) {}
 
     /**
+     * A temporary report is a combined PDF of the whole project, with every parameter in its default order, in one
+     * of the templates allowed for temporary reports. Issuing it withdraws the project's authorisation.
+     *
      * @param  array<string, mixed>  $options
      * @return array{pdf: ?string, filename: string, exports: Collection<int, Export>}
      */
-    public function handle(Project $project, array $options, int $userId): array
+    public function handle(Project $project, array $options, int $userId, bool $temporary = false): array
     {
         $createdPaths = [];
+        $deauthorized = false;
 
         try {
-            return DB::transaction(function () use ($project, $options, $userId, &$createdPaths): array {
+            $result = DB::transaction(function () use ($project, $options, $userId, $temporary, &$createdPaths, &$deauthorized): array {
                 $analysisIds = $project->sampleAnalyses()->reorder('id')->lockForUpdate()->pluck('sampleanalysis.id')->all();
                 $project = Project::query()->lockForUpdate()->findOrFail($project->id);
 
@@ -59,7 +65,17 @@ class GenerateProjectReports
                     throw ValidationException::withMessages(['report' => 'De analyses van dit project zijn gewijzigd. Laad de rapportinstellingen opnieuw.']);
                 }
 
-                $template = $this->reportOptions->templates($project)->firstWhere('folder', $options['templateSelect']);
+                if ($temporary) {
+                    $options = [
+                        ...$options,
+                        'reportType' => 'projectReport',
+                        'PDFtypeSelect' => 1,
+                        'assay_ids' => $assayIds,
+                        'assay_order' => $this->reportOptions->defaultAssayOrder($project),
+                    ];
+                }
+
+                $template = $this->reportOptions->templates($project, $temporary)->firstWhere('folder', $options['templateSelect']);
 
                 if ($template === null || ! $template->isSupported()) {
                     throw ValidationException::withMessages(['templateSelect' => 'Dit sjabloon is niet beschikbaar voor alle analyses van dit project, of de PDF-uitvoer is nog niet geport.']);
@@ -102,8 +118,8 @@ class GenerateProjectReports
                         continue;
                     }
 
-                    $pdf = $this->render->handle([$report], false);
-                    $export = $this->export($project, $group, $options['templateSelect'], $version, $individual, $transaction);
+                    $pdf = $this->render->handle([$report], false, $temporary);
+                    $export = $this->export($project, $group, $options['templateSelect'], $version, $individual, $temporary, $transaction);
                     $path = $export->storagePath();
 
                     if (Storage::disk('local')->exists($path)) {
@@ -131,7 +147,7 @@ class GenerateProjectReports
                     }
 
                     return [
-                        'pdf' => $this->render->handle($reports, true),
+                        'pdf' => $this->render->handle($reports, true, $temporary),
                         'filename' => Export::safeFilename('MAZ-L '.$project->reference.'.'.$project->revision.'.'.((int) $project->print_version + 1)).'.pdf',
                         'exports' => $exports,
                     ];
@@ -139,6 +155,15 @@ class GenerateProjectReports
 
                 if ($exports->isEmpty()) {
                     $this->noOutput();
+                }
+
+                if ($temporary) {
+                    $project->save();
+                    $deauthorized = $this->deauthorize->revoke(
+                        $project, $userId, 'Voorlopig rapport', 'Voorlopig rapport uitgegeven, autorisatie automatisch ingetrokken',
+                    )['deauthorized'];
+
+                    return ['pdf' => null, 'filename' => '', 'exports' => $exports];
                 }
 
                 if ((int) $project->auth_status === 1) {
@@ -163,10 +188,16 @@ class GenerateProjectReports
 
             throw $exception;
         }
+
+        if ($deauthorized) {
+            $this->deauthorize->syncPortal($project->id, true);
+        }
+
+        return $result;
     }
 
     /** @param Collection<int, Sample> $samples */
-    private function export(Project $project, Collection $samples, string $template, int $version, bool $individual, ?int $transaction): Export
+    private function export(Project $project, Collection $samples, string $template, int $version, bool $individual, bool $temporary, ?int $transaction): Export
     {
         $sample = $samples->count() === 1 ? $samples->first() : null;
         $description = $sample?->client_description ?? '';
@@ -177,7 +208,7 @@ class GenerateProjectReports
             'client' => $project->getRawOriginal('client'),
             'revision' => $project->revision,
             'print_version' => $version,
-            'type' => $individual ? 3 : 1,
+            'type' => $temporary ? 2 : ($individual ? 3 : 1),
             'naming_strategy' => $useDescription ? 'description' : 'reference',
             'naming_description' => $useDescription ? Str::substr(Export::safeFilename($description), 0, 64) : '',
             'template' => $template,
@@ -185,7 +216,7 @@ class GenerateProjectReports
             'date' => (string) now()->timestamp,
             'report_reference' => $project->project_name,
             'true_reference' => $project->reference,
-            'temporary' => 0,
+            'temporary' => (int) $temporary,
             'was_authorized' => $project->auth_status,
             'sample_id' => $sample?->id,
             'sample_id_scope' => $samples->modelKeys(),

@@ -21,14 +21,16 @@ use UnexpectedValueException;
 
 class ProjectReportController extends Controller
 {
-    public function index(Request $request, Project $project, GetProjectReportOptions $options): View
+    public function index(Request $request, Project $project, GetProjectReportOptions $options, bool $temporary = false): View
     {
-        $data = $options->handle($project);
+        $data = $options->handle($project, $temporary);
 
         return view('reports.index', [
             'project' => $project,
+            'temporary' => $temporary,
             'form' => [
-                'action' => route('projects.reports.store', $project),
+                'temporary' => $temporary,
+                'action' => route($temporary ? 'projects.reports.temporary.store' : 'projects.reports.store', $project),
                 'csrf' => csrf_token(),
                 'project' => $project->only(['id', 'reference', 'project_name', 'auth_status', 'is_ready', 'special_type']),
                 'projectUrl' => route('projects.search', ['project' => $project->id]),
@@ -40,7 +42,7 @@ class ProjectReportController extends Controller
                 'history' => $data['history'],
                 'signatureAvailable' => $data['signatureAvailable'],
                 'footersUrl' => $request->user()->can('settings.advanced') ? route('footers.index') : null,
-                'canEditParameters' => $request->user()->can('reports.parameters.update'),
+                'canEditParameters' => ! $temporary && $request->user()->can('reports.parameters.update'),
                 'templatesUrl' => $request->user()->can('settings.advanced') ? route('docgen-templates.index') : null,
                 'portalPreferencesUrl' => $this->portalPreferencesUrl($project),
                 'clientUrl' => $request->user()->can('clients.manage') ? route('clients.edit', $project->getRawOriginal('client')) : null,
@@ -109,9 +111,9 @@ class ProjectReportController extends Controller
         ])->header('Cache-Control', 'private, no-store');
     }
 
-    public function store(GenerateProjectReportRequest $request, Project $project, GenerateProjectReports $generate): Response|RedirectResponse
+    public function store(GenerateProjectReportRequest $request, Project $project, GenerateProjectReports $generate, bool $temporary = false): Response|RedirectResponse
     {
-        $result = $generate->handle($project, $request->validated(), (int) $request->user()->id);
+        $result = $generate->handle($project, $request->validated(), (int) $request->user()->id, $temporary);
 
         if ($result['pdf'] !== null) {
             return response($result['pdf'], 200, [

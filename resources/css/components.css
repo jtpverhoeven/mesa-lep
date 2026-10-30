@@ -96,6 +96,10 @@
         @apply rounded-control border border-line bg-surface-alt p-3 text-ink;
     }
 
+    .report-feedback.danger {
+        @apply border-danger bg-danger-faint;
+    }
+
     .report-parameter-order {
         @apply grid gap-1;
     }

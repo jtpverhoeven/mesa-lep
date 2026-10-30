@@ -1,0 +1,19 @@
+﻿"id","name","folder","active","view_order"
+"1","Normaal rapport [Nederlands]","maz2","0",NA
+"2","Normaal rapport [Engels]","mazEn","0",NA
+"3","Legionella Rapport [Nederlands]","legionella","0",NA
+"4","Legionella Rapport [Engels]","legionellaEn","0",NA
+"5","RODAC Rapport [Nederlands]","rodac","0",NA
+"6","RODAC Rapport [Engels]","rodacEn","0",NA
+"7","Karkas Rapport [Nederlands]","karkas","0",NA
+"8","Legionella Rapport 2019 [Nederlands]","legionella2019","0",NA
+"9","2020 - Normaal rapport [Nederlands]","maz2020","1","1"
+"10","2020 - Normaal rapport [Engels]","maz2020En","1","2"
+"11","2020 - Overzicht rapport  (n=5) [Nederlands]","mazOverview","1","3"
+"12","2020 - Overzicht rapport (n=5) [Engels]","mazOverviewEn","1","4"
+"13","2020 - RODAC rapport [Nederlands]","rodac2020","1","5"
+"14","2020 - RODAC rapport [Engels]","rodac2020En","1","6"
+"15","2020 - Karkas rapport [Nederlands]","karkas2020","1","7"
+"16","2020 - Karkas rapport [Engels]","karkas2020En","1","8"
+"17","2020 - Legionella rapport [Nederlands]","legionella2020","1","9"
+"18","2020 - Legionella rapport [Engels]","legionella2020En","1","10"

@@ -99,8 +99,7 @@ stored together with the existing type-10 audit event. Individual PDFs share a
 transaction and each receive a print version; a failed batch rolls back its
 metadata and removes files created by that attempt. Existing files are never
 overwritten. The raw PDF opens directly, or in a small PDF listing for individual
-reports. Email, sending, temporary reports, and revision management are not part
-of this pass.
+reports. Email, sending, and revision management are not part of this pass.
 
 Existing non-empty report references are preserved. For a project without one,
 generation uses the same `MESA_PROJECT_REFERENCE` resolver as bulk registration:
@@ -124,6 +123,31 @@ without discarding the sample selection or parameter ordering. It retains the
 user's settings if the portal request fails. To enable the external preferences link, configure
 `GLASS_REPORT_PREFERENCES_URL` with the portal's actual UI URL; `{client}` and
 `{project}` are replaced with the LIMS client ID and portal project ID.
+
+Temporary reports: **Voorlopig rapport genereren** (the clock icon in the project overviews, or
+**Voorlopig rapport** on the report page) issues a report while analyses are
+still unfinished; these appear as *Niet afgerond*. It reuses the report
+generator and `ProjectReportForm` with a `temporary` flag, on
+`/laboratory/projects/{project}/reports/temporary`, with the same permissions.
+The legacy limits apply:
+
+- Only templates whose folder is listed in the JSON array in the cvar
+  `DOCGEN_TEMPLATES_ALLOWED_TEMP` are offered (and accepted). A missing or invalid
+  value allows none. The legacy value lists only `mazOverview`/`mazOverviewEn`,
+  which cannot yet produce PDFs, so add `maz2020` (or later ported templates) to
+  the cvar to use the feature meanwhile.
+- The report is always one combined PDF of the whole project, with every parameter
+  in the default order. Parameter selection, ordering, and per-sample or selected
+  reports are not available and are ignored server-side.
+- Creating it stores an export with `temporary = 1` and `type = 2`
+  (*Voorlopig rapport*), advances the print version of an authorised project, and
+  then withdraws the project's authorisation like a manual deauthorisation
+  (revision +1, frozen results cleared, portal informed with the preview flag).
+  The change tracker records this as "Project authorisatie ingetrokken, bron
+  wijziging: Voorlopig rapport, reden:…" and, as in legacy, no "Project
+  uitgevoerd" event or export flag is set. A project that was not authorised is
+  left unchanged apart from the export.
+- **Voorbeeld bekijken** shows a watermarked PDF and changes nothing.
 
 Run the reporting regressions through Sail:
 

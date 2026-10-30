@@ -49,6 +49,14 @@ class DocgenTemplate extends Model
             ->orderBy('view_order')->orderBy('id');
     }
 
+    /** Legacy DOCGEN_TEMPLATES_ALLOWED_TEMP: a JSON list of template folders; a missing or invalid value allows none. */
+    public function scopeAllowedForTemporaryReports(Builder $query): void
+    {
+        $folders = json_decode((string) Cvar::query()->where('cvar', 'DOCGEN_TEMPLATES_ALLOWED_TEMP')->value('value'), true);
+
+        $query->whereIn('folder', is_array($folders) ? array_values(array_filter($folders, 'is_string')) : []);
+    }
+
     public function isSupported(): bool
     {
         return in_array($this->folder, self::SUPPORTED_FOLDERS, true);

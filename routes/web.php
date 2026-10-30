@@ -155,6 +155,8 @@ Route::middleware(['auth', 'can:projects.view', 'can:reports.generate'])
         Route::get('/', [ProjectReportController::class, 'index'])->name('projects.reports.index');
         Route::get('/overview', [ProjectReportController::class, 'overview'])->name('projects.reports.overview');
         Route::post('/', [ProjectReportController::class, 'store'])->middleware('throttle:15,1')->name('projects.reports.store');
+        Route::get('/temporary', [ProjectReportController::class, 'index'])->defaults('temporary', true)->name('projects.reports.temporary.index');
+        Route::post('/temporary', [ProjectReportController::class, 'store'])->defaults('temporary', true)->middleware('throttle:15,1')->name('projects.reports.temporary.store');
         Route::get('/transactions/{transaction}', [ProjectReportController::class, 'batch'])->whereNumber('transaction')->name('projects.reports.batch');
         Route::get('/{export}', [ProjectReportController::class, 'show'])->whereNumber('export')->scopeBindings()->name('projects.reports.show');
     });

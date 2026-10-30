@@ -24,7 +24,11 @@ class ProjectOverviewController extends Controller
         $canGenerate = $request->user()->can('reports.generate');
 
         return response()->json($overview->handle($status, (int) ($data['page'] ?? 1))->through(
-            fn (array $project): array => [...$project, 'report_url' => $canGenerate ? route('projects.reports.index', $project['id']) : null],
+            fn (array $project): array => [
+                ...$project,
+                'report_url' => $canGenerate ? route('projects.reports.index', $project['id']) : null,
+                'temporary_report_url' => $canGenerate ? route('projects.reports.temporary.index', $project['id']) : null,
+            ],
         ));
     }
 }

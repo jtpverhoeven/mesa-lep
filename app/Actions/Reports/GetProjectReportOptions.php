@@ -18,17 +18,18 @@ class GetProjectReportOptions
     public function __construct(private GetReportingPreferences $preferences, private ResolveProjectReference $reference) {}
 
     /** @return array<string, mixed> */
-    public function handle(Project $project): array
+    public function handle(Project $project, bool $temporary = false): array
     {
         $project->loadMissing(['client', 'authorizedBy', 'samples.analyses.assayRecord']);
         if (blank($project->reference)) {
             $project->reference = $this->reference->handle($project);
         }
         $assays = $this->assays($project);
-        $candidates = $this->candidates($assays->modelKeys())->load('footers');
+        $candidates = $this->candidates($assays->modelKeys(), $temporary)->load('footers');
         $templates = $candidates->filter(fn (DocgenTemplate $template): bool => $this->missingAssays($template, $assays)->isEmpty());
         $preferences = $this->preferences->handle($project);
-        $needsBulk = (int) ($preferences['pdfTypeSelect'] === 1 && $preferences['noSamples'] > 1);
+        // Temporary reports are always one combined PDF, whatever the client's portal preference says.
+        $needsBulk = (int) (($temporary || $preferences['pdfTypeSelect'] === 1) && $preferences['noSamples'] > 1);
         $preferred = $templates->first(fn (DocgenTemplate $template): bool => $template->isSupported()
             && $template->language() === $preferences['language']
             && in_array($template->acceptsBulk(), [$needsBulk, 2], true));
@@ -41,7 +42,7 @@ class GetProjectReportOptions
             'templates' => $templates,
             'preferences' => $preferences,
             'preferredTemplate' => $preferred?->folder,
-            'assayOrder' => $this->assayOrder($project, $assays),
+            'assayOrder' => $this->defaultAssayOrder($project),
             'templateAvailability' => $candidates->map(fn (DocgenTemplate $template): array => [
                 'id' => $template->id,
                 'name' => $template->name,
@@ -75,7 +76,7 @@ class GetProjectReportOptions
     }
 
     /** @return Collection<int, DocgenTemplate> */
-    public function templates(Project $project): Collection
+    public function templates(Project $project, bool $temporary = false): Collection
     {
         $assayIds = $this->assays($project)->modelKeys();
 
@@ -83,16 +84,17 @@ class GetProjectReportOptions
             return new Collection;
         }
 
-        return $this->candidates($assayIds)->filter(fn (DocgenTemplate $template): bool => collect($assayIds)
+        return $this->candidates($assayIds, $temporary)->filter(fn (DocgenTemplate $template): bool => collect($assayIds)
             ->diff($template->associations->pluck('assay_id'))->isEmpty())->values();
     }
 
     /** @param list<int> $assayIds
      * @return Collection<int, DocgenTemplate>
      */
-    private function candidates(array $assayIds): Collection
+    private function candidates(array $assayIds, bool $temporary): Collection
     {
         return DocgenTemplate::query()->where('active', 1)->inDisplayOrder()
+            ->when($temporary, fn ($query) => $query->allowedForTemporaryReports())
             ->with(['associations' => fn ($query) => $query->whereIn('assay_id', $assayIds)])
             ->get();
     }
@@ -105,11 +107,10 @@ class GetProjectReportOptions
         return $assays->whereNotIn('id', $template->associations->pluck('assay_id'));
     }
 
-    /** @param Collection<int, Assay> $assays
-     * @return list<int>
-     */
-    private function assayOrder(Project $project, Collection $assays): array
+    /** @return list<int> */
+    public function defaultAssayOrder(Project $project): array
     {
+        $assays = $this->assays($project);
         $sampleOrders = [];
 
         foreach ($project->samples->sortBy('id') as $sample) {

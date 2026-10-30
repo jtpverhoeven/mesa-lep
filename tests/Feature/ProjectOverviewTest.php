@@ -201,6 +201,22 @@ class ProjectOverviewTest extends TestCase
         $this->assertArrayNotHasKey('lock_pass', $response->json('data.0'));
     }
 
+    public function test_report_links_are_only_offered_to_users_who_may_generate_reports(): void
+    {
+        $this->allowOverview();
+        $project = $this->project(['started' => 1]);
+        Gate::define('reports.generate', fn (): bool => true);
+
+        $this->getJson(route('projects.overview.running.data'))->assertOk()
+            ->assertJsonPath('data.0.report_url', route('projects.reports.index', $project))
+            ->assertJsonPath('data.0.temporary_report_url', route('projects.reports.temporary.index', $project));
+
+        Gate::define('reports.generate', fn (): bool => false);
+
+        $this->getJson(route('projects.overview.running.data'))->assertOk()
+            ->assertJsonPath('data.0.report_url', null)->assertJsonPath('data.0.temporary_report_url', null);
+    }
+
     public function test_missing_relations_and_malformed_legacy_json_do_not_break_an_overview(): void
     {
         $this->allowOverview();

@@ -9,10 +9,11 @@ import TabPanels from 'openvue/tabpanels';
 import Tabs from 'openvue/tabs';
 
 const props = defineProps({ config: { type: Object, required: true } });
+const temporary = Boolean(props.config.temporary);
 const previous = props.config.old || {};
 const preferences = ref(props.config.preferences);
-const reportType = ref(previous.reportType || 'projectReport');
-const outputType = ref(String(previous.PDFtypeSelect ?? preferences.value.pdfTypeSelect));
+const reportType = ref(temporary ? 'projectReport' : previous.reportType || 'projectReport');
+const outputType = ref(temporary ? '1' : String(previous.PDFtypeSelect ?? preferences.value.pdfTypeSelect));
 const language = ref(previous.languageSelect || preferences.value.language);
 const samplesPerPage = ref(Number(previous.noSamples ?? preferences.value.noSamples));
 const highlight = ref(String(previous.showViolation ?? preferences.value.showViolation));
@@ -20,7 +21,7 @@ const template = ref(previous.templateSelect ?? props.config.preferredTemplate ?
 const selectedSamples = ref((Array.isArray(previous.exportSample) ? previous.exportSample : []).map(Number));
 const allAssayIds = props.config.assays.map((assay) => Number(assay.id));
 const selectedAssays = ref((props.config.canEditParameters && Array.isArray(previous.assay_ids) ? previous.assay_ids : allAssayIds).map(Number));
-const restoredOrder = Array.isArray(previous.assay_order) ? previous.assay_order.map(Number) : props.config.assayOrder;
+const restoredOrder = !temporary && Array.isArray(previous.assay_order) ? previous.assay_order.map(Number) : props.config.assayOrder;
 const order = ref([...new Set([...restoredOrder, ...allAssayIds])].filter((id) => allAssayIds.includes(id)));
 const orderedAssays = computed(() => order.value.map((id) => props.config.assays.find((assay) => Number(assay.id) === id)));
 const needsBulk = computed(() => outputType.value === '1' && samplesPerPage.value > 1 ? 1 : 0);
@@ -29,7 +30,7 @@ const visibleTemplates = computed(() => props.config.templates.filter((item) => 
 const selectedTemplate = computed(() => visibleTemplates.value.find((item) => item.folder === template.value));
 const compatibleTemplates = computed(() => visibleTemplates.value.filter((item) => item.supported && !item.missingAssays.length));
 const hasSingleSampleTemplate = computed(() => props.config.templates.some((item) => item.language === language.value && item.supported && item.acceptsBulk === 0));
-const settingsChanged = computed(() => outputType.value !== String(preferences.value.pdfTypeSelect)
+const settingsChanged = computed(() => (!temporary && outputType.value !== String(preferences.value.pdfTypeSelect))
     || language.value !== preferences.value.language
     || highlight.value !== String(preferences.value.showViolation)
     || (outputType.value === '1' && samplesPerPage.value !== Number(preferences.value.noSamples)));
@@ -60,7 +61,9 @@ const setupIssues = computed(() => {
     if (!selectedTemplate.value) {
         issues.push(visibleTemplates.value.length
             ? 'Selecteer een beschikbaar rapportsjabloon. Controleer de analyse-associaties bij de rapportstijl.'
-            : 'Geen rapportstijl past bij deze taal en dit aantal monsters per pagina.');
+            : temporary && !props.config.templates.length
+                ? 'Er is geen rapportstijl beschikbaar voor voorlopige rapporten. Controleer de toegestane sjablonen (DOCGEN_TEMPLATES_ALLOWED_TEMP) en de analyse-associaties.'
+                : 'Geen rapportstijl past bij deze taal en dit aantal monsters per pagina.');
     } else {
         if (!selectedTemplate.value.supported) issues.push('De PDF-uitvoer van dit sjabloon is nog niet geport.');
         if (selectedTemplate.value.missingAssays.length) issues.push('Dit sjabloon is niet gekoppeld aan alle analyses van het project.');
@@ -171,8 +174,19 @@ async function submit(event) {
             <section class="sample-panel" aria-labelledby="report-settings">
                 <h2 id="report-settings">Uitvoer instellingen</h2>
                 <div class="sample-panel-body grid gap-3">
-                    <div class="field"><label for="report-output-type">PDF-uitvoer</label><select id="report-output-type" v-model="outputType" name="PDFtypeSelect"><option value="1">Verzamel rapport</option><option value="0">Individuele rapporten</option></select></div>
-                    <div v-show="outputType === '1'" class="field"><label for="report-type">Rapportbereik</label><select id="report-type" v-model="reportType" name="reportType"><option value="projectReport">Volledig project</option><option value="projectSample">Geselecteerde monsters</option></select></div>
+                    <template v-if="temporary">
+                        <input type="hidden" name="PDFtypeSelect" value="1">
+                        <input type="hidden" name="reportType" value="projectReport">
+                        <p class="report-feedback danger" role="note">
+                            <strong>Let op! U genereert een voorlopig rapport.</strong><br>
+                            Na het uitvoeren wordt de autorisatie van het volledige project ingetrokken en wordt de status aangepast naar 'Lopend' of 'Afgerond'.
+                            In deze modus kan alleen een verzamelrapport van het volledige project worden uitgevoerd; de parameters en hun volgorde kunnen niet worden aangepast.
+                        </p>
+                    </template>
+                    <template v-else>
+                        <div class="field"><label for="report-output-type">PDF-uitvoer</label><select id="report-output-type" v-model="outputType" name="PDFtypeSelect"><option value="1">Verzamel rapport</option><option value="0">Individuele rapporten</option></select></div>
+                        <div v-show="outputType === '1'" class="field"><label for="report-type">Rapportbereik</label><select id="report-type" v-model="reportType" name="reportType"><option value="projectReport">Volledig project</option><option value="projectSample">Geselecteerde monsters</option></select></div>
+                    </template>
                     <div v-show="outputType === '1'" class="field"><label for="report-samples-per-page">Monsters per pagina</label><select id="report-samples-per-page" v-model="samplesPerPage" name="noSamples"><option v-for="count in 5" :key="count" :value="count">{{ count }}</option></select></div>
                     <div v-if="reportType === 'projectSample'" class="field">
                         <label for="report-sample-selection">Monsters selecteren</label>
@@ -188,7 +202,13 @@ async function submit(event) {
         <div class="report-generation-column" data-report-column="parameters">
             <section class="sample-panel" aria-labelledby="report-parameters">
                 <h2 id="report-parameters">Parameters op rapport</h2>
-                <Tabs value="order">
+                <div v-if="temporary" class="sample-panel-body">
+                    <p class="mb-3 text-muted">Bij een voorlopig rapport worden alle parameters in de standaardvolgorde opgenomen.</p>
+                    <ol class="report-parameter-order">
+                        <li v-for="assay in orderedAssays" :key="assay.id"><span class="min-w-0 grow">{{ assay.name }} <small v-if="assay.hidden" class="text-muted">(niet rapporteerbaar)</small></span></li>
+                    </ol>
+                </div>
+                <Tabs v-else value="order">
                     <TabPanels>
                         <TabPanel value="parameters">
                             <p v-if="!config.canEditParameters" class="mb-3 text-muted">Voor het aanpassen van de selectie is aanvullende toestemming nodig.</p>
@@ -268,7 +288,7 @@ async function submit(event) {
                         <strong>Rapport kan niet worden gemaakt</strong>
                         <ul class="mt-2 list-inside list-disc"><li v-for="error in submitErrors" :key="error">{{ error }}</li></ul>
                     </div>
-                    <Button type="submit" value="create" label="Rapport maken" :loading="submitting" :disabled="submitting" />
+                    <Button type="submit" value="create" :label="temporary ? 'Voorlopig rapport maken' : 'Rapport maken'" :loading="submitting" :disabled="submitting" />
                     <Button type="submit" value="preview" label="Voorbeeld bekijken" severity="secondary" :disabled="submitting" />
                 </div>
             </section>

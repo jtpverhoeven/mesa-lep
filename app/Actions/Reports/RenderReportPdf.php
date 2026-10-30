@@ -14,7 +14,7 @@ class RenderReportPdf
     /**
      * @param  list<array<string, mixed>>  $reports
      */
-    public function handle(array $reports, bool $preview): string
+    public function handle(array $reports, bool $preview, bool $temporary = false): string
     {
         $pdf = new Mpdf([
             'mode' => 'utf-8',
@@ -34,12 +34,7 @@ class RenderReportPdf
         $pdf->AliasNbPages('[pagetotal]');
         $project = $reports[0]['project'];
         $authorized = (int) $project->auth_status === 1;
-        $watermark = $authorized ? '' : 'NIET GEAUTHORISEERD';
-
-        if ($preview) {
-            $watermark = $authorized ? 'VOORBEELD - NIET VOOR DISTRIBUTIE' : 'VOORBEELD - NIET GEAUTHORISEERD';
-        }
-
+        $watermark = $this->watermark($authorized, $preview, $temporary);
         $signature = null;
 
         if ($authorized) {
@@ -76,5 +71,14 @@ class RenderReportPdf
         $pdf->WriteHTML($html, HTMLParserMode::HTML_BODY);
 
         return $pdf->Output('', Destination::STRING_RETURN);
+    }
+
+    public function watermark(bool $authorized, bool $preview, bool $temporary): string
+    {
+        return match (true) {
+            $preview && $temporary => $authorized ? 'TIJDELIJK RAPPORT VOORBEELD - NIET VOOR DISTRIBUTIE' : 'VOORLOPIG RAPPORT VOORBEELD - NIET GEAUTHORISEERD',
+            $preview => $authorized ? 'VOORBEELD - NIET VOOR DISTRIBUTIE' : 'VOORBEELD - NIET GEAUTHORISEERD',
+            default => $authorized ? '' : 'NIET GEAUTHORISEERD',
+        };
     }
 }

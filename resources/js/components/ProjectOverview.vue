@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import { Check, CircleDot, Download, Droplets, FlaskConical, FolderOpen, LoaderCircle, Printer, RefreshCw, Tags } from '@lucide/vue';
+import { Check, CircleDot, Download, Droplets, FileClock, FlaskConical, FolderOpen, LoaderCircle, Printer, RefreshCw, Tags } from '@lucide/vue';
 import Column from 'openvue/column';
 import DataTable from 'openvue/datatable';
 import AppDialog from './AppDialog.vue';
@@ -178,6 +178,7 @@ onBeforeUnmount(() => {
                             <a class="icon-button" :href="data.url" title="Project openen" aria-label="Project openen"><FolderOpen :size="16" /></a>
                             <button v-if="status === 'received' && data.all_samples_have_analysis" class="icon-button" type="button" title="Etiketten afdrukken (nog niet beschikbaar)" aria-label="Etiketten afdrukken" :disabled="!labelDate" @click="showPlaceholder('labels', data)"><Tags :size="16" /></button>
                             <a v-else-if="status !== 'received' && data.report_url" class="icon-button" :href="data.report_url" title="Rapport genereren" aria-label="Rapport genereren"><Printer :size="16" /></a>
+                            <a v-if="status !== 'received' && data.temporary_report_url" class="icon-button" :href="data.temporary_report_url" title="Voorlopig rapport genereren" aria-label="Voorlopig rapport genereren"><FileClock :size="16" /></a>
                             <button v-if="['authorized', 'reported'].includes(status)" class="icon-button" type="button" title="Projectgegevens exporteren (nog niet beschikbaar)" aria-label="Projectgegevens exporteren" @click="showPlaceholder('export', data)"><Download :size="16" /></button>
                         </div>
                     </template>

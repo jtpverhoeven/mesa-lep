@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Projects\AuthorizeProject;
 use App\Actions\Reports\BuildProjectReport;
 use App\Actions\Reports\GenerateProjectReports;
 use App\Actions\Reports\GetProjectReportOptions;
+use App\Actions\Reports\RenderReportPdf;
 use App\Actions\Results\CalculateAnalysisResult;
 use App\Models\Assay;
+use App\Models\ChangeRevision;
 use App\Models\Client;
 use App\Models\Cvar;
 use App\Models\DocgenTemplate;
@@ -22,6 +25,8 @@ use App\Models\User;
 use App\Support\AccountImages;
 use App\Support\ReportHtml;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +36,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
@@ -544,12 +550,16 @@ class ProjectReportGenerationTest extends TestCase
         $this->get(route('projects.reports.index', $project))->assertRedirect(route('login'));
         $this->getJson(route('projects.reports.overview', $project))->assertUnauthorized();
         $this->postJson(route('projects.reports.store', $project), [])->assertUnauthorized();
+        $this->get(route('projects.reports.temporary.index', $project))->assertRedirect(route('login'));
+        $this->postJson(route('projects.reports.temporary.store', $project), [])->assertUnauthorized();
         $this->actingAs(User::factory()->create(['enabled' => 1]));
         Gate::define('projects.view', fn (): bool => true);
         Gate::define('reports.generate', fn (): bool => false);
         $this->get(route('projects.reports.index', $project))->assertForbidden();
         $this->getJson(route('projects.reports.overview', $project))->assertForbidden();
         $this->postJson(route('projects.reports.store', $project), [])->assertForbidden();
+        $this->get(route('projects.reports.temporary.index', $project))->assertForbidden();
+        $this->postJson(route('projects.reports.temporary.store', $project), [])->assertForbidden();
         $this->getJson(route('projects.search.show', $project))->assertJsonPath('data.report_overview_url', null);
     }
 
@@ -811,6 +821,264 @@ class ProjectReportGenerationTest extends TestCase
         $this->assertNotIssued($fixture['project']);
     }
 
+    public function test_temporary_report_page_only_offers_templates_allowed_for_temporary_reports_and_locks_the_parameters(): void
+    {
+        $fixture = $this->fixture();
+        $other = DocgenTemplate::factory()->create(['name' => 'Overzicht', 'folder' => 'legacyOverview', 'view_order' => 2]);
+        $other->assays()->attach($fixture['assay']->id, ['original_assay_id' => $fixture['assay']->original_id]);
+        $this->allowTemporaryTemplates('["maz2020"]');
+
+        $this->get(route('projects.reports.index', $fixture['project']))->assertOk()
+            ->assertViewHas('form', fn (array $form): bool => $form['temporary'] === false
+                && $form['action'] === route('projects.reports.store', $fixture['project'])
+                && $form['canEditParameters'] === true
+                && array_column($form['templates'], 'folder') === ['maz2020', 'legacyOverview']);
+        $this->get(route('projects.reports.temporary.index', $fixture['project']))->assertOk()
+            ->assertViewIs('reports.index')->assertSee('Voorlopig rapport genereren')
+            ->assertViewHas('form', fn (array $form): bool => $form['temporary'] === true
+                && $form['action'] === route('projects.reports.temporary.store', $fixture['project'])
+                && $form['canEditParameters'] === false
+                && $form['preferredTemplate'] === null
+                && array_column($form['templates'], 'folder') === ['maz2020']
+                && $form['assayOrder'] === [$fixture['assay']->id]);
+    }
+
+    #[DataProvider('unusableTemporaryTemplateSettings')]
+    public function test_temporary_reports_offer_no_template_unless_the_cvar_lists_one(?string $value): void
+    {
+        $fixture = $this->fixture();
+
+        if ($value !== null) {
+            $this->allowTemporaryTemplates($value);
+        }
+
+        $this->get(route('projects.reports.temporary.index', $fixture['project']))->assertOk()
+            ->assertViewHas('form', fn (array $form): bool => $form['templates'] === []);
+        $this->post(route('projects.reports.temporary.store', $fixture['project']), $this->reportOptions($fixture))
+            ->assertSessionHasErrors('templateSelect');
+        $this->assertNotIssued($fixture['project']);
+    }
+
+    /** @return array<string, array{?string}> */
+    public static function unusableTemporaryTemplateSettings(): array
+    {
+        return [
+            'cvar missing' => [null],
+            'blank value' => [''],
+            'not json' => ['maz2020'],
+            'json object without folders' => ['{"folder": 1}'],
+            'other templates only' => ['["mazOverview", "mazOverviewEn"]'],
+        ];
+    }
+
+    public function test_temporary_report_is_marked_as_such_and_withdraws_the_projects_authorisation(): void
+    {
+        $fixture = $this->fixture();
+        $this->allowTemporaryTemplates();
+        $portal = $this->fakePortal();
+        $analysis = $fixture['analyses'][0];
+        $analysis->update(['auth_status' => 1, 'auth_by' => $fixture['user']->id]);
+
+        $response = $this->post(route('projects.reports.temporary.store', $fixture['project']), $this->reportOptions($fixture));
+
+        $export = Export::query()->firstOrFail();
+        $response->assertRedirect(route('projects.reports.show', [$fixture['project'], $export]))->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('exports', [
+            'id' => $export->id, 'transaction' => $export->id, 'project' => $fixture['project']->id,
+            'client' => $fixture['client']->id, 'revision' => 2, 'print_version' => 8,
+            'type' => 2, 'temporary' => 1, 'was_authorized' => 1, 'template' => 'maz2020',
+        ]);
+        $this->assertSame(hash('sha256', $fixture['project']->id.'281'), $export->hash);
+        Storage::disk('local')->assertExists($export->storagePath());
+        $this->assertStringStartsWith('%PDF-', Storage::disk('local')->get($export->storagePath()));
+        $this->get($response->headers->get('Location'))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $project = $fixture['project']->fresh();
+        $this->assertSame([0, 0, 3, 8, 0], [(int) $project->auth_status, (int) $project->auth_on, $project->revision, $project->print_version, (int) $project->rap_stat]);
+        $this->assertNull($project->rap_by);
+        $this->assertNull($project->rap_on);
+        $this->assertSame(0, (int) $analysis->fresh()->auth_status);
+        $this->assertNull($analysis->fresh()->storedResult);
+        $revision = ChangeRevision::query()->where('type', '9')->sole();
+        $this->assertSame([$fixture['project']->id, $fixture['user']->id, '1', '0'], [$revision->project, $revision->user_id, $revision->from, $revision->to]);
+        $this->assertSame('Project authorisatie ingetrokken, bron wijziging: Voorlopig rapport, reden:Voorlopig rapport uitgegeven, autorisatie automatisch ingetrokken', $revision->event);
+        $this->assertDatabaseMissing('changetracker', ['type' => '10']);
+        Http::assertSentCount(1);
+        Http::assertSent(fn (Request $request): bool => $request->url() === $portal.'projectDeauthorized'
+            && collect($request->data())->firstWhere('name', 'preview')['contents'] === 'True');
+    }
+
+    public function test_temporary_report_ignores_parameter_selection_order_and_scope_from_the_request(): void
+    {
+        $fixture = $this->fixture(2);
+        $this->allowTemporaryTemplates();
+        $this->fakePortal();
+        $second = $this->assay(['custom_fields' => json_encode(['raportnaam' => 'Andere analyse', 'accred' => '', 'resultin' => 'kve/g'])]);
+        $fixture['template']->assays()->attach($second->id, ['original_assay_id' => $second->original_id]);
+        $this->analysis($fixture['project'], $fixture['samples']->first(), $second, $fixture['source'])->update(['project_order' => 2]);
+        $captured = [];
+        $build = Mockery::mock(BuildProjectReport::class, [app(CalculateAnalysisResult::class)])->makePartial();
+        $build->shouldReceive('handle')->once()->withArgs(function (Project $project, Collection $samples, array $options) use (&$captured): bool {
+            $captured = ['samples' => $samples->modelKeys(), 'options' => $options];
+
+            return true;
+        })->passthru();
+        $this->app->instance(BuildProjectReport::class, $build);
+
+        $this->post(route('projects.reports.temporary.store', $fixture['project']), $this->reportOptions($fixture, [
+            'PDFtypeSelect' => 0, 'reportType' => 'projectSample', 'exportSample' => [$fixture['samples']->first()->id],
+            'assay_ids' => [$second->id], 'assay_order' => [$second->id, $fixture['assay']->id],
+        ]))->assertRedirect()->assertSessionHasNoErrors();
+
+        $everyAssay = [$fixture['assay']->id, $second->id];
+        $this->assertSame($fixture['samples']->modelKeys(), $captured['samples']);
+        $this->assertSame(
+            ['projectReport', 1, $everyAssay, $everyAssay],
+            [$captured['options']['reportType'], $captured['options']['PDFtypeSelect'], $captured['options']['assay_ids'], $captured['options']['assay_order']],
+        );
+        $export = Export::query()->sole();
+        $this->assertSame([2, 1], [(int) $export->type, (int) $export->temporary]);
+        $this->assertSame($fixture['samples']->modelKeys(), $export->sample_id_scope);
+    }
+
+    public function test_temporary_report_cannot_use_a_template_outside_the_allowed_list(): void
+    {
+        $fixture = $this->fixture();
+        $this->allowTemporaryTemplates('["legacyOverview"]');
+        $this->fakePortal();
+
+        $this->postJson(route('projects.reports.temporary.store', $fixture['project']), $this->reportOptions($fixture))
+            ->assertUnprocessable()->assertJsonValidationErrors('templateSelect');
+
+        $this->assertNotIssued($fixture['project']);
+        $this->assertSame(1, (int) $fixture['project']->fresh()->auth_status);
+        Http::assertNothingSent();
+    }
+
+    public function test_temporary_report_without_reportable_output_keeps_the_project_authorised(): void
+    {
+        $fixture = $this->fixture();
+        $this->allowTemporaryTemplates();
+        $this->fakePortal();
+        $fixture['assay']->update(['hide_report' => 1]);
+
+        $this->postJson(route('projects.reports.temporary.store', $fixture['project']), $this->reportOptions($fixture))
+            ->assertUnprocessable()->assertJsonValidationErrors('report');
+
+        $this->assertNotIssued($fixture['project']);
+        $this->assertSame(1, (int) $fixture['project']->fresh()->auth_status);
+        Http::assertNothingSent();
+    }
+
+    public function test_temporary_preview_changes_nothing_and_asks_for_the_temporary_watermark(): void
+    {
+        $fixture = $this->fixture();
+        $this->allowTemporaryTemplates();
+        $this->fakePortal();
+        $before = $fixture['project']->fresh()->only(['auth_status', 'print_version', 'rap_stat', 'rap_on', 'rap_by', 'revision']);
+        $rendered = [];
+        $render = Mockery::mock(RenderReportPdf::class)->makePartial();
+        $render->shouldReceive('handle')->once()->withArgs(function (array $reports, bool $preview, bool $temporary) use (&$rendered): bool {
+            $rendered = [$preview, $temporary];
+
+            return true;
+        })->passthru();
+        $this->app->instance(RenderReportPdf::class, $render);
+
+        $response = $this->post(route('projects.reports.temporary.store', $fixture['project']), $this->reportOptions($fixture, ['reportExportType' => 'preview']));
+
+        $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
+        $this->assertSame([true, true], $rendered);
+        $this->assertSame($before, $fixture['project']->fresh()->only(array_keys($before)));
+        $this->assertDatabaseCount('exports', 0);
+        $this->assertDatabaseCount('changetracker', 0);
+        Http::assertNothingSent();
+    }
+
+    #[DataProvider('reportWatermarks')]
+    public function test_watermarks_distinguish_previews_and_temporary_previews(bool $authorized, bool $preview, bool $temporary, string $expected): void
+    {
+        $this->assertSame($expected, app(RenderReportPdf::class)->watermark($authorized, $preview, $temporary));
+    }
+
+    /** @return array<string, array{bool, bool, bool, string}> */
+    public static function reportWatermarks(): array
+    {
+        return [
+            'authorised report' => [true, false, false, ''],
+            'unauthorised report' => [false, false, false, 'NIET GEAUTHORISEERD'],
+            'authorised preview' => [true, true, false, 'VOORBEELD - NIET VOOR DISTRIBUTIE'],
+            'unauthorised preview' => [false, true, false, 'VOORBEELD - NIET GEAUTHORISEERD'],
+            'authorised temporary report' => [true, false, true, ''],
+            'unauthorised temporary report' => [false, false, true, 'NIET GEAUTHORISEERD'],
+            'authorised temporary preview' => [true, true, true, 'TIJDELIJK RAPPORT VOORBEELD - NIET VOOR DISTRIBUTIE'],
+            'unauthorised temporary preview' => [false, true, true, 'VOORLOPIG RAPPORT VOORBEELD - NIET GEAUTHORISEERD'],
+        ];
+    }
+
+    public function test_temporary_report_for_an_unauthorised_project_is_marked_temporary_without_any_authorisation_side_effects(): void
+    {
+        $fixture = $this->fixture();
+        $fixture['project']->update(['auth_status' => 0, 'auth_by' => null]);
+        $this->allowTemporaryTemplates();
+        $this->fakePortal();
+
+        $this->post(route('projects.reports.temporary.store', $fixture['project']), $this->reportOptions($fixture))
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('exports', ['project' => $fixture['project']->id, 'type' => 2, 'temporary' => 1, 'was_authorized' => 0, 'print_version' => 8]);
+        $this->assertDatabaseHas('projects', ['id' => $fixture['project']->id, 'auth_status' => 0, 'revision' => 2, 'print_version' => 7, 'rap_stat' => 0]);
+        $this->assertDatabaseCount('changetracker', 0);
+        Http::assertNothingSent();
+    }
+
+    public function test_a_portal_outage_does_not_undo_an_issued_temporary_report(): void
+    {
+        $fixture = $this->fixture();
+        $this->allowTemporaryTemplates();
+        config(['services.glass.base_url' => 'http://portal.test/api']);
+        Http::fake(fn () => throw new ConnectionException('Portal offline'));
+
+        $this->post(route('projects.reports.temporary.store', $fixture['project']), $this->reportOptions($fixture))
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('exports', ['project' => $fixture['project']->id, 'type' => 2, 'temporary' => 1]);
+        $this->assertDatabaseHas('projects', ['id' => $fixture['project']->id, 'auth_status' => 0, 'revision' => 3]);
+    }
+
+    public function test_temporary_report_of_an_authorised_project_shows_unfinished_analyses_as_not_completed(): void
+    {
+        $fixture = $this->fixture();
+        $this->allowTemporaryTemplates();
+        $this->fakePortal();
+        $second = $this->assay(['custom_fields' => json_encode(['raportnaam' => 'Andere analyse', 'accred' => '', 'resultin' => 'kve/g'])]);
+        $fixture['template']->assays()->attach($second->id, ['original_assay_id' => $second->original_id]);
+        $unfinished = $this->analysis($fixture['project'], $fixture['samples']->first(), $second, $fixture['source']);
+        $unfinished->update(['is_ready' => false, 'storedResult' => null, 'project_order' => 2]);
+        $unfinished->results->first()->update(['data' => ['kve' => '']]);
+        $fixture['project']->update(['auth_status' => 0, 'auth_by' => null]);
+        $authorised = app(AuthorizeProject::class)->handle($fixture['project'], $fixture['user']->id, true, true);
+        $this->assertTrue($authorised['authorized']);
+        $rendered = [];
+        $render = Mockery::mock(RenderReportPdf::class)->makePartial();
+        $render->shouldReceive('handle')->once()->withArgs(function (array $reports) use (&$rendered): bool {
+            $rendered = $reports[0]['samples'][0]['results'];
+
+            return true;
+        })->passthru();
+        $this->app->instance(RenderReportPdf::class, $render);
+
+        $this->post(route('projects.reports.temporary.store', $fixture['project']), $this->reportOptions($fixture, [
+            'assay_ids' => [$fixture['assay']->id, $second->id], 'assay_order' => [$fixture['assay']->id, $second->id],
+        ]))->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame('Aangetoond', (string) $rendered[$fixture['assay']->id]['output']);
+        $this->assertSame('Niet afgerond', (string) $rendered[$second->id]['output']);
+        $this->assertDatabaseHas('exports', ['project' => $fixture['project']->id, 'type' => 2, 'temporary' => 1, 'was_authorized' => 1]);
+        $this->assertDatabaseHas('projects', ['id' => $fixture['project']->id, 'auth_status' => 0, 'revision' => 3]);
+        $this->assertNull($unfinished->fresh()->storedResult);
+    }
+
     /** @return array<string, mixed> */
     private function fixture(int $sampleCount = 1): array
     {
@@ -914,5 +1182,20 @@ class ProjectReportGenerationTest extends TestCase
         $this->assertDatabaseCount('exports', 0);
         $this->assertDatabaseCount('changetracker', 0);
         $this->assertSame([], Storage::disk('local')->files('reportStorage'));
+    }
+
+    private function allowTemporaryTemplates(string $folders = '["maz2020"]'): void
+    {
+        Cvar::query()->create(['cvar' => 'DOCGEN_TEMPLATES_ALLOWED_TEMP', 'value' => $folders, 'default' => '', 'description' => 'Allowed templates for temp certificates']);
+    }
+
+    /** Fakes the client portal and returns its base URL, ending in a slash. */
+    private function fakePortal(): string
+    {
+        config(['services.glass.base_url' => 'http://portal.test/api']);
+        Http::preventStrayRequests();
+        Http::fake(['http://portal.test/api/*' => Http::response(['ok' => true])]);
+
+        return 'http://portal.test/api/';
     }
 }
