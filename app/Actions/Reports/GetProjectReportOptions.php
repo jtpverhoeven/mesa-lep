@@ -7,10 +7,8 @@ use App\Models\Assay;
 use App\Models\DocgenTemplate;
 use App\Models\Export;
 use App\Models\Project;
-use App\Support\AccountImages;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
 use UnexpectedValueException;
 
 class GetProjectReportOptions
@@ -20,20 +18,18 @@ class GetProjectReportOptions
     /** @return array<string, mixed> */
     public function handle(Project $project, bool $temporary = false): array
     {
-        $project->loadMissing(['client', 'authorizedBy', 'samples.analyses.assayRecord']);
+        $project->loadMissing(['client', 'samples.analyses.assayRecord']);
         if (blank($project->reference)) {
             $project->reference = $this->reference->handle($project);
         }
         $assays = $this->assays($project);
-        $candidates = $this->candidates($assays->modelKeys(), $temporary)->load('footers');
-        $templates = $candidates->filter(fn (DocgenTemplate $template): bool => $this->missingAssays($template, $assays)->isEmpty());
+        $templates = $this->templates($project, $temporary)
+            ->filter(fn (DocgenTemplate $template): bool => $template->isSupported())->values();
         $preferences = $this->preferences->handle($project);
         // Temporary reports are always one combined PDF, whatever the client's portal preference says.
         $needsBulk = (int) (($temporary || $preferences['pdfTypeSelect'] === 1) && $preferences['noSamples'] > 1);
-        $preferred = $templates->first(fn (DocgenTemplate $template): bool => $template->isSupported()
-            && $template->language() === $preferences['language']
+        $preferred = $templates->first(fn (DocgenTemplate $template): bool => $template->language() === $preferences['language']
             && in_array($template->acceptsBulk(), [$needsBulk, 2], true));
-        $signature = $project->authorizedBy === null ? null : AccountImages::signaturePath($project->authorizedBy, 'nl');
 
         return [
             'project' => $project,
@@ -43,18 +39,6 @@ class GetProjectReportOptions
             'preferences' => $preferences,
             'preferredTemplate' => $preferred?->folder,
             'assayOrder' => $this->defaultAssayOrder($project),
-            'templateAvailability' => $candidates->map(fn (DocgenTemplate $template): array => [
-                'id' => $template->id,
-                'name' => $template->name,
-                'folder' => $template->folder,
-                'supported' => $template->isSupported(),
-                'language' => $template->language(),
-                'acceptsBulk' => $template->acceptsBulk(),
-                'missingAssays' => $this->missingAssays($template, $assays)->map(fn (Assay $assay): array => $assay->only(['id', 'name']))->values()->all(),
-                'footerScopes' => $template->footers->where('lang', $template->language())
-                    ->filter(fn ($footer): bool => trim($footer->data) !== '')->pluck('q')->unique()->values()->all(),
-            ])->values()->all(),
-            'signatureAvailable' => $signature !== null && Storage::disk('local')->exists($signature),
             'history' => $this->history($project),
         ];
     }
@@ -97,14 +81,6 @@ class GetProjectReportOptions
             ->when($temporary, fn ($query) => $query->allowedForTemporaryReports())
             ->with(['associations' => fn ($query) => $query->whereIn('assay_id', $assayIds)])
             ->get();
-    }
-
-    /** @param Collection<int, Assay> $assays
-     * @return Collection<int, Assay>
-     */
-    private function missingAssays(DocgenTemplate $template, Collection $assays): Collection
-    {
-        return $assays->whereNotIn('id', $template->associations->pluck('assay_id'));
     }
 
     /** @return list<int> */

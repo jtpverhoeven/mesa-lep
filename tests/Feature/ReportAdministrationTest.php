@@ -59,7 +59,7 @@ class ReportAdministrationTest extends TestCase
 
         $this->put(route('docgen-templates.update', $template), ['name' => 'Inactief', 'folder' => 'legacyTemplate', 'active' => 0, 'view_order' => null])
             ->assertRedirect(route('docgen-templates.edit', $template));
-        $this->get(route('docgen-templates.index'))->assertSee('Nog niet geport');
+        $this->get(route('docgen-templates.index'))->assertSee('Layout niet gevonden');
         $this->assertDatabaseHas('docgentemplates', ['id' => $template->id, 'active' => 0, 'folder' => 'legacyTemplate', 'view_order' => null]);
     }
 

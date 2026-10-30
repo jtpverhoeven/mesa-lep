@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Reports\GenerateProjectReports;
 use App\Actions\Reports\GetProjectReportOptions;
 use App\Http\Requests\GenerateProjectReportRequest;
+use App\Models\DocgenTemplate;
 use App\Models\Export;
 use App\Models\Project;
 use Illuminate\Http\JsonResponse;
@@ -40,25 +41,20 @@ class ProjectReportController extends Controller
                 'preferredTemplate' => $data['preferredTemplate'],
                 'assayOrder' => $data['assayOrder'],
                 'history' => $data['history'],
-                'signatureAvailable' => $data['signatureAvailable'],
-                'footersUrl' => $request->user()->can('settings.advanced') ? route('footers.index') : null,
                 'canEditParameters' => ! $temporary && $request->user()->can('reports.parameters.update'),
-                'templatesUrl' => $request->user()->can('settings.advanced') ? route('docgen-templates.index') : null,
                 'portalPreferencesUrl' => $this->portalPreferencesUrl($project),
                 'clientUrl' => $request->user()->can('clients.manage') ? route('clients.edit', $project->getRawOriginal('client')) : null,
-                'templates' => array_map(fn (array $template): array => [
-                    ...$template,
-                    'associationsUrl' => $request->user()->can('settings.advanced')
-                        ? route('docgen-associations.edit', ['docgenTemplate' => $template['id'], 'show_hidden' => 1]) : null,
-                ], $data['templateAvailability']),
+                'templates' => $data['templates']->map(fn (DocgenTemplate $template): array => [
+                    ...$template->only(['id', 'name', 'folder']),
+                    'language' => $template->language(),
+                    'acceptsBulk' => $template->acceptsBulk(),
+                ])->all(),
                 'assays' => $data['assays']->map(fn ($assay): array => [
                     ...$assay->only(['id', 'name']),
                     'hidden' => (int) $assay->hide_report === 1,
-                    'accredited' => strtoupper(trim(json_decode($assay->custom_fields ?: '{}', true, flags: JSON_THROW_ON_ERROR)['accred'] ?? '')) === 'Q',
                 ])->all(),
                 'samples' => $data['samples']->map(fn ($sample): array => [
                     ...$sample->only(['id', 'barcode', 'client_description', 'sample_note']),
-                    'assayIds' => $sample->analyses->pluck('assay_base')->unique()->values()->all(),
                 ])->all(),
                 'old' => $request->session()->getOldInput(),
             ],

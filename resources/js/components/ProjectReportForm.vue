@@ -27,9 +27,7 @@ const orderedAssays = computed(() => order.value.map((id) => props.config.assays
 const needsBulk = computed(() => outputType.value === '1' && samplesPerPage.value > 1 ? 1 : 0);
 const visibleTemplates = computed(() => props.config.templates.filter((item) => item.language === language.value
     && [needsBulk.value, 2].includes(item.acceptsBulk)));
-const selectedTemplate = computed(() => visibleTemplates.value.find((item) => item.folder === template.value));
-const compatibleTemplates = computed(() => visibleTemplates.value.filter((item) => item.supported && !item.missingAssays.length));
-const hasSingleSampleTemplate = computed(() => props.config.templates.some((item) => item.language === language.value && item.supported && item.acceptsBulk === 0));
+const hasSingleSampleTemplate = computed(() => props.config.templates.some((item) => item.language === language.value && item.acceptsBulk === 0));
 const settingsChanged = computed(() => (!temporary && outputType.value !== String(preferences.value.pdfTypeSelect))
     || language.value !== preferences.value.language
     || highlight.value !== String(preferences.value.showViolation)
@@ -48,39 +46,9 @@ const chosenSamples = computed(() => reportType.value === 'projectSample'
     ? props.config.samples.filter((sample) => selectedSamples.value.includes(Number(sample.id)))
     : props.config.samples);
 const reportableAssays = computed(() => props.config.assays.filter((assay) => !assay.hidden && selectedAssays.value.includes(Number(assay.id))));
-const requiredFooterScopes = computed(() => {
-    const scopes = chosenSamples.value.map((sample) => {
-        const assays = reportableAssays.value.filter((assay) => sample.assayIds.includes(Number(assay.id)));
-        return assays.length ? Number(assays.some((assay) => assay.accredited)) : null;
-    }).filter((scope) => scope !== null);
-    return outputType.value === '1' && scopes.length ? [Math.max(...scopes)] : [...new Set(scopes)];
-});
-const setupIssues = computed(() => {
-    const issues = [];
-    if (!props.config.project.reference) issues.push('De projectreferentie ontbreekt. Controleer MESA_PROJECT_REFERENCE en de monsters van dit project.');
-    if (!selectedTemplate.value) {
-        issues.push(visibleTemplates.value.length
-            ? 'Selecteer een beschikbaar rapportsjabloon. Controleer de analyse-associaties bij de rapportstijl.'
-            : temporary && !props.config.templates.length
-                ? 'Er is geen rapportstijl beschikbaar voor voorlopige rapporten. Controleer de toegestane sjablonen (DOCGEN_TEMPLATES_ALLOWED_TEMP) en de analyse-associaties.'
-                : 'Geen rapportstijl past bij deze taal en dit aantal monsters per pagina.');
-    } else {
-        if (!selectedTemplate.value.supported) issues.push('De PDF-uitvoer van dit sjabloon is nog niet geport.');
-        if (selectedTemplate.value.missingAssays.length) issues.push('Dit sjabloon is niet gekoppeld aan alle analyses van het project.');
-        const missingScopes = requiredFooterScopes.value.filter((scope) => !selectedTemplate.value.footerScopes.includes(scope));
-        if (missingScopes.length) issues.push(`Goedgekeurde voettekst ontbreekt voor ${selectedTemplate.value.folder}, ${language.value}, RvA-scope ${missingScopes.join(' / ')}.`);
-    }
-    if (!chosenSamples.value.length) issues.push('Selecteer minimaal een monster.');
-    if (chosenSamples.value.length && !requiredFooterScopes.value.length) issues.push('De selectie bevat geen rapporteerbare parameters.');
-    if (Number(props.config.project.auth_status) === 1 && !props.config.signatureAvailable) {
-        issues.push('De Nederlandse handtekening van de autorisator ontbreekt. Voeg deze toe via de accountinstellingen of importeer de bestaande handtekening.');
-    }
-    return issues;
-});
-
 watch(visibleTemplates, () => {
-    if (!compatibleTemplates.value.some((item) => item.folder === template.value)) {
-        template.value = compatibleTemplates.value[0]?.folder || '';
+    if (!visibleTemplates.value.some((item) => item.folder === template.value)) {
+        template.value = visibleTemplates.value[0]?.folder || '';
     }
 }, { immediate: true });
 
@@ -107,7 +75,10 @@ function dropAssay(targetId) {
 async function submit(event) {
     event.preventDefault();
     if (submitting.value) return;
-    submitErrors.value = [...setupIssues.value];
+    submitErrors.value = [];
+    if (!visibleTemplates.value.some((item) => item.folder === template.value)) submitErrors.value.push('Selecteer een beschikbare rapportstijl.');
+    if (!chosenSamples.value.length) submitErrors.value.push('Selecteer minimaal een monster.');
+    if (!reportableAssays.value.length) submitErrors.value.push('De selectie bevat geen rapporteerbare parameters.');
     if (submitErrors.value.length) {
         await nextTick();
         errorPanel.value?.focus();
@@ -252,25 +223,14 @@ async function submit(event) {
                     <div class="field"><label for="report-language">Taal</label><select id="report-language" v-model="language" name="languageSelect"><option value="nl">Nederlands</option><option value="en">Engels</option></select></div>
                     <fieldset class="grid min-w-0 gap-3">
                         <legend class="mb-2 font-semibold">Rapport stijl</legend>
-                        <div v-for="item in visibleTemplates" :key="item.id" class="min-w-0">
-                            <label class="flex items-start gap-2">
-                                <input v-model="template" type="radio" name="templateSelect" :value="item.folder" :disabled="!item.supported || item.missingAssays.length > 0">
-                                <span>{{ item.name }}</span>
-                            </label>
-                            <p v-if="!item.supported" class="mt-1 text-muted">PDF-uitvoer nog niet geport.</p>
-                            <details v-if="item.missingAssays.length" class="mt-2 text-muted">
-                                <summary class="cursor-pointer">{{ item.missingAssays.length }} ontbrekende analyse-associaties</summary>
-                                <ul class="mt-2 list-inside list-disc"><li v-for="assay in item.missingAssays" :key="assay.id">{{ assay.name }} ({{ assay.id }})</li></ul>
-                            </details>
-                            <a v-if="item.missingAssays.length && item.associationsUrl" class="text-link mt-2 block" :href="item.associationsUrl">Associaties voor {{ item.name }} beheren</a>
-                            <p v-if="item.supported && !item.footerScopes.length" class="mt-2 text-muted">Nog geen goedgekeurde voetteksten voor dit sjabloon geconfigureerd.</p>
-                        </div>
+                        <label v-for="item in visibleTemplates" :key="item.id" class="flex min-w-0 items-start gap-2">
+                            <input v-model="template" type="radio" name="templateSelect" :value="item.folder">
+                            <span>{{ item.name }}</span>
+                        </label>
                         <p v-if="!visibleTemplates.length" role="status">Geen rapportstijl voor deze taal en dit aantal monsters per pagina.</p>
-                        <div v-if="needsBulk === 1 && hasSingleSampleTemplate && !compatibleTemplates.length" class="report-feedback">
-                            <p>maz2020 bevat 1 monster per pagina. Uw gekozen aantal wordt niet stilzwijgend aangepast.</p>
+                        <div v-if="needsBulk === 1 && hasSingleSampleTemplate && !visibleTemplates.length" class="report-feedback">
                             <Button type="button" severity="secondary" class="mt-2" label="Gebruik 1 monster per pagina" @click="samplesPerPage = 1" />
                         </div>
-                        <a v-if="config.templatesUrl" class="text-link" :href="config.templatesUrl">Rapportsjablonen beheren</a>
                     </fieldset>
                 </div>
             </section>
@@ -279,11 +239,6 @@ async function submit(event) {
                 <h2 id="report-execute">Uitvoeren</h2>
                 <div class="sample-panel-body grid gap-3">
                     <p v-if="config.clientNotes" class="report-feedback whitespace-pre-line">{{ config.clientNotes }}</p>
-                    <div v-if="setupIssues.length" class="report-feedback">
-                        <strong>Controleer voor het uitvoeren</strong>
-                        <ul class="mt-2 list-inside list-disc"><li v-for="issue in setupIssues" :key="issue">{{ issue }}</li></ul>
-                        <a v-if="config.footersUrl" class="text-link mt-2 block" :href="config.footersUrl">Rapportvoetteksten beheren</a>
-                    </div>
                     <div v-if="submitErrors.length" ref="errorPanel" class="report-feedback" role="alert" tabindex="-1">
                         <strong>Rapport kan niet worden gemaakt</strong>
                         <ul class="mt-2 list-inside list-disc"><li v-for="error in submitErrors" :key="error">{{ error }}</li></ul>

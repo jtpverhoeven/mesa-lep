@@ -180,12 +180,9 @@ class ProjectReportGenerationTest extends TestCase
         $templates = app(GetProjectReportOptions::class)->templates($fixture['project']->fresh());
 
         $this->assertSame([$other->id], $templates->modelKeys());
-        $this->get(route('projects.reports.index', $fixture['project']))->assertViewHas('form', function (array $form) use ($second, $other): bool {
-            $templates = collect($form['templates'])->keyBy('id');
-
-            return $templates[$other->id]['supported'] === false
-                && $templates->first()['missingAssays'] === [['id' => $second->id, 'name' => 'Verborgen analyse']];
-        });
+        $this->get(route('projects.reports.index', $fixture['project']))
+            ->assertViewHas('form', fn (array $form): bool => $form['templates'] === []
+                && $form['preferredTemplate'] === null);
         $this->postJson(route('projects.reports.store', $fixture['project']), $this->reportOptions($fixture, [
             'assay_ids' => [$fixture['assay']->id, $second->id], 'assay_order' => [$fixture['assay']->id, $second->id],
         ]))->assertUnprocessable()->assertJsonValidationErrors('templateSelect');
@@ -227,22 +224,51 @@ class ProjectReportGenerationTest extends TestCase
         ];
     }
 
-    public function test_report_page_explains_missing_associations_and_footers_without_hiding_the_template(): void
+    public function test_report_page_hides_templates_with_missing_associations(): void
     {
         $fixture = $this->fixture();
         $fixture['template']->associations()->delete();
+
+        $this->get(route('projects.reports.index', $fixture['project']))
+            ->assertViewHas('form', fn (array $form): bool => $form['templates'] === []
+                && $form['preferredTemplate'] === null);
+    }
+
+    public function test_report_page_offers_matching_styles_without_admin_configuration_diagnostics(): void
+    {
+        $fixture = $this->fixture();
         Footer::query()->delete();
+        Storage::disk('local')->delete(AccountImages::signaturePath($fixture['user'], 'nl'));
+        $unsupported = DocgenTemplate::factory()->create(['folder' => 'legacyOverview']);
+        $unsupported->assays()->attach($fixture['assay']->id, ['original_assay_id' => $fixture['assay']->original_id]);
+        $inactive = DocgenTemplate::factory()->create(['active' => false]);
+        $inactive->assays()->attach($fixture['assay']->id, ['original_assay_id' => $fixture['assay']->original_id]);
 
         $this->get(route('projects.reports.index', $fixture['project']))
             ->assertViewHas('form', function (array $form) use ($fixture): bool {
-                $template = $form['templates'][0];
+                $this->assertSame([[
+                    'id' => $fixture['template']->id,
+                    'name' => 'MAZ 2020',
+                    'folder' => 'maz2020',
+                    'language' => 'nl',
+                    'acceptsBulk' => 0,
+                ]], $form['templates']);
+                $this->assertArrayNotHasKey('signatureAvailable', $form);
+                $this->assertArrayNotHasKey('templatesUrl', $form);
+                $this->assertArrayNotHasKey('footersUrl', $form);
 
-                return $template['name'] === 'MAZ 2020'
-                    && $template['supported'] === true
-                    && $template['missingAssays'] === [['id' => $fixture['assay']->id, 'name' => 'Testanalyse']]
-                    && $template['footerScopes'] === []
-                    && $form['preferredTemplate'] === null;
+                return true;
             });
+    }
+
+    public function test_report_page_offers_no_styles_when_the_project_has_no_assays(): void
+    {
+        $fixture = $this->fixture();
+        $fixture['project']->sampleAnalyses()->delete();
+
+        $this->get(route('projects.reports.index', $fixture['project']))
+            ->assertViewHas('form', fn (array $form): bool => $form['templates'] === []
+                && $form['preferredTemplate'] === null);
     }
 
     public function test_earlier_reports_are_grouped_by_transaction_and_link_to_existing_pdfs_without_reissuing(): void
@@ -832,7 +858,7 @@ class ProjectReportGenerationTest extends TestCase
             ->assertViewHas('form', fn (array $form): bool => $form['temporary'] === false
                 && $form['action'] === route('projects.reports.store', $fixture['project'])
                 && $form['canEditParameters'] === true
-                && array_column($form['templates'], 'folder') === ['maz2020', 'legacyOverview']);
+                && array_column($form['templates'], 'folder') === ['maz2020']);
         $this->get(route('projects.reports.temporary.index', $fixture['project']))->assertOk()
             ->assertViewIs('reports.index')->assertSee('Voorlopig rapport genereren')
             ->assertViewHas('form', fn (array $form): bool => $form['temporary'] === true

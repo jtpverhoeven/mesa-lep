@@ -76,9 +76,10 @@ Templates are filtered by language and single-sample/overview layout. For
 `maz2020`, select individual reports or a combined report with **1 monster per
 pagina**. Unsupported layouts are not silently substituted.
 
-The page lists missing assay associations beside each template and shows
-missing footer/signature configuration beside the execution controls. It never
-automatically approves every assay for a template. The existing
+The style selector only lists active, supported templates associated with every
+assay in the project. Association and footer configuration belong in Beheer,
+not in the analyst's selector. Footer and signature checks still run when
+generating a report. It never automatically approves assays for a template. The existing
 `legacy:import-csv` command now also registers `docgentemplates.csv`,
 `docgenassociations.csv`, and `footers.csv`, preserving imported IDs and text.
 **That command replaces all registered import tables**, not just reporting

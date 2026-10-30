@@ -12,7 +12,7 @@
                 @forelse($templates as $template)
                     <tr>
                         <td>{{ $template->id }}</td><td><strong>{{ $template->name }}</strong></td><td>{{ $template->folder }}</td><td>{{ $template->view_order ?? '-' }}</td>
-                        <td>{{ $template->active ? 'Ja' : 'Nee' }}</td><td>{{ $template->isSupported() ? 'Beschikbaar' : 'Nog niet geport' }}</td><td>{{ $template->associations_count }}</td>
+                        <td>{{ $template->active ? 'Ja' : 'Nee' }}</td><td>{{ $template->isSupported() ? 'Beschikbaar' : 'Layout niet gevonden' }}</td><td>{{ $template->associations_count }}</td>
                         <td>
                             <a class="text-link" href="{{ route('docgen-templates.edit', $template) }}">Bewerken</a> 
                             <a class="text-link" href="{{ route('docgen-associations.edit', $template) }}">Analyse-associaties</a>
