@@ -3,8 +3,10 @@
 namespace App\Actions\Reports;
 
 use App\Actions\Projects\DeauthorizeProject;
+use App\Actions\Projects\EnsureEditable;
 use App\Actions\Projects\ResolveProjectReference;
 use App\ChangeTracking\ChangeTracker;
+use App\Keyrings\KeyringType;
 use App\Models\Export;
 use App\Models\Project;
 use App\Models\Sample;
@@ -26,6 +28,7 @@ class GenerateProjectReports
         private ChangeTracker $changes,
         private ResolveProjectReference $reference,
         private DeauthorizeProject $deauthorize,
+        private EnsureEditable $ensureEditable,
     ) {}
 
     /**
@@ -44,6 +47,7 @@ class GenerateProjectReports
             $result = DB::transaction(function () use ($project, $options, $userId, $temporary, &$createdPaths, &$deauthorized): array {
                 $analysisIds = $project->sampleAnalyses()->reorder('id')->lockForUpdate()->pluck('sampleanalysis.id')->all();
                 $project = Project::query()->lockForUpdate()->findOrFail($project->id);
+                $this->ensureEditable->handle($project, KeyringType::Export, $project->id, applyProjectRule: false);
 
                 if ($analysisIds !== $project->sampleAnalyses()->reorder('id')->pluck('sampleanalysis.id')->all()) {
                     throw ValidationException::withMessages(['report' => 'Het onderzoek in dit project is gewijzigd. Probeer opnieuw.']);

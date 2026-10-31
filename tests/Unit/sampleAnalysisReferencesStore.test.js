@@ -36,11 +36,11 @@ test('reference editing is restricted to selected roaming analyses in editable p
     let requests = 0;
     globalThis.fetch = async () => { requests++; return response(editor()); };
     assert.equal(store.canEditReferences, true);
-    for (const field of ['locked', 'auth_status']) {
-        store.data.project[field] = 1;
+    for (const reason of ['authorized', 'authorization_blocked']) {
+        store.data.reasons = [reason];
         assert.equal(store.canEditReferences, false);
         await store.openReferences();
-        store.data.project[field] = 0;
+        store.data.reasons = [];
     }
     store.selected.profile = 3;
     assert.equal(store.canEditReferences, false);

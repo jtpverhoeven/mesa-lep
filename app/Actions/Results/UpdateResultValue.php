@@ -2,8 +2,10 @@
 
 namespace App\Actions\Results;
 
+use App\Actions\Projects\EnsureEditable;
 use App\ChangeTracking\ChangeTracker;
 use App\Jobs\CalculateAnalysisResultJob;
+use App\Keyrings\KeyringType;
 use App\Models\AssayTypeField;
 use App\Models\Project;
 use App\Models\Result;
@@ -16,6 +18,7 @@ class UpdateResultValue
     public function __construct(
         private ChangeTracker $changeTracker,
         private GetMetaAnalysisParent $metaParent,
+        private EnsureEditable $ensureEditable,
     ) {}
 
     public function handle(SampleAnalysis $analysis, Result $result, string $field, string $value): Result
@@ -31,14 +34,8 @@ class UpdateResultValue
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($analysis->project !== null) {
-                $project = Project::query()->lockForUpdate()->findOrFail($analysis->project);
-                if ($project->locked || $project->auth_status) {
-                    throw ValidationException::withMessages([
-                        'result' => 'Dit project is vergrendeld of geautoriseerd.',
-                    ]);
-                }
-            }
+            $project = $analysis->project === null ? null : Project::query()->lockForUpdate()->findOrFail($analysis->project);
+            $this->ensureEditable->handle($project, KeyringType::Sample, (int) $analysis->sample);
 
             $values = is_array($result->data) ? $result->data : [];
             $configured = AssayTypeField::query()

@@ -7,6 +7,7 @@ const props = defineProps({
     sampleData: { type: Object, required: true },
     canUpdate: { type: Boolean, required: true },
     readOnly: { type: Boolean, default: false },
+    readOnlyMessage: { type: String, default: 'Dit project is vergrendeld of geautoriseerd.' },
     savingFields: { type: Object, default: () => ({}) },
 });
 const emit = defineEmits(['save']);
@@ -68,7 +69,7 @@ function filterVolume(event, field) {
                 <LoaderCircle v-if="saving('extra', field.name)" class="spin" :size="14" />
             </span>
         </label>
-        <p v-if="!canUpdate || readOnly" class="project-sample-read-only">{{ canUpdate ? 'Dit project is vergrendeld of geautoriseerd.' : 'U heeft alleen-lezen toegang tot monsterdetails.' }}</p>
+        <p v-if="!canUpdate || readOnly" class="project-sample-read-only">{{ canUpdate ? readOnlyMessage : 'U heeft alleen-lezen toegang tot monsterdetails.' }}</p>
     </form>
 </template>
 

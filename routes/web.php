@@ -15,6 +15,7 @@ use App\Http\Controllers\CvarController;
 use App\Http\Controllers\DocgenAssociationController;
 use App\Http\Controllers\DocgenTemplateController;
 use App\Http\Controllers\FooterController;
+use App\Http\Controllers\KeyringController;
 use App\Http\Controllers\LabelDesignController;
 use App\Http\Controllers\LabelEventController;
 use App\Http\Controllers\ManualLabelPrintingController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\PortalConnectionController;
 use App\Http\Controllers\PrinterController;
 use App\Http\Controllers\PrintProfileController;
 use App\Http\Controllers\ProductGroupController;
+use App\Http\Controllers\ProjectAuthorizationBlockController;
 use App\Http\Controllers\ProjectAuthorizationController;
 use App\Http\Controllers\ProjectFieldController;
 use App\Http\Controllers\ProjectInfoController;
@@ -43,9 +45,11 @@ use App\Http\Controllers\SampleMetadataController;
 use App\Http\Controllers\SampleProcedureController;
 use App\Http\Controllers\SampleProcedureFieldController;
 use App\Http\Controllers\SampleRegisterController;
+use App\Http\Controllers\UserAvatarController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserGroupController;
 use App\Http\Controllers\VetoResultController;
+use App\Keyrings\KeyringType;
 use App\Models\Assay;
 use Illuminate\Support\Facades\Route;
 use Mpdf\Mpdf;
@@ -76,6 +80,17 @@ Route::middleware('auth')->prefix('account/settings')->name('account.')->group(f
 
 Route::get('/laboratory/revisions', [ChangeRevisionController::class, 'index'])
     ->middleware('auth')->name('revisions.index');
+
+Route::middleware('auth')->prefix('keyrings')->name('keyrings.')->group(function () {
+    Route::post('/{keyring}/release', [KeyringController::class, 'release'])->whereNumber('keyring')->name('release');
+    Route::prefix('/{type}/{typeId}')->where(['type' => implode('|', KeyringType::ROUTABLE_SLUGS), 'typeId' => '[0-9]+'])->group(function () {
+        Route::post('/', [KeyringController::class, 'store'])->name('store');
+        Route::post('/steal', [KeyringController::class, 'steal'])->middleware('can:keyrings.steal')->name('steal');
+        Route::delete('/', [KeyringController::class, 'destroy'])->name('destroy');
+    });
+});
+
+Route::get('/users/{user}/avatar', UserAvatarController::class)->middleware('auth')->whereNumber('user')->name('users.avatar');
 
 Route::middleware(['auth', 'can:scan-to-print.use'])->prefix('laboratory/printing')->group(function () {
     Route::get('/', [ManualLabelPrintingController::class, 'index'])->name('printing.index');
@@ -141,6 +156,11 @@ Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects/se
     Route::put('/{project}/samples/{sample}/analyses/{analysis}/veto', [VetoResultController::class, 'update'])->scopeBindings()->name('projects.search.samples.veto.update');
     Route::delete('/{project}/samples/{sample}/analyses/{analysis}/veto', [VetoResultController::class, 'update'])->scopeBindings()->name('projects.search.samples.veto.destroy');
     Route::get('/{project?}', [ProjectSearchController::class, 'index'])->whereNumber('project')->name('projects.search');
+});
+
+Route::middleware(['auth', 'can:projects.authorisation.block'])->prefix('laboratory/projects/{project}/authorization-block')->whereNumber('project')->group(function () {
+    Route::post('/', [ProjectAuthorizationBlockController::class, 'store'])->name('projects.authorization-block.store');
+    Route::delete('/', [ProjectAuthorizationBlockController::class, 'destroy'])->name('projects.authorization-block.destroy');
 });
 
 Route::middleware(['auth', 'can:projects.authorisation.manage'])->prefix('laboratory/projects')->group(function () {

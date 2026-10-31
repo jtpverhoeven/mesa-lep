@@ -2,17 +2,21 @@
 
 namespace App\Actions\ProductGroups;
 
+use App\Actions\Projects\EnsureEditable;
 use App\ClientPortal\ClientPortalService;
 use App\Models\ProductGroup;
 use App\Models\Sample;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UpdateSampleProductGroup
 {
-    public function __construct(private ClientPortalService $clientPortal) {}
+    public function __construct(private ClientPortalService $clientPortal, private EnsureEditable $ensureEditable) {}
 
     public function handle(Sample $sample, ProductGroup $productGroup): Sample
     {
+        DB::transaction(fn (): Sample => $this->ensureEditable->forSample($sample->id));
+
         if ($sample->portal_sample_id) {
             $response = $this->clientPortal->updateProductGroup($sample->portal_sample_id, $productGroup->portal_id);
 
@@ -23,7 +27,9 @@ class UpdateSampleProductGroup
             }
         }
 
-        $sample->update(['portal_product_group_id' => $productGroup->portal_id]);
+        DB::transaction(function () use ($sample, $productGroup): void {
+            $this->ensureEditable->forSample($sample->id)->update(['portal_product_group_id' => $productGroup->portal_id]);
+        });
 
         return $sample->fresh('productGroup');
     }

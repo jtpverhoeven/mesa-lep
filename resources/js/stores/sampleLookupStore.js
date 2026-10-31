@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { useSampleResearchStore } from './sampleResearchStore.js';
+import { rejectNotEditable, useKeyringStore } from './keyringStore.js';
 import { createAssayDraft, referenceSourceProblem, referenceValues } from '../researchProfileAssays.js';
 
 export const useSampleLookupStore = defineStore('sampleLookup', {
@@ -7,7 +8,10 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
     getters: {
         selected: (state) => state.data?.analyses.find((analysis) => analysis.id === state.selectedId) ?? null,
         progress: (state) => state.data?.progress ?? 0,
-        readOnly: (state) => Boolean(Number(state.data?.project?.locked) || Number(state.data?.project?.auth_status) || state.detailsData?.read_only),
+        readOnly(state) {
+            if (!state.data) return false;
+            return useKeyringStore().isReadOnly(state.data.reasons, 'sample', state.data.sample.id) || Boolean(state.detailsData?.forbidden);
+        },
         detailsBusy: (state) => state.detailsLoading || Object.keys(state.detailsSaving).length > 0,
         canEditReferences() {
             return Boolean(this.selected && Number(this.selected.profile) === 0 && !this.readOnly && !this.loading && !this.saving);
@@ -129,6 +133,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                 });
                 const result = await response.json();
                 forbidden = response.status === 403;
+                rejectNotEditable(response, result, this.data);
                 if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Monsterdetails konden niet worden opgeslagen.');
                 if (requestId !== this.detailsRequestId) return;
                 const saved = source === 'attribute'
@@ -137,6 +142,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                 this.setDetailValue(this.detailsData, source, field, saved);
                 this.setDetailValue(this.data, source, field, saved);
                 this.detailsData.read_only = result.data.read_only;
+                this.detailsData.reasons = result.data.reasons;
                 if (source === 'attribute' && field === 'sampling_method') {
                     this.data.sampling_method = result.data.sampling_methods.find((method) => Number(method.id) === Number(saved))?.name ?? '-';
                 }
@@ -147,7 +153,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
             } catch (error) {
                 if (requestId !== this.detailsRequestId) return;
                 this.setDetailValue(this.detailsData, source, field, previous);
-                if (forbidden) this.detailsData.read_only = true;
+                if (forbidden) this.detailsData.forbidden = true;
                 this.detailsError = error.message;
             } finally {
                 if (requestId === this.detailsRequestId) delete this.detailsSaving[key];
@@ -212,6 +218,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                     }),
                 });
                 const result = await response.json();
+                rejectNotEditable(response, result, this.data);
                 if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Referentiewaarden konden niet worden opgeslagen.');
                 this.data = result.data;
             } catch (error) {
@@ -294,6 +301,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                     body: JSON.stringify({ field, value: String(row.data[field] ?? '') }),
                 });
                 const result = await response.json();
+                rejectNotEditable(response, result, this.data);
                 if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Resultaat kon niet worden opgeslagen.');
                 if (this.selectedId === analysisId) {
                     Object.assign(row, result.data);
@@ -357,6 +365,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                     body: JSON.stringify(payload),
                 });
                 const result = await response.json();
+                rejectNotEditable(response, result, this.data);
                 if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Wijziging mislukt.');
                 this.data = result.data;
                 if (!this.selected) this.selectedId = this.data.analyses[0]?.id ?? null;

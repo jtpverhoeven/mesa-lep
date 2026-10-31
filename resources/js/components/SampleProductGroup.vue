@@ -2,6 +2,7 @@
 import { ref, useId, watch } from 'vue';
 import { LoaderCircle, Pencil, Save } from '@lucide/vue';
 import AppDialog from './AppDialog.vue';
+import { rejectNotEditable } from '../stores/keyringStore';
 
 const props = defineProps({
     sample: { type: Object, required: true },
@@ -55,6 +56,7 @@ async function save() {
             body: JSON.stringify({ product_group_id: selectedId.value }),
         });
         const result = await response.json();
+        rejectNotEditable(response, result);
         if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Productgroep kon niet worden opgeslagen.');
         emit('updated', result.data);
         dialogVisible.value = false;

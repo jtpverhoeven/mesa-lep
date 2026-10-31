@@ -271,7 +271,7 @@ class VetoResultTest extends TestCase
     }
 
     #[DataProvider('forbiddenChanges')]
-    public function test_veto_changes_enforce_permissions_and_project_state(string $method, bool $view, bool $vetoPermission, int $authorized, int $locked): void
+    public function test_veto_changes_enforce_permissions_and_project_state(string $method, bool $view, bool $vetoPermission, int $authorized, int $locked, int $status): void
     {
         $this->operator();
         Gate::define('projects.view', fn () => $view);
@@ -281,7 +281,7 @@ class VetoResultTest extends TestCase
         $veto = $analysis->vetoResults()->create(['parameter' => 'kve', 'result' => 'Oud', 'reason' => 'Controle']);
         Queue::fake();
 
-        $this->json($method, $this->endpoint($analysis), $this->payload())->assertForbidden();
+        $this->json($method, $this->endpoint($analysis), $this->payload())->assertStatus($status);
 
         $this->assertSame('Oud', $veto->fresh()->result);
         $this->assertDatabaseCount('changetracker', 0);
@@ -291,14 +291,14 @@ class VetoResultTest extends TestCase
     public static function forbiddenChanges(): array
     {
         return [
-            'save without veto permission' => ['PUT', true, false, 0, 0],
-            'remove without veto permission' => ['DELETE', true, false, 0, 0],
-            'save without project access' => ['PUT', false, true, 0, 0],
-            'remove without project access' => ['DELETE', false, true, 0, 0],
-            'save authorized' => ['PUT', true, true, 1, 0],
-            'remove authorized' => ['DELETE', true, true, 1, 0],
-            'save locked' => ['PUT', true, true, 0, 1],
-            'remove locked' => ['DELETE', true, true, 0, 1],
+            'save without veto permission' => ['PUT', true, false, 0, 0, 403],
+            'remove without veto permission' => ['DELETE', true, false, 0, 0, 403],
+            'save without project access' => ['PUT', false, true, 0, 0, 403],
+            'remove without project access' => ['DELETE', false, true, 0, 0, 403],
+            'save authorized' => ['PUT', true, true, 1, 0, 423],
+            'remove authorized' => ['DELETE', true, true, 1, 0, 423],
+            'save locked' => ['PUT', true, true, 0, 1, 423],
+            'remove locked' => ['DELETE', true, true, 0, 1, 423],
         ];
     }
 

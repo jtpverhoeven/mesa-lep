@@ -8,6 +8,8 @@ use App\Actions\Reports\GenerateProjectReports;
 use App\Actions\Reports\GetProjectReportOptions;
 use App\Actions\Reports\RenderReportPdf;
 use App\Actions\Results\CalculateAnalysisResult;
+use App\Keyrings\KeyringPresence;
+use App\Keyrings\KeyringType;
 use App\Models\Assay;
 use App\Models\ChangeRevision;
 use App\Models\Client;
@@ -15,6 +17,7 @@ use App\Models\Cvar;
 use App\Models\DocgenTemplate;
 use App\Models\Export;
 use App\Models\Footer;
+use App\Models\Keyring;
 use App\Models\Project;
 use App\Models\ReferenceSource;
 use App\Models\ResearchProfile;
@@ -1194,6 +1197,37 @@ class ProjectReportGenerationTest extends TestCase
     }
 
     /** @return array<string, mixed> */
+    public function test_report_settings_expose_export_editability_without_the_project_rule(): void
+    {
+        $fixture = $this->fixture();
+
+        $this->get(route('projects.reports.index', $fixture['project']))
+            ->assertOk()
+            ->assertViewHas('form', fn (array $form): bool => $form['editability']['read_only'] === false
+                && $form['editability']['reasons'] === []
+                && $form['editability']['keyring']['locked'] === false
+                && $form['keyrings']['user_id'] === $fixture['user']->id);
+        $this->assertDatabaseCount('keyrings', 0);
+    }
+
+    public function test_report_creation_is_rejected_while_another_user_holds_the_export_keyring(): void
+    {
+        $fixture = $this->fixture();
+        $holder = User::factory()->create(['enabled' => 1, 'name' => 'Bob Bezet']);
+        Keyring::factory()->forResource(KeyringType::Export, $fixture['project']->id)->heldBy($holder)->create();
+        $this->mock(KeyringPresence::class)->allows('isPresent')->andReturn(true);
+        Http::preventStrayRequests();
+
+        $this->from(route('projects.reports.index', $fixture['project']))
+            ->post(route('projects.reports.store', $fixture['project']), $this->reportOptions($fixture))
+            ->assertRedirect(route('projects.reports.index', $fixture['project']))
+            ->assertSessionHasErrors(['editability' => 'Deze export is in gebruik door Bob Bezet.'])
+            ->assertSessionHasInput('templateSelect', 'maz2020');
+
+        $this->assertNotIssued($fixture['project']);
+        $this->assertDatabaseHas('keyrings', ['type' => '2', 'type_id' => $fixture['project']->id, 'issued_to' => $holder->id]);
+    }
+
     private function fixture(int $sampleCount = 1): array
     {
         $this->travelTo(Carbon::parse('2026-10-24 12:00:00', 'Europe/Amsterdam'));

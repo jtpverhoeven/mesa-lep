@@ -2,6 +2,7 @@
 
 namespace App\Actions\Projects;
 
+use App\Keyrings\KeyringType;
 use App\Models\Project;
 use App\Models\Sample;
 use App\Models\SampleField;
@@ -9,6 +10,8 @@ use App\Models\SampleProcedure;
 
 class GetProjectSearchSample
 {
+    public function __construct(private GetEditability $editability) {}
+
     public function handle(Project $project, Sample $sample): array
     {
         abort_unless((int) $sample->project === (int) $project->id, 404);
@@ -58,7 +61,7 @@ class GetProjectSearchSample
                     ? null
                     : ($analysis->researchProfile?->name ?? 'Onbekend profiel'),
             ])->values()->all(),
-            'read_only' => (bool) ($project->auth_status || $project->locked),
+            ...$this->editability->handle($project, KeyringType::Sample, $sample->id),
         ];
     }
 

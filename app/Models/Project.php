@@ -21,6 +21,37 @@ class Project extends Model
 
     public $timestamps = false;
 
+    public function isAuthorized(): bool
+    {
+        return (int) $this->auth_status !== 0;
+    }
+
+    public function isAuthorizationBlocked(): bool
+    {
+        return (int) $this->locked !== 0;
+    }
+
+    public function isReadOnly(): bool
+    {
+        return $this->isAuthorized() || $this->isAuthorizationBlocked();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function readOnlyReasons(): array
+    {
+        return array_values(array_filter([
+            $this->isAuthorized() ? 'authorized' : null,
+            $this->isAuthorizationBlocked() ? 'authorization_blocked' : null,
+        ]));
+    }
+
+    public function blockedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'locked_by');
+    }
+
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class, 'client');

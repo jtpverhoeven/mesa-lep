@@ -4,6 +4,7 @@
     {{-- <div class="page-heading"><div><div class="eyebrow">Laboratorium / Monsters</div><h1>Monster opzoeken</h1></div></div> --}}
     <sample-lookup v-bind="{{ Illuminate\Support\Js::from([
         'initialBarcode' => $initialBarcode,
+        'keyrings' => App\Keyrings\KeyringClientConfig::for(auth()->user()),
         'endpoints' => [
             'page' => route('samples.lookup'),
             'lookup' => route('samples.lookup.data'),

@@ -229,7 +229,7 @@ class SampleAnalysisReferencesTest extends TestCase
     }
 
     #[DataProvider('frozenProjects')]
-    public function test_frozen_projects_reject_reference_changes_with_422(string $field): void
+    public function test_frozen_projects_reject_reference_changes_with_423(string $field): void
     {
         $this->operator();
         $analysis = $this->analysis();
@@ -238,7 +238,7 @@ class SampleAnalysisReferencesTest extends TestCase
 
         $this->patchJson(route('samples.lookup.references.update', $this->parameters($analysis)), [
             'reference' => [], 'reference_source' => null,
-        ])->assertUnprocessable()->assertJsonPath('errors.sample.0', 'Dit project is vergrendeld of geautoriseerd.');
+        ])->assertStatus(423)->assertJsonPath('message', 'Dit project is vergrendeld of geautoriseerd.');
 
         $this->assertSame(['ref_result' => '10'], $analysis->roamingSettings->fresh()->reference);
         Queue::assertNothingPushed();

@@ -2,7 +2,9 @@
 
 namespace App\Actions\Samples;
 
+use App\Actions\Projects\GetEditability;
 use App\Actions\Projects\GetProjectInfo;
+use App\Keyrings\KeyringType;
 use App\Models\Sample;
 use App\Models\SampleField;
 use App\Models\SampleProcedure;
@@ -11,7 +13,7 @@ use App\Support\PredictedEndProgress;
 
 class LookupSample
 {
-    public function __construct(private PredictedEndProgress $progress, private GetProjectInfo $projectInfo) {}
+    public function __construct(private PredictedEndProgress $progress, private GetProjectInfo $projectInfo, private GetEditability $editability) {}
 
     public function handle(string $barcode): array
     {
@@ -65,6 +67,7 @@ class LookupSample
             ]),
             'previous' => Sample::query()->where('id', '<', $sample->id)->orderByDesc('id')->value('barcode'),
             'next' => Sample::query()->where('id', '>', $sample->id)->orderBy('id')->value('barcode'),
+            ...$this->editability->handle($project, KeyringType::Sample, $sample->id),
         ];
     }
 

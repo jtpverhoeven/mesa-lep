@@ -2,6 +2,7 @@ import { afterEach, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createPinia, setActivePinia } from 'pinia';
 import { useProjectSearchStore } from '../../resources/js/stores/projectSearchStore.js';
+import { useKeyringStore } from '../../resources/js/stores/keyringStore.js';
 
 const originalFetch = globalThis.fetch;
 beforeEach(() => {
@@ -160,14 +161,70 @@ test('veto writes are single-flight and responses cannot overwrite a newly selec
     assert.equal(store.savingVeto, false);
 });
 
-test('authorized or locked projects do not submit veto writes', async () => {
+test('authorized, blocked or keyring-locked samples do not submit veto writes', async () => {
     const store = vetoStore();
     globalThis.fetch = async () => assert.fail('No request should be made');
-    store.projectData.project.auth_status = 1;
+    store.projectData.reasons = ['authorized'];
     assert.equal(await store.changeVeto(33, {}), false);
-    store.projectData.project.auth_status = 0;
-    store.projectData.project.locked = 1;
+    store.projectData.reasons = ['authorization_blocked'];
     assert.equal(await store.changeVeto(33, {}, true), false);
+    store.projectData.reasons = ['keyring'];
+    assert.equal(store.sampleReadOnly, false);
+    useKeyringStore().entries['sample:22'] = { type: 'sample', id: 22, status: { locked: true, locked_by_name: 'Bea' }, viewers: [], stolenBy: null, pending: false, error: '' };
+    assert.equal(store.sampleReadOnly, true);
+    assert.equal(store.projectReadOnly, false);
+    assert.equal(await store.changeVeto(33, {}), false);
+});
+
+test('a 423 veto response records the project reason and makes the sample read-only', async () => {
+    const store = vetoStore();
+    globalThis.fetch = async () => ({ ok: false, status: 423, json: async () => ({ message: 'Dit project is vergrendeld of geautoriseerd.', reason: 'authorization_blocked', keyring: null }) });
+
+    assert.equal(await store.changeVeto(33, {}), false);
+
+    assert.match(store.vetoError, /vergrendeld/);
+    assert.deepEqual(store.projectData.reasons, ['authorization_blocked']);
+    assert.equal(store.sampleReadOnly, true);
+});
+
+test('authorization blocks are posted with the message and refresh the project', async () => {
+    const store = vetoStore();
+    store.endpoints.authorizationBlock = '/projects/__PROJECT__/authorization-block';
+    store.endpoints.project = '/projects/__PROJECT__';
+    const requests = [];
+    globalThis.fetch = async (url, options = {}) => {
+        requests.push({ url, method: options.method ?? 'GET', body: options.body });
+        if (url === '/projects/11/authorization-block') {
+            return { ok: true, json: async () => ({ data: { project: { id: 11, locked: 1, lock_message: 'Wacht op klant' }, read_only: true, reasons: ['authorization_blocked'] } }) };
+        }
+        return { ok: true, json: async () => ({ data: { project: { id: 11, auth_status: 0, locked: 1, lock_message: 'Wacht op klant' }, samples: [{ id: 22 }], reasons: ['authorization_blocked'] } }) };
+    };
+
+    const result = await store.blockProjectAuthorization('  Wacht op klant ');
+
+    assert.equal(result.read_only, true);
+    assert.deepEqual(requests.map(({ url, method }) => `${method} ${url}`), ['POST /projects/11/authorization-block', 'GET /projects/11']);
+    assert.deepEqual(JSON.parse(requests[0].body), { message: 'Wacht op klant' });
+    assert.deepEqual(store.projectData.reasons, ['authorization_blocked']);
+    assert.equal(store.projectData.project.lock_message, 'Wacht op klant');
+    assert.equal(store.projectActionLoading, false);
+
+    requests.length = 0;
+    await store.unblockProjectAuthorization();
+    assert.equal(requests[0].method, 'DELETE');
+});
+
+test('editability broadcasts update the selected project reasons', () => {
+    const store = vetoStore();
+    store.endpoints.project = '/projects/__PROJECT__';
+    globalThis.fetch = () => new Promise(() => {});
+    store.applyEditabilityChange({ project_id: 99, read_only: true, reasons: ['authorized'] });
+    assert.equal(store.sampleReadOnly, false);
+
+    store.applyEditabilityChange({ project_id: 11, read_only: true, reasons: ['authorization_blocked'] });
+
+    assert.deepEqual(store.projectData.reasons, ['authorization_blocked']);
+    assert.equal(store.sampleReadOnly, true);
 });
 
 test('realtime refreshes retrieve veto metadata and older result requests cannot overwrite them', async () => {

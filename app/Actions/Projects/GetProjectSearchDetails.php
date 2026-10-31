@@ -2,12 +2,13 @@
 
 namespace App\Actions\Projects;
 
+use App\Keyrings\KeyringType;
 use App\Models\Project;
 use App\Models\Sample;
 
 class GetProjectSearchDetails
 {
-    public function __construct(private GetProjectInfo $projectInfo) {}
+    public function __construct(private GetProjectInfo $projectInfo, private GetEditability $editability) {}
 
     public function handle(Project $project): array
     {
@@ -30,6 +31,7 @@ class GetProjectSearchDetails
                 'analyses_count' => $sample->analyses_count,
                 'is_ready' => ! $sample->has_open_analyses,
             ])->all(),
+            ...$this->editability->handle($project, KeyringType::Project, $project->id),
         ];
     }
 }

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { getEcho } from '../echo.js';
+import { projectReasons, useKeyringStore } from './keyringStore.js';
 
 const mutationQueues = new Map();
 
@@ -31,7 +32,12 @@ export const useConfirmationStore = defineStore('confirmation', {
         requestRevision: 0,
     }),
     getters: {
-        readOnly: (state) => Boolean(state.data?.read_only),
+        readOnly(state) {
+            const reasons = state.data?.read_only_reasons;
+            if (!reasons) return Boolean(state.data?.read_only);
+
+            return projectReasons(reasons).length > 0 || useKeyringStore().isLockedByOther('sample', state.sampleId);
+        },
         selectedScope: (state) => state.data?.scopes?.find((scope) => `${scope.df}:${scope.rep}` === state.selectedScopeKey) ?? state.data?.selected_scope ?? null,
         selectedEvaluation: (state) => state.data ? {
             contenders: state.data.contenders ?? [],
@@ -163,6 +169,10 @@ export const useConfirmationStore = defineStore('confirmation', {
                     body: JSON.stringify(payload),
                 });
                 const result = await response.json();
+                if (response.status === 423) {
+                    const reason = useKeyringStore().applyNotEditable(result);
+                    if (reason && this.data) this.data.read_only_reasons = [...new Set([...(this.data.read_only_reasons ?? []), reason])];
+                }
                 if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Bevestiging kon niet worden opgeslagen.');
                 if (mutationRevision === this.requestRevision && this.analysisId === Number(result.data?.analysis_id)) {
                     this.applyData(result.data);

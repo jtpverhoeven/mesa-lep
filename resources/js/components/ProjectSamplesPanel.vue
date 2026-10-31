@@ -2,11 +2,14 @@
 import { computed, ref } from 'vue';
 import { Building2, Check, ChevronDown, CloudUpload, Download, ExternalLink, Flame, FlaskConical, Lock, Mail, Printer, Settings, StickyNote, ThumbsDown, ThumbsUp, Trash2, Unlock } from '@lucide/vue';
 import Menu from 'openvue/menu';
+import Textarea from 'openvue/textarea';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
+import AppConfirmDialog from './AppConfirmDialog.vue';
 import AppDialog from './AppDialog.vue';
 
 const props = defineProps({
     canManageAuthorization: { type: Boolean, default: false },
+    canBlockAuthorization: { type: Boolean, default: false },
 });
 const store = useProjectSearchStore();
 const reportMenu = ref(null);
@@ -18,6 +21,9 @@ const deauthorizationDialogOpen = ref(false);
 const deauthorizationOrigin = ref('');
 const deauthorizationReason = ref('');
 const deauthorizationError = ref('');
+const blockDialog = ref(null);
+const blockMessage = ref('');
+const blockError = ref('');
 const authorizationChecks = computed(() => authorizationPrompt.value?.assessment?.checks.filter((check) => !check.passed) ?? []);
 
 const reportMenuItems = computed(() => [
@@ -39,11 +45,11 @@ const projectMenuItems = computed(() => {
             items.push({
                 label: 'Deautoriseren',
                 icon: ThumbsDown,
-                disabled: store.projectActionLoading,
+                disabled: store.projectActionLoading || store.projectLockedByOther,
                 command: openDeauthorizationDialog,
             });
         } else {
-            const disabled = Number(project.locked) !== 0 || store.projectActionLoading;
+            const disabled = Number(project.locked) !== 0 || store.projectActionLoading || store.projectLockedByOther;
             items.push(
                 { label: 'Autoriseren', icon: ThumbsUp, disabled, command: () => requestAuthorization(false) },
                 { label: 'Stille autorisatie', icon: CloudUpload, disabled, command: () => requestAuthorization(true) },
@@ -60,10 +66,17 @@ const projectMenuItems = computed(() => {
     { label: 'Klant wijzigen', icon: Building2 },
     { separator: true },
     { label: 'Project verwijderen', icon: Trash2 },
-    { separator: true },
-    { label: 'Project autorisatie blokkeren', icon: Lock },
-    { label: 'Project autorisatie vrijgeven', icon: Unlock },
     );
+
+    if (props.canBlockAuthorization && project) {
+        const blocked = Number(project.locked) !== 0;
+        items.push(
+            { separator: true },
+            blocked
+                ? { label: 'Project autorisatie vrijgeven', icon: Unlock, disabled: store.projectActionLoading, command: () => openBlockDialog('unblock') }
+                : { label: 'Project autorisatie blokkeren', icon: Lock, disabled: isAuthorized || store.projectActionLoading, command: () => openBlockDialog('block') },
+        );
+    }
 
     return items;
 });
@@ -144,6 +157,27 @@ async function submitDeauthorization() {
     } else {
         deauthorizationError.value = result?.message || store.projectActionError || 'Het project kon niet worden gedeautoriseerd.';
     }
+}
+
+function openBlockDialog(action) {
+    blockMessage.value = '';
+    blockError.value = '';
+    store.projectActionError = '';
+    blockDialog.value = action;
+}
+
+function updateBlockDialog(visible) {
+    if (!visible && !store.projectActionLoading) blockDialog.value = null;
+}
+
+async function submitBlockDialog() {
+    blockError.value = '';
+    const result = blockDialog.value === 'block'
+        ? await store.blockProjectAuthorization(blockMessage.value)
+        : await store.unblockProjectAuthorization();
+
+    if (result) blockDialog.value = null;
+    else blockError.value = store.projectActionError || 'De autorisatieblokkade kon niet worden gewijzigd.';
 }
 
 function updateAuthorizationPrompt(visible) {
@@ -227,6 +261,26 @@ function updateDeauthorizationDialog(visible) {
             </button>
         </template>
     </AppDialog>
+
+    <AppConfirmDialog
+        :visible="blockDialog !== null"
+        :title="blockDialog === 'block' ? 'Project autorisatie blokkeren' : 'Project autorisatie vrijgeven'"
+        :confirm-label="blockDialog === 'block' ? 'Blokkeren' : 'Vrijgeven'"
+        :loading="store.projectActionLoading"
+        :error="blockError"
+        @update:visible="updateBlockDialog"
+        @confirm="submitBlockDialog"
+    >
+        <template v-if="blockDialog === 'block'">
+            <p class="m-0">Het project wordt alleen-lezen en kan niet worden geautoriseerd totdat de blokkade wordt vrijgegeven.</p>
+            <div class="field">
+                <label for="project-block-message">Reden (optioneel)</label>
+                <Textarea id="project-block-message" v-model="blockMessage" rows="3" maxlength="1000" auto-resize fluid />
+            </div>
+        </template>
+        <p v-else class="m-0">De blokkade wordt opgeheven; het project kan weer worden gewijzigd en geautoriseerd.</p>
+        <template #confirm-icon><component :is="blockDialog === 'block' ? Lock : Unlock" :size="15" /></template>
+    </AppConfirmDialog>
 
     <AppDialog
         :visible="deauthorizationDialogOpen"

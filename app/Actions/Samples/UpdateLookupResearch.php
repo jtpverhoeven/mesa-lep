@@ -4,10 +4,12 @@ namespace App\Actions\Samples;
 
 use App\Actions\AssuranceForms\QueueAssuranceFormSynchronization;
 use App\Actions\Printing\DispatchLabelEvents;
+use App\Actions\Projects\EnsureEditable;
 use App\Actions\SampleAnalyses\AddResearchProfileToSample;
 use App\Actions\SampleAnalyses\AddRoamingAnalysisToSample;
 use App\Actions\SampleAnalyses\RemoveSampleAnalysis;
 use App\Actions\SampleAnalyses\ReorderSampleAnalyses;
+use App\Keyrings\KeyringType;
 use App\Models\Assay;
 use App\Models\Project;
 use App\Models\ResearchProfile;
@@ -18,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateLookupResearch
 {
-    public function __construct(private QueueAssuranceFormSynchronization $queueAssuranceSync, private DispatchLabelEvents $dispatchLabelEvents) {}
+    public function __construct(private QueueAssuranceFormSynchronization $queueAssuranceSync, private DispatchLabelEvents $dispatchLabelEvents, private EnsureEditable $ensureEditable) {}
 
     public function handle(Sample $sample, array $data, bool $printLabels = true): Collection
     {
@@ -28,9 +30,7 @@ class UpdateLookupResearch
             $analyses = new Collection;
             $sample = Sample::query()->lockForUpdate()->findOrFail($sample->id);
             $project = Project::query()->lockForUpdate()->findOrFail($sample->project);
-            if ($project->locked || $project->auth_status) {
-                throw ValidationException::withMessages(['sample' => 'Dit project is vergrendeld of geautoriseerd.']);
-            }
+            $this->ensureEditable->handle($project, KeyringType::Sample, $sample->id);
 
             if ($data['operation'] === 'remove') {
                 $analysis = $sample->analyses()->findOrFail($data['analysis_id']);

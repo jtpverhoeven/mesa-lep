@@ -1,5 +1,5 @@
 <script setup>
-import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ArrowLeft, ArrowRight, Barcode, FileClock, Pencil, Search } from '@lucide/vue';
 import { getEcho } from '../echo.js';
 import { sfx } from '../sfx.js';
@@ -14,11 +14,16 @@ import ProjectInfo from './ProjectInfo.vue';
 import ConfirmationDecisionDialog from './ConfirmationDecisionDialog.vue';
 import ConfirmationDialog from './ConfirmationDialog.vue';
 import { useConfirmationStore } from '../stores/confirmationStore';
+import { projectReasons, useKeyringStore } from '../stores/keyringStore';
 import ShowRevisions from './ShowRevisions.vue';
+import KeyringNotice from './KeyringNotice.vue';
 
-const props = defineProps({ endpoints: { type: Object, required: true }, permissions: { type: Object, required: true }, initialBarcode: { type: String, default: '' } });
+const props = defineProps({ endpoints: { type: Object, required: true }, permissions: { type: Object, required: true }, keyrings: { type: Object, default: () => ({}) }, initialBarcode: { type: String, default: '' } });
 const store = useSampleLookupStore();
 const confirmationStore = useConfirmationStore();
+const keyringStore = useKeyringStore();
+keyringStore.configure(props.keyrings, getEcho);
+const projectLocked = computed(() => projectReasons(store.data?.reasons).length > 0);
 const EndResultDisplay = defineAsyncComponent(() => import('./EndResultDisplay.vue'));
 const barcodeInput = ref(null);
 const revisionScope = ref(null);
@@ -71,9 +76,13 @@ watch(() => store.data?.sample.id, (sampleId) => {
     const revision = ++subscriptionRevision;
     sampleChannelSettled.value = false;
     sampleChannelFailed.value = false;
-    if (subscribedSampleId !== null) realtimeClient?.leave(`samples.${subscribedSampleId}`);
+    if (subscribedSampleId !== null) {
+        realtimeClient?.leave(`samples.${subscribedSampleId}`);
+        void keyringStore.release('sample', subscribedSampleId);
+    }
     subscribedSampleId = sampleId ?? null;
     if (subscribedSampleId === null) return;
+    void keyringStore.acquire('sample', subscribedSampleId, store.data.keyring);
 
     realtimeClient = getEcho();
     confirmationStore.setSample(sampleId);
@@ -140,7 +149,10 @@ watch(() => store.calculation?.confirmation, (confirmation) => {
 });
 onBeforeUnmount(() => {
     subscriptionRevision++;
-    if (subscribedSampleId !== null) realtimeClient?.leave(`samples.${subscribedSampleId}`);
+    if (subscribedSampleId !== null) {
+        realtimeClient?.leave(`samples.${subscribedSampleId}`);
+        void keyringStore.release('sample', subscribedSampleId);
+    }
     confirmationStore.reset();
 });
 </script>
@@ -148,7 +160,10 @@ onBeforeUnmount(() => {
 <template>
     <div class="sample-lookup" :aria-busy="store.loading || store.saving">
         <p v-if="store.error" class="error-text" role="alert">{{ store.error }}</p>
-        <p v-if="store.readOnly" class="lookup-warning">Project is vergrendeld of geautoriseerd. {{ store.data.project.lock_message }}</p>
+        <div v-if="store.data" class="keyring-notices">
+            <KeyringNotice type="sample" :id="store.data.sample.id" />
+            <p v-if="projectLocked" class="editability-notice" role="status">Project is vergrendeld of geautoriseerd. {{ store.data.project.lock_message }}</p>
+        </div>
         <div class="sample-create-grid">
             <div class="sample-create-column">
                 <section class="sample-panel">
@@ -242,7 +257,6 @@ onBeforeUnmount(() => {
 .lookup-progress > span { text-align:right; font-variant-numeric:tabular-nums; }
 .sample-lookup select { width:100%; min-width:0; margin-top:6px; }
 .lookup-note { white-space:pre-wrap; overflow-wrap:anywhere; }
-.lookup-warning { padding:10px; background:#fff3cf; color:#714d00; }
 .lookup-add-modal { width:min(760px, calc(100vw - 24px)); }
 .lookup-add-modal fieldset { margin:0; border:0; min-width:0; display:grid; gap:16px; }
 .lookup-confirmations { margin-top:12px; }

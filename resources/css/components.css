@@ -274,4 +274,36 @@
     .app-dialog-content {
         @apply p-0;
     }
+
+    .keyring-notice {
+        @apply flex flex-wrap items-center gap-3 rounded-control border border-accent bg-accent-faint px-3 py-2 text-ui text-ink;
+    }
+
+    .keyring-notice.stolen {
+        @apply border-danger bg-danger-faint;
+    }
+
+    .keyring-notices {
+        @apply mb-3 grid gap-2 empty:hidden;
+    }
+
+    .keyring-notice-text {
+        @apply grid min-w-0 flex-1 gap-0.5;
+    }
+
+    .keyring-notice-text strong {
+        @apply flex items-center gap-1.5 font-semibold;
+    }
+
+    .keyring-notice-text span {
+        @apply text-muted;
+    }
+
+    .editability-notice {
+        @apply m-0 rounded-control border border-line bg-surface-alt px-3 py-2 text-ui text-ink;
+    }
+
+    .keyring-notice-error {
+        @apply m-0 text-xs text-danger;
+    }
 }

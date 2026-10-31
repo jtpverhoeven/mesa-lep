@@ -5,6 +5,7 @@ namespace App\Actions\Projects;
 use App\Actions\Results\CalculateAnalysisResult;
 use App\ChangeTracking\ChangeTracker;
 use App\ClientPortal\ClientPortalService;
+use App\Keyrings\KeyringType;
 use App\Models\Project;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -17,6 +18,7 @@ class AuthorizeProject
         private CalculateAnalysisResult $calculateAnalysisResult,
         private ClientPortalService $clientPortal,
         private ChangeTracker $changeTracker,
+        private EnsureEditable $ensureEditable,
     ) {}
 
     /** @return array<string, mixed> */
@@ -25,6 +27,7 @@ class AuthorizeProject
         $result = DB::transaction(function () use ($project, $userId, $overrideIncomplete): array {
             $analyses = $project->sampleAnalyses()->reorder('id')->lockForUpdate()->get(['sampleanalysis.id']);
             $lockedProject = Project::query()->lockForUpdate()->findOrFail($project->getKey());
+            $this->ensureEditable->handle($lockedProject, KeyringType::Project, $lockedProject->id, applyProjectRule: false);
 
             if ($analyses->modelKeys() !== $lockedProject->sampleAnalyses()->reorder('id')->pluck('sampleanalysis.id')->all()) {
                 throw ValidationException::withMessages([
@@ -32,7 +35,7 @@ class AuthorizeProject
                 ]);
             }
 
-            if ((int) $lockedProject->auth_status !== 0) {
+            if ($lockedProject->isAuthorized()) {
                 return [
                     'authorized' => false,
                     'blocked' => false,
@@ -42,7 +45,7 @@ class AuthorizeProject
                 ];
             }
 
-            if ((int) $lockedProject->locked !== 0) {
+            if ($lockedProject->isAuthorizationBlocked()) {
                 return [
                     'authorized' => false,
                     'blocked' => true,

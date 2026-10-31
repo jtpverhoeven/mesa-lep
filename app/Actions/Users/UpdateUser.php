@@ -2,6 +2,7 @@
 
 namespace App\Actions\Users;
 
+use App\Actions\Keyrings\ReleaseUserKeyrings;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Arr;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class UpdateUser
 {
+    public function __construct(private ReleaseUserKeyrings $releaseUserKeyrings) {}
+
     public function handle(User $user, array $data): User
     {
         return DB::transaction(function () use ($user, $data) {
@@ -32,6 +35,10 @@ class UpdateUser
                 ]),
             );
             $user->syncRoles(Role::query()->whereKey($data['roles'] ?? [])->get());
+
+            if (! $user->enabled) {
+                $this->releaseUserKeyrings->handle($user);
+            }
 
             return $user->refresh();
         });

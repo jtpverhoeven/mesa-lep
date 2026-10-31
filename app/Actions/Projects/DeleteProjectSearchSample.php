@@ -5,6 +5,7 @@ namespace App\Actions\Projects;
 use App\Actions\AssuranceForms\QueueAssuranceFormSynchronization;
 use App\Actions\SampleAnalyses\RemoveSampleAnalysis;
 use App\ChangeTracking\ChangeTracker;
+use App\Keyrings\KeyringType;
 use App\Models\Project;
 use App\Models\Result;
 use App\Models\Sample;
@@ -16,6 +17,7 @@ class DeleteProjectSearchSample
         private RemoveSampleAnalysis $removeAnalysis,
         private QueueAssuranceFormSynchronization $queueAssuranceSync,
         private ChangeTracker $changeTracker,
+        private EnsureEditable $ensureEditable,
     ) {}
 
     public function handle(Project $project, Sample $sample): void
@@ -25,7 +27,7 @@ class DeleteProjectSearchSample
             $lockedSample = Sample::query()->lockForUpdate()->findOrFail($sample->id);
 
             abort_unless((int) $lockedSample->project === (int) $lockedProject->id, 404);
-            abort_if($lockedProject->auth_status || $lockedProject->locked, 403, 'Dit project is vergrendeld of geautoriseerd.');
+            $this->ensureEditable->handle($lockedProject, KeyringType::Project, $lockedProject->id);
 
             foreach ($lockedSample->analyses()->get() as $analysis) {
                 $analysis->confirmationRecord()->delete();

@@ -2,9 +2,11 @@
 
 namespace App\Actions\Results;
 
+use App\Actions\Projects\EnsureEditable;
 use App\Calculations\Exceptions\ResultCalculationException;
 use App\ChangeTracking\ChangeTracker;
 use App\Jobs\CalculateAnalysisResultJob;
+use App\Keyrings\KeyringType;
 use App\Models\Project;
 use App\Models\Sample;
 use App\Models\SampleAnalysis;
@@ -16,6 +18,7 @@ class ChangeVetoResult
     public function __construct(
         private CalculateAnalysisResult $calculate,
         private ChangeTracker $changeTracker,
+        private EnsureEditable $ensureEditable,
     ) {}
 
     public function handle(
@@ -38,7 +41,7 @@ class ChangeVetoResult
                         && (int) $analysis->sampleRecord?->project === (int) $project->id,
                     404,
                 );
-                abort_if($project->auth_status || $project->locked, 403, 'Dit project is vergrendeld of geautoriseerd.');
+                $this->ensureEditable->handle($project, KeyringType::Sample, (int) $sample->id);
 
                 if ($value !== null && in_array((int) $analysis->assayRecord?->type, [2, 4], true) && $disposition === null) {
                     throw ValidationException::withMessages(['disposition' => 'Selecteer een uitslagtype voor deze analyse.']);

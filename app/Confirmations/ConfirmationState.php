@@ -3,12 +3,16 @@
 namespace App\Confirmations;
 
 use App\Actions\Confirmations\RecalculateConfirmation;
+use App\Actions\Projects\GetEditability;
+use App\Keyrings\KeyringType;
 use App\Models\Confirmation;
 use App\Models\Media;
 use App\Models\SampleAnalysis;
 
 class ConfirmationState
 {
+    public function __construct(private GetEditability $editability) {}
+
     public function build(
         SampleAnalysis $analysis,
         ?Confirmation $confirmation = null,
@@ -18,13 +22,15 @@ class ConfirmationState
         $analysis->loadMissing(['assayRecord', 'projectRecord', 'results']);
         $assay = $analysis->assayRecord;
         $confirmation ??= new Confirmation(['said' => $analysis->id]);
+        $editability = $this->editability->handle($analysis->projectRecord, KeyringType::Sample, (int) $analysis->sample);
 
         if ($assay === null) {
             return [
                 'analysis_id' => (int) $analysis->id,
                 'decision' => (int) $analysis->conf_requested,
                 'status' => 'not_applicable',
-                'read_only' => (bool) ($analysis->projectRecord?->locked || $analysis->projectRecord?->auth_status),
+                'read_only' => $editability['read_only'],
+                'read_only_reasons' => $editability['reasons'],
                 'decision_required' => false,
                 'config' => ['mode' => 'global', 'depth' => 0, 'steps' => []],
                 'selected_scope' => ['df' => 'global', 'rep' => 0],
@@ -94,7 +100,8 @@ class ConfirmationState
             'analysis_id' => (int) $analysis->id,
             'decision' => $decision,
             'status' => $status,
-            'read_only' => (bool) ($analysis->projectRecord?->locked || $analysis->projectRecord?->auth_status),
+            'read_only' => $editability['read_only'],
+            'read_only_reasons' => $editability['reasons'],
             'decision_required' => $status === 'decision_pending',
             'config' => [
                 'mode' => (int) ($assay?->confirmation_type ?? 0) === 0 ? 'global' : 'per_plate',

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createPinia, setActivePinia } from 'pinia';
 import { useSampleLookupStore } from '../../resources/js/stores/sampleLookupStore.js';
 import { useSampleResearchStore } from '../../resources/js/stores/sampleResearchStore.js';
+import { useKeyringStore } from '../../resources/js/stores/keyringStore.js';
 
 const originalFetch = globalThis.fetch;
 beforeEach(() => {
@@ -311,17 +312,42 @@ test('a rejected detail save freezes the editor after project authorization chan
     assert.match(store.detailsError, /geautoriseerd/);
 });
 
-test('authorized and locked projects cannot open or save details', async () => {
+test('authorized and blocked projects cannot open or save details', async () => {
     const store = detailStore();
     globalThis.fetch = () => { throw new Error('Frozen projects must not send detail requests.'); };
-    for (const field of ['auth_status', 'locked']) {
-        store.data.project = { id: 7, auth_status: 0, locked: 0, [field]: 1 };
+    for (const reason of ['authorized', 'authorization_blocked']) {
+        store.data.reasons = [reason];
         store.detailsVisible = false;
         await store.openDetails();
         await store.saveDetailField('attribute', 'description', 'Not allowed');
         assert.equal(store.detailsVisible, false);
         assert.equal(store.detailsBusy, false);
     }
+});
+
+test('a 423 response freezes the editor with the project reason or the new keyring holder', async () => {
+    const store = detailStore();
+    const keyrings = useKeyringStore();
+    keyrings.configure({ base_url: '/keyrings', user_id: 1 });
+    keyrings.entries['sample:5'] = { type: 'sample', id: 5, status: { locked: false, lock_placed: true, lock_id: 3 }, viewers: [], stolenBy: null, pending: false, error: '' };
+    globalThis.fetch = async () => ({ ok: false, status: 423, json: async () => ({ message: 'Dit monster is in gebruik door Bea.', reason: 'keyring', keyring: { type: 'sample', type_id: 5, locked: true, lock_placed: false, lock_id: 4, locked_by_id: 2, locked_by_name: 'Bea' } }) });
+
+    await store.saveDetailField('attribute', 'description', 'Mine');
+
+    assert.equal(store.readOnly, true);
+    assert.equal(keyrings.entry('sample', 5).stolenBy, 'Bea');
+    assert.equal(store.data.sample.description, 'Water sample');
+    assert.match(store.detailsError, /Bea/);
+
+    keyrings.applyChanged('sample', 5, { holder: { holder_id: 1, name: 'Ik', lock_id: 5 }, reason: 'acquired' });
+    assert.equal(store.readOnly, false);
+    store.detailsData.sample.description = 'Mine';
+    globalThis.fetch = async () => ({ ok: false, status: 423, json: async () => ({ message: 'Dit project is vergrendeld of geautoriseerd.', reason: 'authorized', keyring: null }) });
+
+    await store.saveDetailField('attribute', 'description', 'Mine');
+
+    assert.deepEqual(store.data.reasons, ['authorized']);
+    assert.equal(store.readOnly, true);
 });
 
 test('scanning another sample ignores an in-flight detail response', async () => {

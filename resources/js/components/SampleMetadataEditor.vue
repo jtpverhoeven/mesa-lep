@@ -4,6 +4,7 @@ import { LoaderCircle, Pencil, Plus, Save, Trash2 } from '@lucide/vue';
 import Column from 'openvue/column';
 import DataTable from 'openvue/datatable';
 import AppDialog from './AppDialog.vue';
+import { rejectNotEditable } from '../stores/keyringStore';
 
 const props = defineProps({
     metadata: { type: Array, default: () => [] },
@@ -63,6 +64,7 @@ async function save() {
             body: JSON.stringify({ name: form.name, value: form.value }),
         });
         const payload = await response.json();
+        rejectNotEditable(response, payload);
         if (!response.ok) throw new Error(message(payload, 'Metadata kon niet worden opgeslagen.'));
 
         const rows = [...props.metadata];
@@ -94,6 +96,7 @@ async function remove() {
         });
         if (!response.ok) {
             const payload = await response.json();
+            rejectNotEditable(response, payload);
             throw new Error(message(payload, 'Metadata kon niet worden verwijderd.'));
         }
 

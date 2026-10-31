@@ -7,8 +7,14 @@ import TabList from 'openvue/tablist';
 import TabPanel from 'openvue/tabpanel';
 import TabPanels from 'openvue/tabpanels';
 import Tabs from 'openvue/tabs';
+import { getEcho } from '../echo.js';
+import { useKeyringStore } from '../stores/keyringStore';
+import KeyringNotice from './KeyringNotice.vue';
 
 const props = defineProps({ config: { type: Object, required: true } });
+const keyringStore = useKeyringStore();
+const projectId = Number(props.config.project.id);
+const exportLocked = computed(() => keyringStore.isLockedByOther('export', projectId));
 const temporary = Boolean(props.config.temporary);
 const previous = props.config.old || {};
 const preferences = ref(props.config.preferences);
@@ -40,8 +46,15 @@ const draggingAssay = ref(null);
 function restoreSubmissionState() {
     submitting.value = false;
 }
-onMounted(() => window.addEventListener('pageshow', restoreSubmissionState));
-onBeforeUnmount(() => window.removeEventListener('pageshow', restoreSubmissionState));
+onMounted(() => {
+    window.addEventListener('pageshow', restoreSubmissionState);
+    keyringStore.configure(props.config.keyrings, getEcho);
+    void keyringStore.acquire('export', projectId, props.config.editability?.keyring ?? null);
+});
+onBeforeUnmount(() => {
+    window.removeEventListener('pageshow', restoreSubmissionState);
+    void keyringStore.release('export', projectId);
+});
 const chosenSamples = computed(() => reportType.value === 'projectSample'
     ? props.config.samples.filter((sample) => selectedSamples.value.includes(Number(sample.id)))
     : props.config.samples);
@@ -74,7 +87,7 @@ function dropAssay(targetId) {
 
 async function submit(event) {
     event.preventDefault();
-    if (submitting.value) return;
+    if (submitting.value || exportLocked.value) return;
     submitErrors.value = [];
     if (!visibleTemplates.value.some((item) => item.folder === template.value)) submitErrors.value.push('Selecteer een beschikbare rapportstijl.');
     if (!chosenSamples.value.length) submitErrors.value.push('Selecteer minimaal een monster.');
@@ -94,6 +107,7 @@ async function submit(event) {
 </script>
 
 <template>
+    <div class="keyring-notices"><KeyringNotice type="export" :id="projectId" /></div>
     <form method="POST" :action="config.action" class="report-generation-grid" @submit="submit">
         <input type="hidden" name="_token" :value="config.csrf">
         <input type="hidden" name="reportExportType" :value="submitType">
@@ -243,8 +257,8 @@ async function submit(event) {
                         <strong>Rapport kan niet worden gemaakt</strong>
                         <ul class="mt-2 list-inside list-disc"><li v-for="error in submitErrors" :key="error">{{ error }}</li></ul>
                     </div>
-                    <Button type="submit" value="create" :label="temporary ? 'Voorlopig rapport maken' : 'Rapport maken'" :loading="submitting" :disabled="submitting" />
-                    <Button type="submit" value="preview" label="Voorbeeld bekijken" severity="secondary" :disabled="submitting" />
+                    <Button type="submit" value="create" :label="temporary ? 'Voorlopig rapport maken' : 'Rapport maken'" :loading="submitting" :disabled="submitting || exportLocked" />
+                    <Button type="submit" value="preview" label="Voorbeeld bekijken" severity="secondary" :disabled="submitting || exportLocked" />
                 </div>
             </section>
         </div>

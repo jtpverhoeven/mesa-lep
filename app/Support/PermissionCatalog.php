@@ -51,6 +51,7 @@ class PermissionCatalog
                 'results.veto' => 'Vetresultaten instellen',
                 'projects.delete' => 'Projecten verwijderen',
                 'projects.authorisation.block' => 'Projectautorisatie blokkeren',
+                'keyrings.steal' => 'Vergrendelingen van andere gebruikers overnemen',
                 'confirmations.reset' => 'Bevestigingen resetten',
             ],
             'Klanten' => [

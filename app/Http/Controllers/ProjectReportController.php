@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Projects\GetEditability;
 use App\Actions\Reports\GenerateProjectReports;
 use App\Actions\Reports\GetProjectReportOptions;
 use App\Http\Requests\GenerateProjectReportRequest;
+use App\Keyrings\KeyringClientConfig;
+use App\Keyrings\KeyringType;
 use App\Models\DocgenTemplate;
 use App\Models\Export;
 use App\Models\Project;
@@ -22,7 +25,7 @@ use UnexpectedValueException;
 
 class ProjectReportController extends Controller
 {
-    public function index(Request $request, Project $project, GetProjectReportOptions $options, bool $temporary = false): View
+    public function index(Request $request, Project $project, GetProjectReportOptions $options, GetEditability $editability, bool $temporary = false): View
     {
         if (! $temporary && (int) $project->is_ready !== 1 && ! $request->boolean('continue')) {
             return view('reports.not-ready', ['project' => $project]);
@@ -61,6 +64,8 @@ class ProjectReportController extends Controller
                     ...$sample->only(['id', 'barcode', 'client_description', 'sample_note']),
                 ])->all(),
                 'old' => $request->session()->getOldInput(),
+                'editability' => $editability->handle($project, KeyringType::Export, $project->id, $request->user(), applyProjectRule: false),
+                'keyrings' => KeyringClientConfig::for($request->user()),
             ],
         ]);
     }

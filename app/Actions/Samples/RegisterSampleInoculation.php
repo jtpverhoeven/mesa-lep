@@ -6,6 +6,7 @@ use App\Actions\AssuranceForms\GetOrCreateAssuranceForm;
 use App\Actions\AssuranceForms\QueueAssuranceFormSynchronization;
 use App\Actions\AssuranceForms\ResolveAssuranceDay;
 use App\Actions\AssuranceForms\SynchronizeAssuranceForm;
+use App\Actions\Projects\EnsureEditable;
 use App\ChangeTracking\ChangeTracker;
 use App\Models\AssuranceForm;
 use App\Models\Project;
@@ -22,6 +23,7 @@ class RegisterSampleInoculation
         private SynchronizeAssuranceForm $synchronizeForm,
         private EstimateRegisteredSampleEndpoints $estimate,
         private ChangeTracker $changeTracker,
+        private EnsureEditable $ensureEditable,
     ) {}
 
     public function handle(Sample $sample, bool $overwrite = false, ?string $storedIn = null, ?string $dilutedAt = null): Sample
@@ -34,11 +36,7 @@ class RegisterSampleInoculation
                 ? Project::query()->lockForUpdate()->find($lockedSample->project)
                 : null;
 
-            if ($project?->locked || $project?->auth_status) {
-                throw ValidationException::withMessages([
-                    'sample' => 'Dit project is vergrendeld of geautoriseerd.',
-                ]);
-            }
+            $this->ensureEditable->handle($project);
 
             $previousInoculation = (string) ($lockedSample->sample_innoculated ?? '');
 

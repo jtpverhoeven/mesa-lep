@@ -158,7 +158,7 @@ class SampleRegisterTest extends TestCase
                 'innoc' => '01-01-2026 12:34',
                 'storage' => 'B',
                 'diluted_at' => 'DIL',
-            ])->assertUnprocessable();
+            ])->assertStatus(423);
 
         $this->assertSame('1788998400', $sample->fresh()->sample_innoculated);
     }

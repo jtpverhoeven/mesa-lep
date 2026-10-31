@@ -2,9 +2,11 @@
 
 namespace App\Actions\SampleAnalyses;
 
+use App\Actions\Projects\EnsureEditable;
 use App\Actions\Results\GetMetaAnalysisParent;
 use App\Calculations\ResultCalculationResolver;
 use App\Jobs\CalculateAnalysisResultJob;
+use App\Keyrings\KeyringType;
 use App\Models\Project;
 use App\Models\ReferenceSource;
 use App\Models\RoamingAnalysis;
@@ -18,6 +20,7 @@ class UpdateRoamingAnalysis
     public function __construct(
         private ResultCalculationResolver $calculations,
         private GetMetaAnalysisParent $metaParent,
+        private EnsureEditable $ensureEditable,
     ) {}
 
     public function handle(SampleAnalysis $analysis, array $settings): RoamingAnalysis
@@ -25,9 +28,7 @@ class UpdateRoamingAnalysis
         return DB::transaction(function () use ($analysis, $settings) {
             $sample = Sample::query()->lockForUpdate()->findOrFail($analysis->sample);
             $project = Project::query()->lockForUpdate()->findOrFail($sample->project);
-            if ($project->locked || $project->auth_status) {
-                throw ValidationException::withMessages(['sample' => 'Dit project is vergrendeld of geautoriseerd.']);
-            }
+            $this->ensureEditable->handle($project, KeyringType::Sample, $sample->id);
 
             $analysis = SampleAnalysis::query()
                 ->with('assayRecord')

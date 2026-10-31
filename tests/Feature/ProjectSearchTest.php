@@ -77,8 +77,8 @@ class ProjectSearchTest extends TestCase
         return [
             'editable project' => [true, 0, 0, false, 200],
             'missing permission' => [false, 0, 0, false, 403],
-            'authorized project' => [true, 1, 0, false, 403],
-            'locked project' => [true, 0, 1, false, 403],
+            'authorized project' => [true, 1, 0, false, 423],
+            'locked project' => [true, 0, 1, false, 423],
             'different project' => [true, 0, 0, true, 404],
         ];
     }

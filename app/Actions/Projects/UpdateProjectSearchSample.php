@@ -3,6 +3,7 @@
 namespace App\Actions\Projects;
 
 use App\ChangeTracking\ChangeTracker;
+use App\Keyrings\KeyringType;
 use App\Models\Project;
 use App\Models\Sample;
 use App\Models\SampleField;
@@ -12,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateProjectSearchSample
 {
-    public function __construct(private ChangeTracker $changeTracker) {}
+    public function __construct(private ChangeTracker $changeTracker, private EnsureEditable $ensureEditable) {}
 
     public function handle(Project $project, Sample $sample, array $data): Sample
     {
@@ -22,7 +23,7 @@ class UpdateProjectSearchSample
             $lockedProject = Project::query()->lockForUpdate()->findOrFail($project->id);
             $lockedSample = Sample::query()->lockForUpdate()->findOrFail($sample->id);
 
-            abort_if($lockedProject->auth_status || $lockedProject->locked, 403, 'Dit project is vergrendeld of geautoriseerd.');
+            $this->ensureEditable->handle($lockedProject, KeyringType::Sample, $lockedSample->id);
 
             match ($data['source']) {
                 'attribute' => $this->updateAttribute($lockedSample, $data['field'], $data['value']),

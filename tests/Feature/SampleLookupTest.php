@@ -171,7 +171,7 @@ class SampleLookupTest extends TestCase
     }
 
     #[DataProvider('deniedDetailChanges')]
-    public function test_sample_detail_changes_return_403_without_permission_or_for_frozen_projects(bool $canView, bool $canUpdate, int $authorized, int $locked): void
+    public function test_sample_detail_changes_are_rejected_without_permission_or_for_frozen_projects(bool $canView, bool $canUpdate, int $authorized, int $locked, int $status): void
     {
         Gate::define('samples.view', fn () => $canView);
         Gate::define('samples.update', fn () => $canUpdate);
@@ -180,7 +180,7 @@ class SampleLookupTest extends TestCase
 
         $this->patchJson(route('samples.lookup.details.update', ['project' => $sample->project, 'sample' => $sample->id]), [
             'source' => 'attribute', 'field' => 'description', 'value' => 'Not allowed',
-        ])->assertForbidden();
+        ])->assertStatus($status);
 
         $this->assertDatabaseHas('samples', ['id' => $sample->id, 'description' => 'Water sample']);
         $this->assertDatabaseCount(ChangeRevision::class, 0);
@@ -189,10 +189,10 @@ class SampleLookupTest extends TestCase
     public static function deniedDetailChanges(): array
     {
         return [
-            'no sample view permission' => [false, true, 0, 0],
-            'no sample update permission' => [true, false, 0, 0],
-            'authorized project' => [true, true, 1, 0],
-            'locked project' => [true, true, 0, 1],
+            'no sample view permission' => [false, true, 0, 0, 403],
+            'no sample update permission' => [true, false, 0, 0, 403],
+            'authorized project' => [true, true, 1, 0, 423],
+            'locked project' => [true, true, 0, 1, 423],
         ];
     }
 
@@ -277,7 +277,7 @@ class SampleLookupTest extends TestCase
         $sample->analyses()->first()->update(['is_ready' => true]);
         $this->postJson($url, ['operation' => 'remove', 'analysis_id' => $ids[1]])->assertUnprocessable();
         Project::find($sample->project)->update(['locked' => 1]);
-        $this->postJson($url, $payload)->assertUnprocessable();
+        $this->postJson($url, $payload)->assertStatus(423)->assertJsonPath('reason', 'authorization_blocked');
     }
 
     public function test_addition_rolls_back_when_a_later_entry_is_unavailable(): void

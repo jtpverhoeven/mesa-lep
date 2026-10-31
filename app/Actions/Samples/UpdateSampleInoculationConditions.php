@@ -5,6 +5,7 @@ namespace App\Actions\Samples;
 use App\Actions\AssuranceForms\GetOrCreateAssuranceForm;
 use App\Actions\AssuranceForms\QueueAssuranceFormSynchronization;
 use App\Actions\AssuranceForms\ResolveAssuranceDay;
+use App\Actions\Projects\EnsureEditable;
 use App\ChangeTracking\ChangeTracker;
 use App\Models\Project;
 use App\Models\Sample;
@@ -20,6 +21,7 @@ class UpdateSampleInoculationConditions
         private QueueAssuranceFormSynchronization $queueAssuranceSync,
         private EstimateRegisteredSampleEndpoints $estimate,
         private ChangeTracker $changeTracker,
+        private EnsureEditable $ensureEditable,
     ) {}
 
     public function handle(Sample $sample, CarbonInterface $inoculatedAt, string $storage, string $dilutedAt): Sample
@@ -31,9 +33,7 @@ class UpdateSampleInoculationConditions
                 ? Project::query()->lockForUpdate()->find($lockedSample->project)
                 : null;
 
-            if ($project?->locked || $project?->auth_status) {
-                throw ValidationException::withMessages(['sample' => 'Dit project is vergrendeld of geautoriseerd.']);
-            }
+            $this->ensureEditable->handle($project);
             $previousInoculation = (string) ($lockedSample->sample_innoculated ?? '');
             if (trim($previousInoculation) === '' || trim($previousInoculation) === '0') {
                 throw ValidationException::withMessages(['sample' => 'Kan niet wijzigen. Dit monster is nog niet gescand.']);

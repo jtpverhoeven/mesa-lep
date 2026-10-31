@@ -1,11 +1,11 @@
 @extends('layouts.app')
 @section('title', 'MESA | Project niet afgerond')
 @section('content')
-    <div class="page-heading">
+    {{-- <div class="page-heading">
         <div><div class="eyebrow">LIMS / Rapportage</div><h1>Rapport genereren: {{ $project->reference ?: $project->id }}</h1></div>
-    </div>
+    </div> --}}
     <section class="sample-panel" aria-labelledby="report-not-ready">
-        <h2 id="report-not-ready">Project niet afgerond</h2>
+        <h2 id="report-not-ready">Project {{ $project->reference ?: $project->id }} niet afgerond</h2>
         <div class="sample-panel-body grid gap-4">
             <p>Het project was niet afgerond op het moment van autoriseren. Weet u zeker dat u geen voorlopig rapport wilt aanmaken?</p>
             <p class="text-muted">U kunt toch doorgaan met het genereren van een rapport. De bestaande watermerken blijven van toepassing.</p>

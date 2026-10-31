@@ -19,7 +19,7 @@ class ResolveSampleRegistrationProject
                 throw ValidationException::withMessages(['project' => 'Het gekozen project hoort niet bij deze klant.']);
             }
 
-            if (isset($data['special_type']) && ((int) $project->special_type !== $data['special_type'] || $project->auth_status || $project->locked)) {
+            if (isset($data['special_type']) && ((int) $project->special_type !== $data['special_type'] || $project->isReadOnly())) {
                 throw ValidationException::withMessages(['project' => 'Kies een open project van het juiste monstertype.']);
             }
 

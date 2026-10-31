@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { FileClock, FileText, FlaskConical, FolderOpen, Search, Trash2 } from '@lucide/vue';
 import Tab from 'openvue/tab';
 import TabList from 'openvue/tablist';
@@ -7,6 +7,7 @@ import TabPanel from 'openvue/tabpanel';
 import TabPanels from 'openvue/tabpanels';
 import Tabs from 'openvue/tabs';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
+import { projectReasons } from '../stores/keyringStore';
 import AppConfirmDialog from './AppConfirmDialog.vue';
 import ProjectSampleFields from './ProjectSampleFields.vue';
 import ProjectSampleResults from './ProjectSampleResults.vue';
@@ -21,9 +22,12 @@ defineProps({
 
 const store = useProjectSearchStore();
 const deleteDialogVisible = ref(false);
+const readOnlyMessage = computed(() => (projectReasons(store.projectData?.reasons).length
+    ? 'Dit project is vergrendeld of geautoriseerd.'
+    : 'Dit monster is in gebruik door een andere gebruiker.'));
 const revisionsVisible = ref(false);
 
-watch(() => [store.selectedProjectId, store.selectedSampleId, store.sampleReadOnly], () => {
+watch(() => [store.selectedProjectId, store.selectedSampleId, store.projectReadOnly], () => {
     deleteDialogVisible.value = false;
 });
 
@@ -39,7 +43,7 @@ async function confirmDelete() {
             <span class="lookup-tools">
                 <a v-if="store.sampleData" class="icon-button" :href="store.endpoints.sampleLookup.replace('__BARCODE__', encodeURIComponent(store.sampleData.sample.barcode))" title="Ga naar monster" aria-label="Ga naar monster"><Search :size="15" /></a>
                 <button v-else class="icon-button" title="Ga naar monster" aria-label="Ga naar monster" disabled><Search :size="15" /></button>
-                <button v-if="canDelete && !store.sampleReadOnly" class="icon-button" type="button" title="Monster verwijderen" aria-label="Monster verwijderen" :disabled="!store.sampleData || store.deletingSample || store.loadingSample" @click="deleteDialogVisible = true"><Trash2 :size="15" /></button>
+                <button v-if="canDelete && !store.projectReadOnly" class="icon-button" type="button" title="Monster verwijderen" aria-label="Monster verwijderen" :disabled="!store.sampleData || store.deletingSample || store.loadingSample" @click="deleteDialogVisible = true"><Trash2 :size="15" /></button>
                 <button class="icon-button" type="button" title="Monsterrevisies" aria-label="Monsterrevisies" :disabled="!store.sampleData || store.loadingSample" @click="revisionsVisible = true"><FileClock :size="15" /></button>
             </span>
         </h2>
@@ -48,7 +52,7 @@ async function confirmDelete() {
         <template v-else-if="store.sampleData">        
             <Tabs value="details">
                 <TabPanels>
-                    <TabPanel value="details"><ProjectSampleFields :sample-data="store.sampleData" :can-update="canUpdate" :read-only="store.sampleReadOnly" :saving-fields="store.savingSample" @save="store.updateSampleField" /></TabPanel>
+                    <TabPanel value="details"><ProjectSampleFields :sample-data="store.sampleData" :can-update="canUpdate" :read-only="store.sampleReadOnly" :read-only-message="readOnlyMessage" :saving-fields="store.savingSample" @save="store.updateSampleField" /></TabPanel>
                     <TabPanel value="metadata" class="project-sample-metadata-panel"><SampleMetadataEditor v-model:metadata="store.sampleData.metadata" :sample-id="store.sampleData.sample.id" :endpoint="store.endpoints.metadata" :read-only="!canUpdate || store.sampleReadOnly" /></TabPanel>
                     <TabPanel value="files"><p class="empty-state">Bestanden worden in een latere fase toegevoegd.</p></TabPanel>
                 </TabPanels>
@@ -69,7 +73,7 @@ async function confirmDelete() {
             :message="`Monster ${store.sampleData?.sample.barcode ?? ''} verwijderen? Ook de bijbehorende analyses, resultaten en metadata worden verwijderd.`"
             confirm-label="Verwijderen"
             :loading="store.deletingSample"
-            :disabled="!canDelete || store.sampleReadOnly || !store.sampleData || store.loadingSample"
+            :disabled="!canDelete || store.projectReadOnly || !store.sampleData || store.loadingSample"
             :error="store.sampleError"
             @confirm="confirmDelete"
         >

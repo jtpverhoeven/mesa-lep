@@ -3,6 +3,8 @@ import { onBeforeUnmount, onMounted, watch } from 'vue';
 import { LoaderCircle } from '@lucide/vue';
 import { getEcho } from '../echo.js';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
+import { useKeyringStore } from '../stores/keyringStore';
+import KeyringNotice from './KeyringNotice.vue';
 import ProjectDetailsPanel from './ProjectDetailsPanel.vue';
 import ProjectSamplePanel from './ProjectSamplePanel.vue';
 import ProjectSamplesPanel from './ProjectSamplesPanel.vue';
@@ -11,19 +13,32 @@ import ProjectSearchPanel from './ProjectSearchPanel.vue';
 const props = defineProps({
     endpoints: { type: Object, required: true },
     permissions: { type: Object, required: true },
+    keyrings: { type: Object, default: () => ({}) },
     initialProjectId: { type: Number, default: null },
 });
 const store = useProjectSearchStore();
 store.configure(props.endpoints);
+const keyringStore = useKeyringStore();
+keyringStore.configure(props.keyrings, getEcho);
+const stopEditabilityListener = keyringStore.onEditabilityChanged((event) => store.applyEditabilityChange(event));
 let realtimeClient;
 let subscribedSampleId = null;
 let realtimeFailed = false;
 
+watch(() => store.selectedProjectId, (projectId, previousProjectId) => {
+    if (previousProjectId) void keyringStore.release('project', previousProjectId);
+    if (projectId) void keyringStore.acquire('project', projectId);
+}, { flush: 'sync' });
+
 watch(() => store.selectedSampleId, (sampleId) => {
-    if (subscribedSampleId !== null) realtimeClient?.leave(`samples.${subscribedSampleId}`);
+    if (subscribedSampleId !== null) {
+        realtimeClient?.leave(`samples.${subscribedSampleId}`);
+        void keyringStore.release('sample', subscribedSampleId);
+    }
     subscribedSampleId = sampleId;
     realtimeFailed = false;
     if (sampleId === null) return;
+    void keyringStore.acquire('sample', sampleId);
 
     realtimeClient = getEcho();
     realtimeClient.private(`samples.${sampleId}`)
@@ -46,7 +61,12 @@ watch(() => store.loadingSample, (loading) => {
 });
 
 onBeforeUnmount(() => {
-    if (subscribedSampleId !== null) realtimeClient?.leave(`samples.${subscribedSampleId}`);
+    stopEditabilityListener();
+    if (subscribedSampleId !== null) {
+        realtimeClient?.leave(`samples.${subscribedSampleId}`);
+        void keyringStore.release('sample', subscribedSampleId);
+    }
+    if (store.selectedProjectId) void keyringStore.release('project', store.selectedProjectId);
 });
 
 onMounted(() => {
@@ -63,12 +83,16 @@ function displayDate(value) {
 <template>
     <div class="project-search-page">
         <div v-if="store.error" class="notice error" role="alert">{{ store.error }}</div>
+        <div v-if="store.selectedProjectId" class="keyring-notices">
+            <KeyringNotice type="project" :id="store.selectedProjectId" />
+            <KeyringNotice v-if="store.selectedSampleId" type="sample" :id="store.selectedSampleId" />
+        </div>
         <div class="project-search-grid" :class="{ 'project-search-grid-empty': !store.selectedProjectId }">
             <div class="project-search-column">
                 <ProjectSearchPanel />
                 <ProjectDetailsPanel v-if="store.selectedProjectId" />
             </div>
-            <ProjectSamplesPanel v-if="store.selectedProjectId" :can-manage-authorization="permissions.manageAuthorization" />
+            <ProjectSamplesPanel v-if="store.selectedProjectId" :can-manage-authorization="permissions.manageAuthorization" :can-block-authorization="permissions.blockAuthorization" />
             <ProjectSamplePanel v-if="store.selectedProjectId" :can-update="permissions.updateSample" :can-delete="permissions.deleteSample" :can-veto="permissions.vetoResults" />
         </div>
         <section v-if="store.showsResults" class="sample-panel project-results-panel">

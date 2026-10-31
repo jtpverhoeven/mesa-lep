@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia';
+import { projectReasons, rejectNotEditable, useKeyringStore } from './keyringStore.js';
 
 let activeSearchRequest;
 let activeProjectRequest;
 let activeSampleRequest;
 const analysisResultRevisions = new Map();
 
-async function responseData(response) {
+async function responseData(response, target = null) {
     const payload = await response.json();
+    rejectNotEditable(response, payload, target);
     if (!response.ok) throw new Error(payload.message || 'De aanvraag kon niet worden verwerkt.');
     return payload.data;
 }
@@ -24,9 +26,16 @@ export const useProjectSearchStore = defineStore('projectSearch', {
         selectedSample: (state) => state.projectData?.samples.find(
             (sample) => Number(sample.id) === Number(state.selectedSampleId),
         ) ?? null,
-        sampleReadOnly: (state) => state.projectActionLoading || (state.projectData?.project
-            ? Boolean(Number(state.projectData.project.auth_status) || Number(state.projectData.project.locked))
-            : Boolean(state.sampleData?.read_only)),
+        sampleReadOnly(state) {
+            if (state.projectActionLoading) return true;
+            const reasons = state.projectData ? state.projectData.reasons : state.sampleData?.reasons;
+
+            return projectReasons(reasons).length > 0 || useKeyringStore().isLockedByOther('sample', state.selectedSampleId);
+        },
+        projectReadOnly(state) {
+            return state.projectActionLoading || useKeyringStore().isReadOnly(state.projectData?.reasons, 'project', state.selectedProjectId);
+        },
+        projectLockedByOther: (state) => useKeyringStore().isLockedByOther('project', state.selectedProjectId),
         showsResults: (state) => state.mode === 'reference'
             && (state.searching || state.searched)
             && state.selectedProjectId === null,
@@ -142,7 +151,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
             }
         },
         async deleteSample() {
-            if (!this.sampleData || this.sampleReadOnly || this.deletingSample) return false;
+            if (!this.sampleData || this.projectReadOnly || this.deletingSample) return false;
 
             const projectId = this.selectedProjectId;
             const sampleId = this.selectedSampleId;
@@ -156,7 +165,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
                     },
                 });
-                await responseData(response);
+                await responseData(response, this.projectData);
                 if (this.selectedProjectId === projectId) await this.selectProject(projectId);
                 return true;
             } catch (error) {
@@ -235,7 +244,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
                     },
                     body: JSON.stringify(payload),
                 });
-                const data = await responseData(response);
+                const data = await responseData(response, this.projectData);
 
                 if (this.selectedProjectId === projectId && this.selectedSampleId === sampleId
                     && activeSampleRequest === sampleRequest) {
@@ -271,7 +280,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
                     },
                     body: JSON.stringify({ source, field, value: String(value ?? '') }),
                 });
-                const data = await responseData(response);
+                const data = await responseData(response, this.projectData);
                 this.sampleData = data;
                 const summary = this.projectData?.samples.find((sample) => Number(sample.id) === Number(this.selectedSampleId));
                 if (summary) summary.description = data.sample.description;
@@ -309,7 +318,7 @@ export const useProjectSearchStore = defineStore('projectSearch', {
                     },
                     body: JSON.stringify(payload),
                 });
-                const result = await responseData(response);
+                const result = await responseData(response, this.projectData);
                 if (Number(this.selectedProjectId) === Number(projectId) && this.projectData?.project && result.project) {
                     Object.assign(this.projectData.project, result.project);
 
@@ -335,6 +344,53 @@ export const useProjectSearchStore = defineStore('projectSearch', {
             } finally {
                 this.projectActionLoading = false;
             }
+        },
+        async blockProjectAuthorization(message = '') {
+            return this.updateAuthorizationBlock('POST', { message: message.trim() || null });
+        },
+        async unblockProjectAuthorization() {
+            return this.updateAuthorizationBlock('DELETE', {});
+        },
+        async updateAuthorizationBlock(method, payload) {
+            if (this.selectedProjectId === null || !this.projectData || this.projectActionLoading) return null;
+
+            const projectId = this.selectedProjectId;
+            this.projectActionLoading = true;
+            this.projectActionError = '';
+
+            try {
+                const response = await fetch(this.endpoints.authorizationBlock.replace('__PROJECT__', projectId), {
+                    method,
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const result = await responseData(response);
+                if (Number(this.selectedProjectId) === Number(projectId) && this.projectData?.project) {
+                    Object.assign(this.projectData.project, result.project ?? {});
+                    await this.refreshProject(projectId);
+                }
+
+                return result;
+            } catch (error) {
+                this.projectActionError = error.message;
+                return null;
+            } finally {
+                this.projectActionLoading = false;
+            }
+        },
+        applyEditabilityChange(event) {
+            if (!this.projectData || Number(event.project_id) !== Number(this.selectedProjectId)) return;
+            this.projectData.reasons = [...event.reasons];
+            this.projectData.read_only = event.read_only;
+            if (this.sampleData) {
+                this.sampleData.reasons = [...event.reasons];
+                this.sampleData.read_only = event.read_only;
+            }
+            void this.refreshProject(this.selectedProjectId);
         },
         async refreshProject(projectId) {
             activeProjectRequest?.abort();

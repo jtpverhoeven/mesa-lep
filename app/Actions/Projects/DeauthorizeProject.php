@@ -4,6 +4,7 @@ namespace App\Actions\Projects;
 
 use App\ChangeTracking\ChangeTracker;
 use App\ClientPortal\ClientPortalService;
+use App\Keyrings\KeyringType;
 use App\Models\Project;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -11,7 +12,7 @@ use Throwable;
 
 class DeauthorizeProject
 {
-    public function __construct(private ClientPortalService $clientPortal, private ChangeTracker $changeTracker) {}
+    public function __construct(private ClientPortalService $clientPortal, private ChangeTracker $changeTracker, private EnsureEditable $ensureEditable) {}
 
     /** @return array<string, mixed> */
     public function handle(Project $project, int $userId, string $origin, string $reason): array
@@ -19,6 +20,7 @@ class DeauthorizeProject
         $result = DB::transaction(function () use ($project, $userId, $origin, $reason): array {
             $analyses = $project->sampleAnalyses()->reorder('id')->lockForUpdate()->get(['sampleanalysis.id']);
             $lockedProject = Project::query()->lockForUpdate()->findOrFail($project->getKey());
+            $this->ensureEditable->handle($lockedProject, KeyringType::Project, $lockedProject->id, applyProjectRule: false);
 
             if ($analyses->modelKeys() !== $lockedProject->sampleAnalyses()->reorder('id')->pluck('sampleanalysis.id')->all()) {
                 throw ValidationException::withMessages([

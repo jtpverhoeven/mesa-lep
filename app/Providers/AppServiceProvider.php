@@ -2,11 +2,14 @@
 
 namespace App\Providers;
 
+use App\Actions\Keyrings\ReleaseUserKeyrings;
 use App\Confirmations\ConfirmationAssuranceFields;
 use App\Confirmations\DatabaseConfirmationAssuranceFields;
 use App\Models\User;
 use App\Support\Printing\LabelPrinterTransport;
 use App\Support\Printing\TcpLabelPrinterTransport;
+use Illuminate\Auth\Events\Logout;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,5 +30,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::before(fn (User $user) => $user->hasRole('administrator') ? true : null);
+
+        Event::listen(function (Logout $event): void {
+            if ($event->user instanceof User) {
+                app(ReleaseUserKeyrings::class)->handle($event->user);
+            }
+        });
     }
 }

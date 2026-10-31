@@ -3,8 +3,10 @@
 namespace App\Actions\Confirmations;
 
 use App\Actions\AssuranceForms\QueueAssuranceFormSynchronization;
+use App\Actions\Projects\EnsureEditable;
 use App\Actions\Results\GetMetaAnalysisParent;
 use App\Jobs\CalculateAnalysisResultJob;
+use App\Keyrings\KeyringType;
 use App\Models\Confirmation;
 use App\Models\Project;
 use App\Models\SampleAnalysis;
@@ -17,6 +19,7 @@ class ConfirmationMutation
     public function __construct(
         private QueueAssuranceFormSynchronization $queueAssuranceSync,
         private GetMetaAnalysisParent $metaParent,
+        private EnsureEditable $ensureEditable,
     ) {}
 
     public function execute(SampleAnalysis $analysis, Closure $callback): SampleAnalysis
@@ -31,12 +34,7 @@ class ConfirmationMutation
             $project = $locked->project === null
                 ? null
                 : Project::query()->lockForUpdate()->findOrFail($locked->project);
-
-            if ($project?->locked || $project?->auth_status) {
-                throw ValidationException::withMessages([
-                    'confirmation' => 'Dit project is vergrendeld of geautoriseerd.',
-                ]);
-            }
+            $this->ensureEditable->handle($project, KeyringType::Sample, (int) $locked->sample);
 
             $confirmation = Confirmation::query()
                 ->where('said', $locked->id)

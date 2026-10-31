@@ -30,4 +30,13 @@ class AccountImages
             ? route('account.images.show', ['kind' => $kind])
             : null;
     }
+
+    public static function userAvatarUrl(User $user): ?string
+    {
+        $path = self::path($user, 'avatar');
+
+        return $path && Storage::disk('local')->exists($path)
+            ? route('users.avatar', $user)
+            : null;
+    }
 }

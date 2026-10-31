@@ -15,6 +15,7 @@ class ChangeType
         '20' => 'Projectnotitie gewijzigd', '21' => 'Project naar portal geëxporteerd',
         '22' => 'Project vergrendeld', '23' => 'Project ontgrendeld', '24' => 'Projectklant gewijzigd',
         '25' => 'Bestand toegevoegd', '26' => 'Bestand verwijderd', '27' => 'Bestandszichtbaarheid gewijzigd',
+        '28' => 'Vergrendeling overgenomen',
     ];
 
     public static function label(string $type): string
