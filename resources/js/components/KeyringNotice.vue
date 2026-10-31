@@ -25,11 +25,11 @@ const stealError = ref('');
 watch(locked, (isLocked, wasLocked) => {
     if (!isLocked || wasLocked) return;
     try {
-        sfx.play('warning').catch(() => {});
-    } catch {
-        // Audio is unavailable outside the browser.
+        void sfx.play('warning').catch((error) => console.warn('Vergrendelingswaarschuwing kon niet worden afgespeeld.', error));
+    } catch (error) {
+        console.warn('Vergrendelingswaarschuwing kon niet worden afgespeeld.', error);
     }
-});
+}, { immediate: true });
 
 async function steal() {
     stealing.value = true;

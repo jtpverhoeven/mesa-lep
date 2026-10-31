@@ -7,8 +7,8 @@
 
 - Temporary projects
 
-- Sender 
-        
+- Email composer / sender 
+       
    
 # Known bugs
 
@@ -24,4 +24,4 @@
 * Create a default test label 
 * If a reference is set, we should also show in normal lims result if it's over the limit. 
 * "Social" like ways of tagging users in basically any section of the application. 
-    
+* Locked projects should not be allowed to generate a report / temp report i think. Make cvar for behaviour?

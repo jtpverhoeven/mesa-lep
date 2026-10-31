@@ -31,7 +31,6 @@
                     @endif
                 </nav>
                 <user-menu v-bind="{{ Illuminate\Support\Js::from(['name' => auth()->user()->name, 'email' => auth()->user()->email, 'avatarUrl' => \App\Support\AccountImages::url(auth()->user(), 'avatar'), 'settingsUrl' => route('account.settings'), 'logoutUrl' => route('logout'), 'csrf' => csrf_token()]) }}">
-                    {{-- <form method="POST" action="{{ route('logout') }}">@csrf<button class="button" type="submit">Uitloggen</button></form> --}}
                 </user-menu>
             @else
                 <span class="topbar-label">Laboratorium informatiesysteem</span>
