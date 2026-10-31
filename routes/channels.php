@@ -23,3 +23,7 @@ Broadcast::channel('keyrings.{type}.{typeId}', function (User $user, string $typ
         'avatar_url' => AccountImages::userAvatarUrl($user),
     ];
 });
+
+Broadcast::channel('keyrings.admin', function (User $user): bool {
+    return $user->enabled && $user->can('administration.access') && $user->can('keyrings.manage');
+});

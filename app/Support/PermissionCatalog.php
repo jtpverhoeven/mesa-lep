@@ -52,6 +52,7 @@ class PermissionCatalog
                 'projects.delete' => 'Projecten verwijderen',
                 'projects.authorisation.block' => 'Projectautorisatie blokkeren',
                 'keyrings.steal' => 'Vergrendelingen van andere gebruikers overnemen',
+                'keyrings.manage' => 'Vergrendelingen beheren',
                 'confirmations.reset' => 'Bevestigingen resetten',
             ],
             'Klanten' => [

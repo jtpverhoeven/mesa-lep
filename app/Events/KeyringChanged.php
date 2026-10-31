@@ -6,6 +6,7 @@ use App\Keyrings\KeyringType;
 use App\Models\Keyring;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -32,7 +33,10 @@ class KeyringChanged implements ShouldBroadcastNow, ShouldDispatchAfterCommit
 
     public function broadcastOn(): array
     {
-        return [new PresenceChannel($this->type->channelName($this->typeId))];
+        return [
+            new PresenceChannel($this->type->channelName($this->typeId)),
+            new PrivateChannel('keyrings.admin'),
+        ];
     }
 
     public function broadcastAs(): string

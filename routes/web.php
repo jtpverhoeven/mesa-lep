@@ -15,6 +15,7 @@ use App\Http\Controllers\CvarController;
 use App\Http\Controllers\DocgenAssociationController;
 use App\Http\Controllers\DocgenTemplateController;
 use App\Http\Controllers\FooterController;
+use App\Http\Controllers\KeyringAdministrationController;
 use App\Http\Controllers\KeyringController;
 use App\Http\Controllers\LabelDesignController;
 use App\Http\Controllers\LabelEventController;
@@ -409,6 +410,12 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
         Route::delete('/reference-sources/{referenceSource}', [ReferenceSourceController::class, 'destroy'])->name('reference-sources.destroy');
         Route::get('/cvars', [CvarController::class, 'index'])->name('cvars.index');
         Route::put('/cvars/{cvar}', [CvarController::class, 'update'])->name('cvars.update');
+    });
+
+    Route::middleware('can:keyrings.manage')->prefix('keyrings')->name('keyrings.admin.')->group(function () {
+        Route::get('/', [KeyringAdministrationController::class, 'index'])->name('index');
+        Route::get('/data', [KeyringAdministrationController::class, 'data'])->name('data');
+        Route::delete('/{keyring}', [KeyringAdministrationController::class, 'destroy'])->whereNumber('keyring')->name('destroy');
     });
 });
 
