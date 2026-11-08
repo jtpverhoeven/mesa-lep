@@ -26,7 +26,6 @@ const reportOverviewVisible = ref(false);
         <div v-if="store.loadingProject" class="sample-panel-body muted" role="status">Project laden...</div>
         <div v-else-if="store.projectData" class="project-detail-body">
             <ProjectInfo :info="store.projectData.project_info" mode="project" />
-            <div v-if="store.projectData.project.locked" class="project-lock-warning">Autorisatie geblokkeerd: {{ store.projectData.project.lock_message || 'Geen reden opgegeven.' }}</div>
             
             <div class="project-detail-actions"><button class="button primary" type="button" @click="store.backToResults()"><ArrowLeft :size="15" />Terug naar zoeken</button></div>
         </div>

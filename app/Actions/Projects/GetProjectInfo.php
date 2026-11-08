@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\ProjectField;
 use App\Models\SampleProcedure;
 use App\Models\User;
+use App\Support\AccountImages;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Support\Carbon;
@@ -19,6 +20,8 @@ class GetProjectInfo
             'client:id,name',
             'authorizedBy:id,name',
             'authorizedBy.profile:id,user_id,first_name,last_name,avatar_path',
+            'blockedBy:id,name',
+            'blockedBy.profile:id,user_id,first_name,last_name,avatar_path',
             'reportedBy:id,name',
             'reportedBy.profile:id,user_id,first_name,last_name',
         ]);
@@ -39,6 +42,7 @@ class GetProjectInfo
         $twoDays = $firstDate && $lastDate && ! $firstDate->isSameDay($lastDate);
 
         $avatarPath = $project->authorizedBy?->profile?->avatar_path;
+        $blockedBy = $project->isAuthorizationBlocked() ? $project->blockedBy : null;
 
         return [
             'project' => [
@@ -53,6 +57,10 @@ class GetProjectInfo
                     'name' => $this->fullName($project->authorizedBy),
                     'avatar_url' => $avatarPath && Storage::disk('local')->exists($avatarPath)
                         ? route('projects.info.avatar', $project) : null,
+                ] : null,
+                'authorization_blocked_by' => $blockedBy ? [
+                    'name' => $this->fullName($blockedBy),
+                    'avatar_url' => AccountImages::userAvatarUrl($blockedBy),
                 ] : null,
                 'reported_by' => (int) $project->rap_stat === 1 ? $this->fullName($project->reportedBy) : null,
             ],

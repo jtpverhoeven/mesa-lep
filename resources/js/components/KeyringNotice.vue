@@ -45,9 +45,9 @@ async function steal() {
 </script>
 
 <template>
-    <div v-if="locked" class="keyring-notice" :class="{ stolen: entry.stolenBy }" role="status" aria-live="polite">
+    <div v-if="locked" class="status-notice keyring-notice" :class="{ stolen: entry.stolenBy }" role="status" aria-live="polite">
         <Avatar :image="status.locked_by_avatar || undefined" :label="status.locked_by_avatar ? undefined : holderName.charAt(0).toUpperCase()" shape="circle" aria-hidden="true" />
-        <div class="keyring-notice-text">
+        <div class="status-notice-text">
             <strong v-if="entry.stolenBy"><LockKeyhole :size="15" aria-hidden="true" />{{ label }} is overgenomen door {{ entry.stolenBy }}.</strong>
             <strong v-else><LockKeyhole :size="15" aria-hidden="true" />{{ label }} is in gebruik door {{ holderName }}.</strong>
             <span v-if="entry.stolenBy">Niet-opgeslagen invoer blijft zichtbaar, maar kan niet meer worden opgeslagen.</span>

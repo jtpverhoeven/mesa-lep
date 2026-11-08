@@ -177,6 +177,31 @@ class ProjectInfoTest extends TestCase
         $this->get(route('projects.info.avatar', $project))->assertNotFound();
     }
 
+    public function test_authorization_block_exposes_the_blocker_name_and_avatar_on_both_pages(): void
+    {
+        Storage::fake('local');
+        $blocker = User::factory()->create(['name' => 'Fallback Blocker']);
+        $blocker->profile()->create(['first_name' => 'Grace', 'last_name' => 'Hopper', 'avatar_path' => 'avatars/grace.png']);
+        Storage::disk('local')->put('avatars/grace.png', 'avatar bytes');
+        $project = $this->project([
+            'locked' => 1,
+            'locked_by' => $blocker->id,
+            'lock_message' => 'Wacht op herbemonstering',
+        ]);
+        $sample = $this->sample($project, '26101001', '2026-10-10 12:00');
+        $avatarUrl = route('users.avatar', $blocker);
+
+        $this->getJson(route('projects.search.show', $project))
+            ->assertOk()
+            ->assertJsonPath('data.project.authorization_blocked_by.name', 'Grace Hopper')
+            ->assertJsonPath('data.project.authorization_blocked_by.avatar_url', $avatarUrl);
+
+        $this->getJson(route('samples.lookup.data', ['barcode' => $sample->barcode]))
+            ->assertOk()
+            ->assertJsonPath('data.project.authorization_blocked_by.name', 'Grace Hopper')
+            ->assertJsonPath('data.project.authorization_blocked_by.avatar_url', $avatarUrl);
+    }
+
     #[DataProvider('portalCounts')]
     public function test_portal_status_checks_the_projects_client_through_the_portal(int $users, bool $active): void
     {

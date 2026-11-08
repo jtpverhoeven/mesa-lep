@@ -16,6 +16,7 @@ import ConfirmationDialog from './ConfirmationDialog.vue';
 import { useConfirmationStore } from '../stores/confirmationStore';
 import { projectReasons, useKeyringStore } from '../stores/keyringStore';
 import ShowRevisions from './ShowRevisions.vue';
+import AuthorizationBlockedNotice from './AuthorizationBlockedNotice.vue';
 import KeyringNotice from './KeyringNotice.vue';
 
 const props = defineProps({ endpoints: { type: Object, required: true }, permissions: { type: Object, required: true }, keyrings: { type: Object, default: () => ({}) }, initialBarcode: { type: String, default: '' } });
@@ -161,9 +162,9 @@ onBeforeUnmount(() => {
 <template>
     <div class="sample-lookup" :aria-busy="store.loading || store.saving">
         <p v-if="store.error" class="error-text" role="alert">{{ store.error }}</p>
-        <div v-if="store.data" class="keyring-notices">
+        <div v-if="store.data" class="status-notices">
             <KeyringNotice type="sample" :id="store.data.sample.id" />
-            <p v-if="projectLocked" class="editability-notice" role="status">Project is vergrendeld of geautoriseerd. {{ store.data.project.lock_message }}</p>
+            <AuthorizationBlockedNotice :project="store.data.project" />
         </div>
         <div class="sample-create-grid">
             <div class="sample-create-column">

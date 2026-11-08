@@ -4,6 +4,7 @@ import { LoaderCircle } from '@lucide/vue';
 import { getEcho } from '../echo.js';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
 import { useKeyringStore } from '../stores/keyringStore';
+import AuthorizationBlockedNotice from './AuthorizationBlockedNotice.vue';
 import KeyringNotice from './KeyringNotice.vue';
 import ProjectDetailsPanel from './ProjectDetailsPanel.vue';
 import ProjectSamplePanel from './ProjectSamplePanel.vue';
@@ -83,9 +84,10 @@ function displayDate(value) {
 <template>
     <div class="project-search-page">
         <div v-if="store.error" class="notice error" role="alert">{{ store.error }}</div>
-        <div v-if="store.selectedProjectId" class="keyring-notices">
+        <div v-if="store.selectedProjectId" class="status-notices">
             <KeyringNotice type="project" :id="store.selectedProjectId" />
             <KeyringNotice v-if="store.selectedSampleId" type="sample" :id="store.selectedSampleId" />
+            <AuthorizationBlockedNotice :project="store.projectData?.project" />
         </div>
         <div class="project-search-grid" :class="{ 'project-search-grid-empty': !store.selectedProjectId }">
             <div class="project-search-column">

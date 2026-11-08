@@ -107,7 +107,7 @@ async function submit(event) {
 </script>
 
 <template>
-    <div class="keyring-notices"><KeyringNotice type="export" :id="projectId" /></div>
+    <div class="status-notices"><KeyringNotice type="export" :id="projectId" /></div>
     <form method="POST" :action="config.action" class="report-generation-grid" @submit="submit">
         <input type="hidden" name="_token" :value="config.csrf">
         <input type="hidden" name="reportExportType" :value="submitType">

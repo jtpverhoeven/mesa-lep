@@ -275,32 +275,29 @@
         @apply p-0;
     }
 
-    .keyring-notice {
+    .status-notice {
         @apply flex flex-wrap items-center gap-3 rounded-control border border-accent bg-accent-faint px-3 py-2 text-ui text-ink;
     }
 
-    .keyring-notice.stolen {
+    .keyring-notice.stolen,
+    .authorization-blocked-notice {
         @apply border-danger bg-danger-faint;
     }
 
-    .keyring-notices {
+    .status-notices {
         @apply mb-3 grid gap-2 empty:hidden;
     }
 
-    .keyring-notice-text {
+    .status-notice-text {
         @apply grid min-w-0 flex-1 gap-0.5;
     }
 
-    .keyring-notice-text strong {
+    .status-notice-text strong {
         @apply flex items-center gap-1.5 font-semibold;
     }
 
-    .keyring-notice-text span {
+    .status-notice-text span {
         @apply text-muted;
-    }
-
-    .editability-notice {
-        @apply m-0 rounded-control border border-line bg-surface-alt px-3 py-2 text-ui text-ink;
     }
 
     .keyring-notice-error {
