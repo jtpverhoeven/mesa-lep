@@ -306,4 +306,27 @@
     .keyring-notice-error {
         @apply m-0 text-xs text-danger;
     }
+
+    .project-status {
+        --project-status-bg: var(--status-default);
+        @apply inline-block rounded-control px-1.5 py-0.5 text-[11px] font-bold wrap-anywhere;
+        background: var(--project-status-bg);
+        color: var(--status-ink);
+    }
+
+    .project-status.inverse {
+        --project-status-bg: var(--status-inverse);
+    }
+
+    .project-status.info {
+        --project-status-bg: var(--status-info);
+    }
+
+    .project-status.warning {
+        --project-status-bg: var(--status-warning);
+    }
+
+    .project-status.success {
+        --project-status-bg: var(--status-success);
+    }
 }

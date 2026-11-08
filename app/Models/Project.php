@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ProjectStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,6 +35,26 @@ class Project extends Model
     public function isReadOnly(): bool
     {
         return $this->isAuthorized() || $this->isAuthorizationBlocked();
+    }
+
+    /**
+     * The project's own status, following the precedence of legacy projectsController::statusLabel.
+     */
+    public function status(): ProjectStatus
+    {
+        if ($this->isAuthorized()) {
+            return (int) $this->rap_stat === 1 ? ProjectStatus::Reported : ProjectStatus::Authorized;
+        }
+
+        if ($this->isAuthorizationBlocked()) {
+            return ProjectStatus::Blocked;
+        }
+
+        if ((int) $this->started === 0) {
+            return ProjectStatus::Received;
+        }
+
+        return (int) $this->is_ready === 1 ? ProjectStatus::Completed : ProjectStatus::Running;
     }
 
     /**

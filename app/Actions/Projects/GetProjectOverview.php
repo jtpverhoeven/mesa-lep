@@ -5,6 +5,7 @@ namespace App\Actions\Projects;
 use App\Models\Project;
 use App\Support\LaboratoryCalendar;
 use App\Support\PredictedEndProgress;
+use App\Support\ProjectStatus;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -88,20 +89,25 @@ class GetProjectOverview
             'last_print_name' => is_array($printInfo) ? ($printInfo['last_print_name'] ?? '') : '',
             'print_times' => is_array($printInfo) ? ($printInfo['print_times'] ?? null) : null,
             'reported_by' => $reporter ?: ($project->reportedBy?->name ?? '?'),
-            'status' => $this->status($project, $status),
+            ...$this->status($project, $status)->toArray(),
             'progress' => $this->progress($project),
             'deadline_tone' => $status === 'running' ? $this->deadlineTone($project) : null,
         ];
     }
 
-    private function status(Project $project, string $status): string
+    /** Legacy overviewLoader labels unauthorised projects by the list they appear in, not by Project::status(). */
+    private function status(Project $project, string $status): ProjectStatus
     {
         if ((int) $project->auth_status === 1) {
-            return self::STATUSES[(int) $project->rap_stat === 1 ? 'reported' : 'authorized'];
+            return (int) $project->rap_stat === 1 ? ProjectStatus::Reported : ProjectStatus::Authorized;
         }
 
-        return $status === 'running' && (int) $project->locked === 1
-            ? 'Lopend (Geblokkeerd)' : self::STATUSES[$status];
+        return match ($status) {
+            'received' => ProjectStatus::Received,
+            'running' => (int) $project->locked === 1 ? ProjectStatus::RunningBlocked : ProjectStatus::Running,
+            'completed' => ProjectStatus::Completed,
+            'blocked' => ProjectStatus::Blocked,
+        };
     }
 
     private function progress(Project $project): int

@@ -103,13 +103,6 @@ function displayDate(value) {
     return new Date(Number(value) * 1000).toLocaleDateString('nl-NL');
 }
 
-function statusTone(status) {
-    if (status.includes('Geblokkeerd')) return 'blocked';
-    if (status === 'Afgerond' || status === 'Geautoriseerd') return 'ready';
-    if (status === 'Lopend') return 'running';
-    return 'neutral';
-}
-
 function showPlaceholder(action, project) {
     placeholder.value = { action, project, labelDate: labelDate.value };
     placeholderVisible.value = true;
@@ -150,7 +143,7 @@ onBeforeUnmount(() => {
             >
                 <Column v-for="column in columns" :key="column.field" :field="column.field" :header="column.header">
                     <template #body="{ data }">
-                        <span v-if="column.field === 'status'" class="overview-status" :class="statusTone(data.status)" :title="data.lock_message || undefined">{{ data.status }}</span>
+                        <span v-if="column.field === 'status'" class="project-status overview-status" :class="data.status_tone" :title="data.lock_message || undefined">{{ data.status }}</span>
                         <div v-else-if="column.field === 'project'" class="overview-project">
                             <a :href="data.url"><strong>{{ data.reference || data.id }}</strong></a>
                             <span>{{ data.client_name }}</span>
@@ -213,11 +206,7 @@ onBeforeUnmount(() => {
 :deep(.project-overview-table th),:deep(.project-overview-table td) { padding:10px 12px; }
 .overview-project { display:grid; gap:4px; min-width:160px; }
 .overview-project span { overflow-wrap:anywhere; }
-.overview-status { display:inline-block; max-width:155px; padding:3px 6px; border:1px solid var(--line); font-size:11px; overflow-wrap:anywhere; }
-.overview-status.neutral { background:var(--surface-alt); color:var(--muted); }
-.overview-status.running { border-color:#a8c9d3; background:var(--accent-faint); color:var(--accent); }
-.overview-status.ready { border-color:#9dc8aa; background:#edf6ef; color:#24573d; }
-.overview-status.blocked { border-color:#d5a452; background:#fff3cf; color:#714d00; }
+.overview-status { max-width:155px; }
 .overview-sample-type { display:flex; align-items:center; gap:6px; white-space:nowrap; }
 .overview-sample-type svg { flex:none; color:var(--accent); }
 .overview-progress { display:grid; gap:4px; width:100px; }

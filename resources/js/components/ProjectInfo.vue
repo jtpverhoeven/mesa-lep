@@ -59,7 +59,7 @@ onBeforeUnmount(() => portalRequest?.abort());
         <div><dt>Orderformulier</dt><dd><a v-if="info.order_form_url" class="text-link" :href="info.order_form_url" target="_blank" rel="noopener">Downloaden</a><template v-else>Niet beschikbaar</template></dd></div>
         <div><dt>Referentie MAZ</dt><dd>{{ info.project.reference ? `${info.project.reference}.${info.project.revision}.${Number(info.project.print_version) || 1}` : '-' }}</dd></div>
         <div><dt>Project aangemeld</dt><dd>{{ displayDate(info.project.project_date) }}</dd></div>
-        <div><dt>Project status</dt><dd><span class="rounded-control border border-line bg-surface-alt px-1.5 py-0.5 text-[11px] font-semibold" :class="info.project.status === 'Geblokkeerd' ? 'text-danger' : ['Afgerond', 'Geautoriseerd', 'PDF gegenereerd'].includes(info.project.status) ? 'text-success' : 'text-ink'">{{ info.project.status }}</span></dd></div>
+        <div><dt>Project status</dt><dd><span class="project-status" :class="info.project.status_tone">{{ info.project.status }}</span></dd></div>
         <div><dt>Revisie</dt><dd>{{ info.project.revision }}</dd></div>
         <div>
             <dt>Autorisatie</dt>

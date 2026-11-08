@@ -48,7 +48,7 @@ class GetProjectInfo
                     'is_ready', 'started', 'locked', 'lock_message', 'project_notes', 'predicted_end',
                 ]),
                 'client_name' => $project->getRelation('client')?->name,
-                'status' => $this->status($project),
+                ...$project->status()->toArray(),
                 'authorized_by' => (int) $project->auth_status === 1 ? [
                     'name' => $this->fullName($project->authorizedBy),
                     'avatar_url' => $avatarPath && Storage::disk('local')->exists($avatarPath)
@@ -77,23 +77,6 @@ class GetProjectInfo
             'portal_status_url' => route('projects.info.portal-status', $project),
             'order_form_url' => $project->portal_id !== null ? route('projects.info.order-form', $project) : null,
         ];
-    }
-
-    private function status(Project $project): string
-    {
-        if ((int) $project->auth_status !== 0) {
-            return (int) $project->rap_stat === 1 ? 'PDF gegenereerd' : 'Geautoriseerd';
-        }
-
-        if ((int) $project->locked === 1) {
-            return 'Geblokkeerd';
-        }
-
-        if ((int) $project->started === 0) {
-            return 'Ontvangen';
-        }
-
-        return (int) $project->is_ready === 1 ? 'Afgerond' : 'Lopend';
     }
 
     private function fullName(?User $user): string

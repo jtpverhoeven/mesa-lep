@@ -40,6 +40,13 @@
     --danger-faint: #fff1ed;
     --success: #24573d;
     --success-faint: #edf6ef;
+    /* Solid status labels, shaded after the legacy Bootstrap 2 label flairs. */
+    --status-ink: #fff;
+    --status-default: #6f7b82;
+    --status-inverse: #2f3639;
+    --status-info: #2f7a9c;
+    --status-warning: #b85f00;
+    --status-success: #3f7d47;
     --control-radius: 2px;
     color-scheme: light;
 }
@@ -61,5 +68,11 @@
     --danger-faint: #482e2b;
     --success: #a5d5b4;
     --success-faint: #253d30;
+    --status-ink: #14232d;
+    --status-default: #8d989e;
+    --status-inverse: #d3d9dc;
+    --status-info: #6bb6d6;
+    --status-warning: #f2a649;
+    --status-success: #82c48e;
     color-scheme: dark;
 }

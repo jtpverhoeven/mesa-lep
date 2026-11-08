@@ -56,7 +56,7 @@ class SearchProjects
                 $project->samples_min_sample_innoculated,
                 $project->samples_max_sample_innoculated,
             ),
-            'status' => $this->status($project),
+            ...$project->status()->toArray(),
         ];
     }
 
@@ -72,15 +72,5 @@ class SearchProjects
         }
 
         return $firstDate->format('d-m-Y H:i').' / '.Carbon::createFromTimestamp((int) $last)->format('d-m-Y H:i');
-    }
-
-    private function status(Project $project): string
-    {
-        return match (true) {
-            (bool) $project->auth_status => 'Geautoriseerd',
-            (bool) $project->is_ready => 'Gereed',
-            (bool) $project->started => 'Lopend',
-            default => 'Ontvangen',
-        };
     }
 }

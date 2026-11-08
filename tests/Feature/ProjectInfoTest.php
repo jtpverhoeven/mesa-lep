@@ -31,26 +31,27 @@ class ProjectInfoTest extends TestCase
     }
 
     #[DataProvider('statuses')]
-    public function test_project_details_use_the_legacy_status_precedence(array $attributes, string $status): void
+    public function test_project_details_use_the_legacy_status_precedence_and_label_tone(array $attributes, string $status, string $tone): void
     {
         $project = $this->project($attributes);
 
         $this->getJson(route('projects.search.show', $project))
             ->assertOk()
-            ->assertJsonPath('data.project_info.project.status', $status);
+            ->assertJsonPath('data.project_info.project.status', $status)
+            ->assertJsonPath('data.project_info.project.status_tone', $tone);
     }
 
     public static function statuses(): array
     {
         return [
-            'received before work begins' => [[], 'Ontvangen'],
-            'running' => [['started' => 1], 'Lopend'],
-            'completed' => [['started' => 1, 'is_ready' => 1], 'Afgerond'],
-            'received takes precedence over readiness' => [['is_ready' => 1], 'Ontvangen'],
-            'authorized' => [['auth_status' => 1, 'started' => 1], 'Geautoriseerd'],
-            'reported' => [['auth_status' => 1, 'rap_stat' => 1, 'locked' => 1], 'PDF gegenereerd'],
-            'blocked before being started' => [['locked' => 1], 'Geblokkeerd'],
-            'blocked during work' => [['started' => 1, 'locked' => 1], 'Geblokkeerd'],
+            'received before work begins' => [[], 'Ontvangen', 'inverse'],
+            'running' => [['started' => 1], 'Lopend', 'info'],
+            'completed' => [['started' => 1, 'is_ready' => 1], 'Afgerond', 'warning'],
+            'received takes precedence over readiness' => [['is_ready' => 1], 'Ontvangen', 'inverse'],
+            'authorized' => [['auth_status' => 1, 'started' => 1], 'Geautoriseerd', 'success'],
+            'reported' => [['auth_status' => 1, 'rap_stat' => 1, 'locked' => 1], 'PDF gegenereerd', 'default'],
+            'blocked before being started' => [['locked' => 1], 'Geblokkeerd', 'warning'],
+            'blocked during work' => [['started' => 1, 'locked' => 1], 'Geblokkeerd', 'warning'],
         ];
     }
 

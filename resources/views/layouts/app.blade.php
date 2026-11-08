@@ -22,7 +22,7 @@
         <div id="app">
         {{-- <a class="skip-link" href="#content">Naar inhoud</a> --}}
         <header class="topbar">
-            <a href="{{ route('dashboard') }}" class="brand"><img src="{{ asset('images/smallLogoMain.svg') }}" alt="" class="brand-logo"><span>mesa<span class="muted mr-12">LIMS</span></span></a>
+            <a href="{{ route('dashboard') }}" class="brand"><img src="{{ asset('images/smallLogoMain.svg') }}" alt="" class="brand-logo"><span>mesa<span class="muted">LIMS</span></span></a>
             @auth
                 <nav class="topnav" aria-label="Hoofdnavigatie">
                     <a href="{{ route('dashboard') }}" @class(['selected' => request()->routeIs('dashboard') || request()->is('laboratory*')])>LIMS</a>
@@ -69,7 +69,7 @@
                             @can('users.manage')<a href="{{ route('users.index') }}" @class(['selected' => request()->is('admin/users*')])>Gebruikers</a>@endcan
                             @can('groups.manage')<a href="{{ route('user-groups.index') }}" @class(['selected' => request()->is('admin/user-groups*')])>Gebruikersgroepen</a>@endcan
                             @can('settings.advanced')
-                                <span class="nav-group">Rapportage</span>
+                                <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 16v-3"></path><path d="M12 16v-5"></path><path d="M16 16v-2"></path></svg>Rapportage</span>
                                 <a href="{{ route('docgen-templates.index') }}" @class(['selected' => request()->routeIs('docgen-templates.*', 'docgen-associations.*')])>Rapportsjablonen</a>
                                 <a href="{{ route('footers.index') }}" @class(['selected' => request()->routeIs('footers.*')])>Rapportvoetteksten</a>
                             @endcan

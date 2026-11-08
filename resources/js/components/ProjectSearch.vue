@@ -102,7 +102,7 @@ function displayDate(value) {
                     <thead><tr><th>Status</th><th>Referentie MAZ</th><th>Revisie</th><th>Referentie klant</th><th>Aantal monsters</th><th>Bemonsterdatum</th><th>Ontvangstdatum</th><th>Inzetdatum</th></tr></thead>
                     <tbody>
                         <tr v-for="project in store.projects" :key="project.id">
-                            <td><span class="project-status">{{ project.status }}</span></td>
+                            <td><span class="project-status" :class="project.status_tone">{{ project.status }}</span></td>
                             <td><button class="text-button" type="button" @click="store.selectProject(project.id)">MAZ-L {{ project.reference || project.id }}</button></td>
                             <td>{{ project.revision }}</td>
                             <td>{{ project.project_name || '-' }}</td>

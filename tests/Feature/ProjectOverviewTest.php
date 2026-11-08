@@ -217,6 +217,30 @@ class ProjectOverviewTest extends TestCase
             ->assertJsonPath('data.0.report_url', null)->assertJsonPath('data.0.temporary_report_url', null);
     }
 
+    #[DataProvider('listStatusLabels')]
+    public function test_status_labels_and_tones_follow_the_list_the_project_is_shown_in(string $status, array $state, string $label, string $tone): void
+    {
+        $this->allowOverview();
+        $this->project($state);
+
+        $this->getJson(route('projects.overview.'.$status.'.data'))->assertOk()
+            ->assertJsonPath('data.0.status', $label)
+            ->assertJsonPath('data.0.status_tone', $tone);
+    }
+
+    public static function listStatusLabels(): array
+    {
+        return [
+            'received' => ['received', ['started' => 0], 'Ontvangen', 'inverse'],
+            'running' => ['running', ['started' => 1], 'Lopend', 'info'],
+            'running while blocked' => ['running', ['started' => 1, 'locked' => 1], 'Lopend (Geblokkeerd)', 'warning'],
+            'completed while blocked keeps the list label' => ['completed', ['started' => 1, 'is_ready' => 1, 'locked' => 1], 'Afgerond', 'warning'],
+            'blocked' => ['blocked', ['started' => 0, 'locked' => 1], 'Geblokkeerd', 'warning'],
+            'authorized' => ['authorized', ['started' => 1, 'auth_status' => 1], 'Geautoriseerd', 'success'],
+            'reported' => ['reported', ['started' => 1, 'auth_status' => 1, 'rap_stat' => 1], 'PDF gegenereerd', 'default'],
+        ];
+    }
+
     public function test_missing_relations_and_malformed_legacy_json_do_not_break_an_overview(): void
     {
         $this->allowOverview();
