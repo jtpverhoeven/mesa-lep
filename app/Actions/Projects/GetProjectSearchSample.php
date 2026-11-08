@@ -2,6 +2,7 @@
 
 namespace App\Actions\Projects;
 
+use App\Actions\SampleFiles\ListSampleFiles;
 use App\Keyrings\KeyringType;
 use App\Models\Project;
 use App\Models\Sample;
@@ -10,7 +11,7 @@ use App\Models\SampleProcedure;
 
 class GetProjectSearchSample
 {
-    public function __construct(private GetEditability $editability) {}
+    public function __construct(private GetEditability $editability, private ListSampleFiles $listSampleFiles) {}
 
     public function handle(Project $project, Sample $sample): array
     {
@@ -52,6 +53,7 @@ class GetProjectSearchSample
             'metadata' => $sample->metadata->map->only([
                 'id', 'sample', 'name', 'value', 'meta_data_key_id', 'meta_order',
             ])->values()->all(),
+            'sample_files' => $this->listSampleFiles->handle($sample),
             'analyses' => $sample->analyses->map(fn ($analysis): array => [
                 ...$analysis->only([
                     'id', 'profile_group', 'profile', 'follow_number', 'conf_requested', 'is_ready',

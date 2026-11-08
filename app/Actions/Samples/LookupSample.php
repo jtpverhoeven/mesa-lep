@@ -4,6 +4,7 @@ namespace App\Actions\Samples;
 
 use App\Actions\Projects\GetEditability;
 use App\Actions\Projects\GetProjectInfo;
+use App\Actions\SampleFiles\ListSampleFiles;
 use App\Keyrings\KeyringType;
 use App\Models\Sample;
 use App\Models\SampleField;
@@ -13,7 +14,12 @@ use App\Support\PredictedEndProgress;
 
 class LookupSample
 {
-    public function __construct(private PredictedEndProgress $progress, private GetProjectInfo $projectInfo, private GetEditability $editability) {}
+    public function __construct(
+        private PredictedEndProgress $progress,
+        private GetProjectInfo $projectInfo,
+        private GetEditability $editability,
+        private ListSampleFiles $listSampleFiles,
+    ) {}
 
     public function handle(string $barcode): array
     {
@@ -48,6 +54,7 @@ class LookupSample
             'metadata' => $sample->metadata->map->only([
                 'id', 'sample', 'name', 'value', 'meta_data_key_id', 'meta_order',
             ])->values()->all(),
+            'sample_files' => $this->listSampleFiles->handle($sample),
             'project_follow_number' => $projectSamples->search(fn ($item) => $item->id === $sample->id) + 1,
             'sampling_method' => SampleProcedure::query()->whereKey($sample->sampling_method)->value('name'),
             'registered_by' => User::query()->whereKey($sample->registered_by)->value('name'),

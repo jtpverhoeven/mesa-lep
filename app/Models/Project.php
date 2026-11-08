@@ -109,4 +109,11 @@ class Project extends Model
             ->orderBy('metadata.meta_order')
             ->orderBy('metadata.id');
     }
+
+    public function sampleFiles(): HasManyThrough
+    {
+        return $this->hasManyThrough(SampleFile::class, Sample::class, 'project', 'sample_id')
+            ->orderBy('samples.barcode')
+            ->orderBy('samplefiles.id');
+    }
 }

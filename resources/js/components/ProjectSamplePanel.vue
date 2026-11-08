@@ -11,11 +11,13 @@ import { projectReasons } from '../stores/keyringStore';
 import AppConfirmDialog from './AppConfirmDialog.vue';
 import ProjectSampleFields from './ProjectSampleFields.vue';
 import ProjectSampleResults from './ProjectSampleResults.vue';
+import SampleFiles from './SampleFiles.vue';
 import SampleMetadataEditor from './SampleMetadataEditor.vue';
 import ShowRevisions from './ShowRevisions.vue';
 
 defineProps({
     canUpdate: { type: Boolean, required: true },
+    canManageFiles: { type: Boolean, required: true },
     canDelete: { type: Boolean, default: false },
     canVeto: { type: Boolean, default: false },
 });
@@ -54,7 +56,17 @@ async function confirmDelete() {
                 <TabPanels>
                     <TabPanel value="details"><ProjectSampleFields :sample-data="store.sampleData" :can-update="canUpdate" :read-only="store.sampleReadOnly" :read-only-message="readOnlyMessage" :saving-fields="store.savingSample" @save="store.updateSampleField" /></TabPanel>
                     <TabPanel value="metadata" class="project-sample-metadata-panel"><SampleMetadataEditor v-model:metadata="store.sampleData.metadata" :sample-id="store.sampleData.sample.id" :endpoint="store.endpoints.metadata" :read-only="!canUpdate || store.sampleReadOnly" /></TabPanel>
-                    <TabPanel value="files"><p class="empty-state">Bestanden worden in een latere fase toegevoegd.</p></TabPanel>
+                    <TabPanel value="files">
+                        <SampleFiles
+                            :key="store.sampleData.sample.id"
+                            v-model:files="store.sampleData.sample_files"
+                            :sample-id="store.sampleData.sample.id"
+                            :endpoints="{ store: store.endpoints.sampleFiles, visibility: store.endpoints.sampleFileVisibility, destroy: store.endpoints.sampleFileDelete }"
+                            :can-manage="canManageFiles"
+                            :locked="store.sampleFilesLocked"
+                            :project-read-only="store.projectReadOnly"
+                        />
+                    </TabPanel>
                 </TabPanels>
                 <TabList>
                     <Tab value="details"><FlaskConical :size="14" />Details</Tab>

@@ -63,4 +63,9 @@ class Sample extends Model
             ->orderBy('meta_order')
             ->orderBy('id');
     }
+
+    public function sampleFiles(): HasMany
+    {
+        return $this->hasMany(SampleFile::class, 'sample_id');
+    }
 }

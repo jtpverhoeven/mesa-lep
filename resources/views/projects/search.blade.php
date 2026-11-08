@@ -15,6 +15,9 @@
             'sample' => route('projects.search.samples.show', ['project' => '__PROJECT__', 'sample' => '__SAMPLE__']),
             'sampleLookup' => route('samples.lookup', ['barcode' => '__BARCODE__']),
             'metadata' => route('samples.metadata.store', ['sample' => '__SAMPLE__']),
+            'sampleFiles' => route('samples.files.store', ['sample' => '__SAMPLE__']),
+            'sampleFileVisibility' => route('samples.files.visibility.update', ['sample' => '__SAMPLE__', 'sampleFile' => '__FILE__']),
+            'sampleFileDelete' => route('samples.files.destroy', ['sample' => '__SAMPLE__', 'sampleFile' => '__FILE__']),
             'results' => route('projects.search.samples.results.show', [
                 'project' => '__PROJECT__',
                 'sample' => '__SAMPLE__',

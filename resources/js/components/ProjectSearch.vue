@@ -93,7 +93,7 @@ function displayDate(value) {
                 <ProjectDetailsPanel v-if="store.selectedProjectId" />
             </div>
             <ProjectSamplesPanel v-if="store.selectedProjectId" :can-manage-authorization="permissions.manageAuthorization" :can-block-authorization="permissions.blockAuthorization" />
-            <ProjectSamplePanel v-if="store.selectedProjectId" :can-update="permissions.updateSample" :can-delete="permissions.deleteSample" :can-veto="permissions.vetoResults" />
+            <ProjectSamplePanel v-if="store.selectedProjectId" :can-update="permissions.updateSample" :can-manage-files="permissions.manageFiles" :can-delete="permissions.deleteSample" :can-veto="permissions.vetoResults" />
         </div>
         <section v-if="store.showsResults" class="sample-panel project-results-panel">
             <h2>Gevonden projecten <LoaderCircle v-if="store.searching" class="spin" :size="15" /></h2>

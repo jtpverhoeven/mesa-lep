@@ -41,6 +41,7 @@ use App\Http\Controllers\SampleAnalysisAssignmentController;
 use App\Http\Controllers\SampleBufferController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SampleFieldController;
+use App\Http\Controllers\SampleFileController;
 use App\Http\Controllers\SampleLookupController;
 use App\Http\Controllers\SampleMetadataController;
 use App\Http\Controllers\SampleProcedureController;
@@ -126,6 +127,15 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
     Route::patch('/{sample}/product-group', [SampleLookupController::class, 'updateProductGroup'])->name('samples.lookup.product-group.update');
     Route::post('/{sample}/research', [SampleLookupController::class, 'update'])->name('samples.lookup.research');
     Route::get('/{barcode?}', [SampleLookupController::class, 'index'])->where('barcode', '[^/]{1,32}')->name('samples.lookup');
+});
+
+Route::middleware('auth')->prefix('laboratory/samples/{sample}/files')->scopeBindings()->group(function () {
+    Route::get('/', [SampleFileController::class, 'index'])->name('samples.files.index');
+    Route::get('/{sampleFile}/download', [SampleFileController::class, 'download'])->name('samples.files.download');
+    Route::get('/{sampleFile}/preview', [SampleFileController::class, 'preview'])->name('samples.files.preview');
+    Route::post('/', [SampleFileController::class, 'store'])->name('samples.files.store');
+    Route::patch('/{sampleFile}/visibility', [SampleFileController::class, 'updateVisibility'])->name('samples.files.visibility.update');
+    Route::delete('/{sampleFile}', [SampleFileController::class, 'destroy'])->name('samples.files.destroy');
 });
 
 Route::middleware('auth')->prefix('laboratory/projects/{project}')->group(function () {

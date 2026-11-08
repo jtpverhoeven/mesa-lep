@@ -24,6 +24,7 @@ class ProjectSearchController extends Controller
             'initialProjectId' => $project?->id,
             'permissions' => [
                 'updateSample' => $request->user()->can('samples.update'),
+                'manageFiles' => $request->user()->canAny(['samples.view', 'projects.view']),
                 'deleteSample' => $request->user()->can('projects.samples.remove'),
                 'manageAuthorization' => $request->user()->can('projects.authorisation.manage'),
                 'blockAuthorization' => $request->user()->can('projects.authorisation.block'),

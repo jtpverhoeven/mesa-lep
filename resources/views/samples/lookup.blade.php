@@ -17,6 +17,9 @@
             'productGroups' => route('samples.lookup.product-groups', ['sample' => '__SAMPLE__']),
             'updateProductGroup' => route('samples.lookup.product-group.update', ['sample' => '__SAMPLE__']),
             'sampleMetadata' => route('samples.metadata.store', ['sample' => '__SAMPLE__']),
+            'sampleFiles' => route('samples.files.store', ['sample' => '__SAMPLE__']),
+            'sampleFileVisibility' => route('samples.files.visibility.update', ['sample' => '__SAMPLE__', 'sampleFile' => '__FILE__']),
+            'sampleFileDelete' => route('samples.files.destroy', ['sample' => '__SAMPLE__', 'sampleFile' => '__FILE__']),
             'results' => route('sample-analyses.results.index', ['sampleAnalysis' => '__ANALYSIS__']),
             'updateResult' => route('sample-analyses.results.update', ['sampleAnalysis' => '__ANALYSIS__', 'result' => '__RESULT__']),
             'confirmation' => [
@@ -36,6 +39,7 @@
             'updateMetadata' => auth()->user()->can('samples.update'),
             'updateSample' => auth()->user()->can('samples.update'),
             'updateProductGroup' => auth()->user()->can('samples.update'),
+            'manageFiles' => auth()->user()->canAny(['samples.view', 'projects.view']),
             'resetConfirmation' => auth()->user()->can('confirmations.reset'),
             'viewProjects' => auth()->user()->can('projects.view'),
         ],

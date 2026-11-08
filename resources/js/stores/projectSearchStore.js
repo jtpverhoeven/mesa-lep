@@ -36,6 +36,8 @@ export const useProjectSearchStore = defineStore('projectSearch', {
             return state.projectActionLoading || useKeyringStore().isReadOnly(state.projectData?.reasons, 'project', state.selectedProjectId);
         },
         projectLockedByOther: (state) => useKeyringStore().isLockedByOther('project', state.selectedProjectId),
+        sampleFilesLocked: (state) => state.projectActionLoading
+            || useKeyringStore().isLockedByOther('sample', state.selectedSampleId),
         showsResults: (state) => state.mode === 'reference'
             && (state.searching || state.searched)
             && state.selectedProjectId === null,

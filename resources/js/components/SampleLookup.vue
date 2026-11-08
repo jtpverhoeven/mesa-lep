@@ -6,7 +6,7 @@ import { sfx } from '../sfx.js';
 import { useSampleLookupStore } from '../stores/sampleLookupStore';
 import SampleLookupResearch from './SampleLookupResearch.vue';
 import SampleLookupResults from './SampleLookupResults.vue';
-import SampleLookupPlaceholder from './SampleLookupPlaceholder.vue';
+import SampleFiles from './SampleFiles.vue';
 import SampleProductGroup from './SampleProductGroup.vue';
 import SampleMetadataEditor from './SampleMetadataEditor.vue';
 import SampleDetailsDialog from './SampleDetailsDialog.vue';
@@ -24,6 +24,7 @@ const confirmationStore = useConfirmationStore();
 const keyringStore = useKeyringStore();
 keyringStore.configure(props.keyrings, getEcho);
 const projectLocked = computed(() => projectReasons(store.data?.reasons).length > 0);
+const sampleFilesLocked = computed(() => store.data?.reasons?.includes('keyring') ?? false);
 const EndResultDisplay = defineAsyncComponent(() => import('./EndResultDisplay.vue'));
 const barcodeInput = ref(null);
 const revisionScope = ref(null);
@@ -176,10 +177,12 @@ onBeforeUnmount(() => {
                     <div class="sample-panel-body">
                         <p v-if="!store.data" class="empty-state">Geen monster geselecteerd.</p>
                         <template v-else>
-                            <div class="lookup-schedule">
+
+                            <div class="lookup-schedule" v-if="store.tab === 'general'">
                                 <div class="lookup-schedule-caption"><span>Verwacht gereed</span><strong>{{ expectedDate(store.data.sample.predicted_end) }}</strong></div>
                                 <div class="lookup-progress"><progress :value="store.progress" max="100" :aria-label="`Voortgang ${store.progress}%`"></progress><span>{{ store.progress }}%</span></div>
                             </div>
+                            
                             <dl v-if="store.tab === 'general'" class="lookup-details">
                                 <dt>Barcode</dt><dd><strong>{{ store.data.sample.barcode }}</strong></dd>
                                 <dt>Volgnummer</dt><dd>{{ store.data.project_follow_number }}</dd>
@@ -199,7 +202,16 @@ onBeforeUnmount(() => {
                             </dl>
                             <SampleMetadataEditor v-else-if="store.tab === 'metadata'" v-model:metadata="store.data.metadata" :sample-id="store.data.sample.id" :endpoint="endpoints.sampleMetadata" :read-only="store.readOnly || !permissions.updateMetadata" />
                             <SampleProductGroup v-else-if="store.tab === 'product'" :sample="store.data.sample" :product-group="store.data.product_group" :groups-endpoint="endpoints.productGroups" :update-endpoint="endpoints.updateProductGroup" :read-only="store.readOnly || !permissions.updateProductGroup" @updated="store.data.product_group = $event; store.data.sample.portal_product_group_id = $event.portal_id" />
-                            <SampleLookupPlaceholder v-else feature="Documenten" />
+                            <SampleFiles
+                                v-else
+                                :key="store.data.sample.id"
+                                v-model:files="store.data.sample_files"
+                                :sample-id="store.data.sample.id"
+                                :endpoints="{ store: endpoints.sampleFiles, visibility: endpoints.sampleFileVisibility, destroy: endpoints.sampleFileDelete }"
+                                :can-manage="permissions.manageFiles"
+                                :locked="sampleFilesLocked"
+                                :project-read-only="projectLocked"
+                            />
                         </template>
                     </div>
                     <div class="lookup-tabs" role="tablist" aria-label="Monstergegevens"><button v-for="tab in tabs" :key="tab.id" role="tab" :aria-selected="store.tab === tab.id" @click="store.tab = tab.id">{{ tab.label }}</button></div>
