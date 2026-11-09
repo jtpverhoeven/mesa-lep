@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Database\Factories\ExportFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use UnexpectedValueException;
 
@@ -25,6 +27,14 @@ class Export extends Model
     protected function casts(): array
     {
         return ['sample_id_scope' => 'array'];
+    }
+
+    public function scopeInTransaction(Builder $query, int $transaction): Builder
+    {
+        return $query
+            ->where('transaction', $transaction)
+            ->with(['projectRecord.client', 'clientRecord'])
+            ->orderBy('id');
     }
 
     public function projectRecord(): BelongsTo
@@ -51,6 +61,11 @@ class Export extends Model
         return 'reportStorage/'.$this->hash.'.pdf';
     }
 
+    public function pdfExists(): bool
+    {
+        return Storage::disk('local')->exists($this->storagePath());
+    }
+
     public function filename(): string
     {
         $reference = $this->true_reference ?? $this->projectRecord?->reference;
@@ -61,6 +76,26 @@ class Export extends Model
         }
 
         return self::safeFilename($this->clientRecord?->name.' - MAZ-L '.$name).'.pdf';
+    }
+
+    public function reportName(bool $withClient = false): string
+    {
+        $name = $this->projectRecord?->reference.'.'.$this->revision.'.'.$this->print_version;
+
+        if ($this->naming_strategy === 'description') {
+            $name .= ' - '.$this->naming_description;
+        }
+
+        if ($withClient) {
+            $name = $this->clientRecord?->name.' - MAZ-L '.$name;
+        }
+
+        return str_replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], '', Str::substr($name, 0, 200));
+    }
+
+    public function isEnglish(): bool
+    {
+        return str_ends_with((string) $this->template, 'En');
     }
 
     public static function safeFilename(string $name): string

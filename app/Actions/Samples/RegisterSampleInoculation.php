@@ -8,11 +8,14 @@ use App\Actions\AssuranceForms\ResolveAssuranceDay;
 use App\Actions\AssuranceForms\SynchronizeAssuranceForm;
 use App\Actions\Projects\EnsureEditable;
 use App\ChangeTracking\ChangeTracker;
+use App\ClientPortal\ClientPortalService;
 use App\Models\AssuranceForm;
 use App\Models\Project;
 use App\Models\Sample;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class RegisterSampleInoculation
 {
@@ -24,6 +27,7 @@ class RegisterSampleInoculation
         private EstimateRegisteredSampleEndpoints $estimate,
         private ChangeTracker $changeTracker,
         private EnsureEditable $ensureEditable,
+        private ClientPortalService $clientPortal,
     ) {}
 
     public function handle(Sample $sample, bool $overwrite = false, ?string $storedIn = null, ?string $dilutedAt = null): Sample
@@ -71,6 +75,8 @@ class RegisterSampleInoculation
             return $lockedSample->fresh();
         });
 
+        $this->notifyPortal($updated);
+
         $newFormDate = $this->resolveDay->handle($updated->sample_innoculated)['form_date'];
         $this->getOrCreateForm->handle($newFormDate);
 
@@ -90,6 +96,27 @@ class RegisterSampleInoculation
         $this->queueAssuranceSync->handleMany($affectedDates);
 
         return $updated->fresh();
+    }
+
+    private function notifyPortal(Sample $sample): void
+    {
+        if (empty($sample->portal_sample_id)) {
+            return;
+        }
+
+        try {
+            $response = $this->clientPortal->sampleStart(
+                $sample->portal_sample_id,
+                (int) $sample->sample_innoculated,
+                (int) $sample->predicted_end,
+            );
+
+            if (! $response->successful()) {
+                Log::warning('Portal sample start registration failed.', ['sample' => $sample->id, 'status' => $response->status()]);
+            }
+        } catch (Throwable $exception) {
+            Log::warning('Portal sample start registration failed.', ['sample' => $sample->id, 'error' => $exception->getMessage()]);
+        }
     }
 
     private function hasInoculation(string $value): bool

@@ -26,6 +26,7 @@ class CreateProject
                 'project_extra' => isset($data['project_extra']) ? json_encode($data['project_extra'], JSON_FORCE_OBJECT) : null,
                 'predicted_end' => $at->timestamp,
                 'added_by' => $data['added_by'],
+                'portal_id' => $data['portal_id'] ?? null,
             ]);
 
             $this->changeTracker->changed(3, project: $project->id, event: 'Project aangemaakt',

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { ArrowDown, ArrowUp, GripVertical } from '@lucide/vue';
+import { ArrowDown, ArrowUp, GripVertical, Mail } from '@lucide/vue';
 import Button from 'openvue/button';
 import Tab from 'openvue/tab';
 import TabList from 'openvue/tablist';
@@ -124,9 +124,14 @@ async function submit(event) {
                     </dl>
                     <section class="mt-3 border-t border-line pt-3" aria-labelledby="report-preferences">
                         <h3 id="report-preferences" class="font-semibold">Portal Rapportage instellingen klant</h3>                        
-                        <p v-if="preferences.warning" class="report-feedback mt-2" role="alert">{{ preferences.warning }}</p>
-                        <p v-else-if="preferences.foundSettings" class="report-feedback mt-2" role="status">{{ settingsChanged ? 'Klantvoorkeuren ingeladen, maar aangepast door gebruiker!' : 'Klantvoorkeuren succesvol geladen en toegepast.' }}</p>
-                        <p v-else class="report-feedback mt-2" role="status">Geen klantvoorkeuren voor deze order gevonden. De standaardinstellingen worden gebruikt.</p>
+                        <p v-if="preferences.warning" class="report-feedback attention mt-2" role="alert"><span class="attention-pulse" aria-hidden="true"></span>{{ preferences.warning }}</p>
+                        <p v-else-if="preferences.foundSettings" class="report-feedback attention mt-2" :class="settingsChanged ? 'danger' : 'success'" role="status">
+                             <svg class="size-6 flex-none" viewBox="0 0 24 24" aria-hidden="true">
+                                 <circle cx="12" cy="12" r="10" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-width="2" />
+                                 <path :d="settingsChanged ? 'M8 8 L16 16 M16 8 L8 16' : 'M7 12 L10.5 15.5 L17 9'" :key="settingsChanged" class="attention-draw" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pathLength="20" />
+                             </svg>
+                             {{ settingsChanged ? 'Klantvoorkeuren ingeladen, maar aangepast door gebruiker!' : 'Klantvoorkeuren succesvol geladen en toegepast.' }}</p>
+                        <p v-else class="report-feedback attention mt-2" role="status"><span class="attention-pulse" aria-hidden="true"></span>Geen klantvoorkeuren voor deze order gevonden. De standaardinstellingen worden gebruikt.</p>
                         <dl class="report-summary mt-3">
                             <div><dt>Type rapport</dt><dd>{{ Number(preferences.pdfTypeSelect) === 1 ? 'Verzamel rapport' : 'Individuele rapporten' }}</dd></div>
                             <div><dt>Taal</dt><dd>{{ preferences.language === 'en' ? 'Engels' : 'Nederlands' }}</dd></div>
@@ -144,13 +149,14 @@ async function submit(event) {
                 <h2 id="report-history">Eerdere rapportages van dit project</h2>
                 <div class="table-scroll">
                     <table class="data-table">
-                        <thead><tr><th>Transactie</th><th>Datum</th><th>Type</th><th>Versie</th><th>Inhoud</th></tr></thead>
+                        <thead><tr><th>Transactie</th><th>Datum</th><th>Type</th><th>Versie</th><th>Inhoud</th><th><span class="sr-only">Verzenden</span></th></tr></thead>
                         <tbody>
                             <tr v-for="entry in config.history" :key="entry.id">
                                 <td>{{ entry.transaction ?? '-' }}</td><td>{{ entry.date }}</td><td>{{ entry.type }}</td><td>{{ entry.revision }}</td>
                                 <td><a v-for="report in entry.content" :key="report.id" class="text-link block" :href="report.url" target="_blank" rel="noopener">{{ report.reference }}</a></td>
+                                <td><a v-if="entry.send_url" class="icon-button" :href="entry.send_url" title="Verzenden of downloaden" aria-label="Verzenden of downloaden"><Mail :size="16" /></a></td>
                             </tr>
-                            <tr v-if="!config.history.length"><td colspan="5" class="empty-state">Geen rapportages</td></tr>
+                            <tr v-if="!config.history.length"><td colspan="6" class="empty-state">Geen rapportages</td></tr>
                         </tbody>
                     </table>
                 </div>

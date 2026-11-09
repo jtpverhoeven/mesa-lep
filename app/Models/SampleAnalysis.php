@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\Projects\SyncProjectReadyState;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
@@ -27,6 +28,26 @@ class SampleAnalysis extends Model
             'auth_status' => 'integer',
             'storedResult' => 'array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (SampleAnalysis $analysis): void {
+            if ($analysis->wasRecentlyCreated || $analysis->wasChanged(['is_ready', 'project'])) {
+                $analysis->syncProjectReadyState($analysis->wasChanged('project') ? $analysis->getOriginal('project') : null);
+            }
+        });
+
+        static::deleted(fn (SampleAnalysis $analysis) => $analysis->syncProjectReadyState());
+    }
+
+    private function syncProjectReadyState(mixed $previousProject = null): void
+    {
+        $sync = app(SyncProjectReadyState::class);
+
+        foreach (array_filter([$this->project, $previousProject]) as $projectId) {
+            $sync->handle((int) $projectId);
+        }
     }
 
     public function sampleRecord(): BelongsTo

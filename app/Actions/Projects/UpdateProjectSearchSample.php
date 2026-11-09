@@ -39,7 +39,7 @@ class UpdateProjectSearchSample
 
     private function updateAttribute(Sample $sample, string $field, string $value): void
     {
-        if (! in_array($field, ['description', 'sampling_method'], true)) {
+        if (! in_array($field, ['description', 'client_description', 'sampling_method'], true)) {
             throw ValidationException::withMessages(['field' => 'Dit monsterveld kan niet worden gewijzigd.']);
         }
 
@@ -49,7 +49,11 @@ class UpdateProjectSearchSample
 
         $previous = $sample->getAttribute($field);
         $sample->update([$field => $value]);
-        $label = $field === 'description' ? 'Omschrijving' : 'Bemonster methode';
+        $label = match ($field) {
+            'description' => 'Omschrijving',
+            'client_description' => 'Omschrijving klant',
+            default => 'Bemonster methode',
+        };
         if ($field === 'sampling_method') {
             $previous = SampleProcedure::query()->find($previous)?->name ?? $previous;
             $value = SampleProcedure::query()->find($value)?->name ?? $value;

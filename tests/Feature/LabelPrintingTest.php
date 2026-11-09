@@ -16,6 +16,7 @@ use App\Actions\Samples\CreateBulkSamples;
 use App\Actions\Samples\CreateRegisteredSample;
 use App\Actions\Samples\CreateSampleWithAnalyses;
 use App\Actions\Samples\UpdateLookupResearch;
+use App\ClientPortal\ClientPortalService;
 use App\Jobs\SendLabelPrinterSpoolJob;
 use App\Models\Assay;
 use App\Models\AssayProfile;
@@ -36,9 +37,11 @@ use App\Models\User;
 use App\Support\Printing\LabelPrinterTransport;
 use App\Support\Printing\TcpLabelPrinterTransport;
 use DateTimeImmutable;
+use GuzzleHttp\Psr7\Response as Psr7Response;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -308,15 +311,22 @@ class LabelPrintingTest extends TestCase
         $existing = $this->sample('M260001');
         $first = app(CreateSampleBuffer::class)->handle(['client' => $existing->client, 'register_as' => 'buffer', 'description' => 'First']);
         $second = app(CreateSampleBuffer::class)->handle(['client' => $existing->client, 'register_as' => 'buffer', 'description' => 'Second']);
-        $first->update(['tht_code' => 'THT-1', 'source' => 3, 'meta' => ['Details' => 'Hydrated water']]);
+        $first->update(['tht_code' => 'THT-1', 'source' => 3, 'portal_project' => 555, 'sample_details' => 'Details from portal', 'meta' => ['Details' => 'Hydrated water']]);
         $second->update(['tht_code' => 'THT-2', 'source' => 1]);
         $design = LabelDesign::factory()->create(['zpl' => '{sample_description}|{sample_tht_code}|{sample_source};']);
         LabelEvent::factory()->for($design, 'labelDesign')->create();
+
+        $this->mock(ClientPortalService::class)->shouldReceive('acceptSamples')->once()
+            ->withArgs(fn (array $portal): bool => count($portal) === 1 && $portal[0]['mesa_barcode'] !== null && array_key_exists('mesa_project_reference', $portal[0]))
+            ->andReturn(new Response(new Psr7Response(200)));
 
         $samples = app(CommitSampleBuffers::class)->handle([$first->id, $second->id], 1, ['receive_date' => '14-10-2026', 'receive_time' => '10:30']);
 
         $this->assertCount(2, $samples);
         $this->assertDatabaseCount('samplebuffers', 0);
+        $this->assertSame(555, $samples->first()->project()->value('portal_id'));
+        $this->assertSame('Details from portal', json_decode($samples->first()->fresh()->custom_fields, true)['details']);
+        $this->assertSame(['First', 'Second'], $samples->map->fresh()->pluck('client_description')->all());
         $this->assertDatabaseHas('metadata', ['sample' => $samples->first()->id, 'name' => 'Details', 'value' => 'Hydrated water']);
         Queue::assertPushed(SendLabelPrinterSpoolJob::class, 1);
         Queue::assertPushedOn('printing', SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->zpl === 'First|THT-1|3;Second|THT-2|1;');

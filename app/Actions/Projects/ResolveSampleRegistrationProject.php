@@ -42,6 +42,7 @@ class ResolveSampleRegistrationProject
             'custom_fields' => $data['project_custom_fields'] ?? [],
             'added_by' => $data['registered_by'],
             'special_type' => $data['special_type'] ?? 0,
+            'portal_id' => $data['portal_project_id'] ?? null,
             'project_extra' => $data['project_extra'] ?? null,
         ], $at);
 

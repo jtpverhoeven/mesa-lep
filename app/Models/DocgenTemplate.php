@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Cvars;
 use Database\Factories\DocgenTemplateFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,9 +53,9 @@ class DocgenTemplate extends Model
     /** Legacy DOCGEN_TEMPLATES_ALLOWED_TEMP: a JSON list of template folders; a missing or invalid value allows none. */
     public function scopeAllowedForTemporaryReports(Builder $query): void
     {
-        $folders = json_decode((string) Cvar::query()->where('cvar', 'DOCGEN_TEMPLATES_ALLOWED_TEMP')->value('value'), true);
+        $folders = app(Cvars::class)->json('DOCGEN_TEMPLATES_ALLOWED_TEMP');
 
-        $query->whereIn('folder', is_array($folders) ? array_values(array_filter($folders, 'is_string')) : []);
+        $query->whereIn('folder', array_values(array_filter($folders, 'is_string')));
     }
 
     public function isSupported(): bool

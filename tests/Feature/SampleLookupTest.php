@@ -251,11 +251,24 @@ class SampleLookupTest extends TestCase
             'source' => 'attribute', 'field' => 'description', 'value' => 'Not allowed',
         ])->assertNotFound();
         $this->patchJson(route('samples.lookup.details.update', ['project' => $sample->project, 'sample' => $sample->id]), [
-            'source' => 'attribute', 'field' => 'client_description', 'value' => 'Not allowed',
+            'source' => 'attribute', 'field' => 'barcode', 'value' => 'Not allowed',
         ])->assertInvalid(['field' => 'Dit monsterveld kan niet worden gewijzigd.']);
 
         $this->assertDatabaseHas('samples', ['id' => $sample->id, 'description' => 'Water sample']);
         $this->assertDatabaseCount(ChangeRevision::class, 0);
+    }
+
+    public function test_client_description_can_be_overwritten_and_is_tracked(): void
+    {
+        Gate::define('samples.update', fn () => true);
+        $sample = $this->sample('26091000');
+
+        $this->patchJson(route('samples.lookup.details.update', ['project' => $sample->project, 'sample' => $sample->id]), [
+            'source' => 'attribute', 'field' => 'client_description', 'value' => 'Nieuwe klantomschrijving',
+        ])->assertOk()->assertJsonPath('data.sample.client_description', 'Nieuwe klantomschrijving');
+
+        $this->assertDatabaseHas('samples', ['id' => $sample->id, 'client_description' => 'Nieuwe klantomschrijving']);
+        $this->assertDatabaseCount(ChangeRevision::class, 1);
     }
 
     public function test_research_can_be_added_reordered_and_removed_only_from_its_sample(): void

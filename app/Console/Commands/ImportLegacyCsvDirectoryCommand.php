@@ -16,6 +16,7 @@ use App\Models\ClientPortalAssay;
 use App\Models\Cvar;
 use App\Models\DocgenAssociation;
 use App\Models\DocgenTemplate;
+use App\Models\EmailTemplate;
 use App\Models\Footer;
 use App\Models\LabelDesign;
 use App\Models\LabelEvent;
@@ -83,6 +84,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
         'labelevents.csv' => LabelEvent::class,
         'docgentemplates.csv' => DocgenTemplate::class,
         'docgenassociations.csv' => DocgenAssociation::class,
+        'emailtemplates.csv' => EmailTemplate::class,
         'footers.csv' => Footer::class,
     ];
 

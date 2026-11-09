@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Cvars;
 use Illuminate\Database\Eloquent\Model;
 
 class Cvar extends Model
@@ -14,4 +15,10 @@ class Cvar extends Model
         'default',
         'description',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => app(Cvars::class)->flush());
+        static::deleted(fn () => app(Cvars::class)->flush());
+    }
 }

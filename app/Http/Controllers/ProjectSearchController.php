@@ -52,6 +52,7 @@ class ProjectSearchController extends Controller
             'report_url' => $canGenerateReports ? route('projects.reports.index', $project) : null,
             'temporary_report_url' => $canGenerateReports ? route('projects.reports.temporary.index', $project) : null,
             'report_overview_url' => $canGenerateReports ? route('projects.reports.overview', $project) : null,
+            'send_files_url' => $canGenerateReports ? route('projects.send-files.show', $project) : null,
         ]]);
     }
 

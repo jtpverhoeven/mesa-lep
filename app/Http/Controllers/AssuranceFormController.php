@@ -11,7 +11,7 @@ use App\Actions\AssuranceForms\UpdateAssuranceFormField;
 use App\Http\Requests\AssuranceForms\UpdateAssuranceExplanationRequest;
 use App\Http\Requests\AssuranceForms\UpdateAssuranceFormFieldRequest;
 use App\Models\AssuranceForm;
-use App\Models\Cvar;
+use App\Support\Cvars;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +20,8 @@ use InvalidArgumentException;
 
 class AssuranceFormController extends Controller
 {
+    public function __construct(private Cvars $cvars) {}
+
     public function index(Request $request, ResolveAssuranceDay $resolveDay): View
     {
         $date = $request->query('date', CarbonImmutable::now('Europe/Amsterdam')->format('Y-m-d'));
@@ -163,7 +165,7 @@ class AssuranceFormController extends Controller
      */
     private function incompleteForms(): array
     {
-        $days = max(0, (int) (Cvar::query()->where('cvar', 'BORG_TIME_BEFORE_CHECK')->value('value') ?? 10));
+        $days = max(0, (int) ($this->cvars->value('BORG_TIME_BEFORE_CHECK') ?? 10));
         $cutoff = CarbonImmutable::now('Europe/Amsterdam')->subDays($days);
 
         return AssuranceForm::query()

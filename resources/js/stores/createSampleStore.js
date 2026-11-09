@@ -17,6 +17,7 @@ export const useCreateSampleStore = defineStore('createSample', {
         barcode: '',
         sampleFields: [],
         samplingMethods: [],
+        defaultSamplingMethod: '',
         loading: false,
         submitting: false,
         error: '',
@@ -42,6 +43,8 @@ export const useCreateSampleStore = defineStore('createSample', {
                 this.barcode = data.barcode;
                 this.sampleFields = data.sample_fields;
                 this.samplingMethods = data.sampling_methods;
+                this.defaultSamplingMethod = data.default_sampling_method ? String(data.default_sampling_method) : '';
+                this.form.sampling_method = this.defaultSamplingMethod;
                 this.form.custom_fields = legacyFieldValues(this.sampleFields);
                 useProjectSelectorStore().setFieldDefinitions(data.project_fields);
             } catch {
@@ -100,7 +103,7 @@ export const useCreateSampleStore = defineStore('createSample', {
                 if (!response.ok) throw new Error();
 
                 this.barcode = data.next_barcode;
-                this.form = { ...emptyForm(), custom_fields: legacyFieldValues(this.sampleFields) };
+                this.form = { ...emptyForm(), sampling_method: this.defaultSamplingMethod, custom_fields: legacyFieldValues(this.sampleFields) };
                 useSampleResearchStore().clearSelections();
                 if (data.destination === 'standard') {
                     await projectStore.loadForClient(clientStore.selected.id);

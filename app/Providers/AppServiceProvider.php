@@ -6,6 +6,7 @@ use App\Actions\Keyrings\ReleaseUserKeyrings;
 use App\Confirmations\ConfirmationAssuranceFields;
 use App\Confirmations\DatabaseConfirmationAssuranceFields;
 use App\Models\User;
+use App\Support\Cvars;
 use App\Support\Printing\LabelPrinterTransport;
 use App\Support\Printing\TcpLabelPrinterTransport;
 use Illuminate\Auth\Events\Logout;
@@ -20,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->scoped(Cvars::class);
         $this->app->bind(ConfirmationAssuranceFields::class, DatabaseConfirmationAssuranceFields::class);
         $this->app->bind(LabelPrinterTransport::class, fn (): LabelPrinterTransport => new TcpLabelPrinterTransport((float) config('printing.timeout_seconds', 5)));
     }

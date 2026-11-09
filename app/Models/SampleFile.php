@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\SampleFileFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -50,6 +51,14 @@ class SampleFile extends Model
             'created_at' => 'datetime',
             'visible_for_client' => 'boolean',
             'sent_to_client' => 'boolean',
+            'sent_count' => 'integer',
         ];
+    }
+
+    protected function sentLabel(): Attribute
+    {
+        return Attribute::get(fn (): string => (int) $this->sent_count === 0
+            ? 'Nog niet verstuurd'
+            : "Verstuurd, {$this->sent_count} keer");
     }
 }

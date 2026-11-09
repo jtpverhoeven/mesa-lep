@@ -8,10 +8,10 @@ use App\Actions\Printing\SelectManualPrintSamples;
 use App\Actions\Printing\SendLabelPrintPlan;
 use App\Http\Requests\ManualLabelPrintingRequest;
 use App\Models\AssayType;
-use App\Models\Cvar;
 use App\Models\LabelDesign;
 use App\Models\Printer;
 use App\Models\PrintProfile;
+use App\Support\Cvars;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -23,9 +23,8 @@ use LogicException;
 
 class ManualLabelPrintingController extends Controller
 {
-    public function index(SelectManualPrintSamples $selection, GetLabelPrintingSettings $settings): View
+    public function index(SelectManualPrintSamples $selection, GetLabelPrintingSettings $settings, Cvars $cvars): View
     {
-        $extra = Cvar::query()->where('cvar', 'standard_extra_label')->first();
 
         return view('printing.index', ['options' => [
             'profiles' => PrintProfile::query()->orderBy('id')->get(['id', 'name']),
@@ -33,12 +32,12 @@ class ManualLabelPrintingController extends Controller
             'labels' => LabelDesign::query()->orderBy('name')->orderBy('id')->get(['id', 'name']),
             'assayTypes' => AssayType::query()->orderBy('name')->orderBy('id')->get(['id', 'name']),
             'dateTypes' => $selection->dateTypes(), 'today' => now()->format('Y-m-d'),
-            'extraLabel' => (int) ($extra?->value ?? $extra?->default ?? 0),
+            'extraLabel' => (int) $cvars->valueOrDefault('standard_extra_label', '0'),
             'enabled' => $settings->handle()['enabled'],
         ]]);
     }
 
-    public function store(ManualLabelPrintingRequest $request, BuildManualLabelPrintPlan $builder, SendLabelPrintPlan $sender): JsonResponse
+    public function store(ManualLabelPrintingRequest $request, BuildManualLabelPrintPlan $builder, SendLabelPrintPlan $sender, Cvars $cvars): JsonResponse
     {
         try {
             if ($request->filled('confirmation_token')) {
@@ -57,8 +56,7 @@ class ManualLabelPrintingController extends Controller
             }
 
             $plan = $builder->handle($request->validated(), $request->user()->name);
-            $limitSetting = Cvar::query()->where('cvar', 'MAX_LABEL_PRINT')->first();
-            $limit = max(0, (int) ($limitSetting?->value ?? $limitSetting?->default ?? 250));
+            $limit = max(0, (int) $cvars->valueOrDefault('MAX_LABEL_PRINT', '250'));
 
             if ($plan['total_labels'] > $limit) {
                 $token = (string) Str::uuid();

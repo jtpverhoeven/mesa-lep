@@ -2,14 +2,16 @@
 
 namespace App\Actions\Projects;
 
-use App\Models\Cvar;
 use App\Models\Project;
+use App\Support\Cvars;
 
 class ResolveProjectReference
 {
+    public function __construct(private Cvars $cvars) {}
+
     public function handle(Project $project): ?string
     {
-        $setting = Cvar::query()->where('cvar', 'MESA_PROJECT_REFERENCE')->first();
+        $setting = $this->cvars->find('MESA_PROJECT_REFERENCE');
         $mode = (string) (blank($setting?->value) ? $setting?->default : $setting->value);
         $firstSample = $project->samples()->oldest('id')->first(['id', 'barcode']);
         $reference = match ($mode) {

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Actions\SampleBuffers;
 
 use App\Actions\SampleBuffers\CreateSampleBuffer;
+use App\Models\Cvar;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,5 +24,16 @@ class CreateSampleBufferTest extends TestCase
 
         $this->assertSame(2, $buffer->source);
         $this->assertNull($buffer->getRawOriginal('portal_order_info'));
+    }
+
+    public function test_buffer_uses_the_default_sampling_method_unless_one_is_given(): void
+    {
+        Cvar::create(['cvar' => 'MESA_STD_SMPL_METHOD', 'value' => '7', 'default' => '0', 'description' => '']);
+
+        $defaulted = app(CreateSampleBuffer::class)->handle(['client' => 42, 'register_as' => 'buffer']);
+        $explicit = app(CreateSampleBuffer::class)->handle(['client' => 42, 'register_as' => 'buffer', 'sampling_method' => 3]);
+
+        $this->assertSame(7, (int) $defaulted->sampling_method);
+        $this->assertSame(3, (int) $explicit->sampling_method);
     }
 }

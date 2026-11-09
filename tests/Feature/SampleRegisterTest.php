@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\ClientPortal\ClientPortalService;
 use App\Models\Cvar;
 use App\Models\Project;
 use App\Models\Sample;
 use App\Models\User;
+use GuzzleHttp\Psr7\Response as Psr7Response;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
@@ -113,6 +116,22 @@ class SampleRegisterTest extends TestCase
         $this->getJson(route('projects.overview.running.data'))->assertOk()
             ->assertJsonPath('total', 1)->assertJsonPath('data.0.id', $sample->project)
             ->assertJsonPath('data.0.status', 'Lopend');
+    }
+
+    public function test_inoculation_is_registered_in_the_client_portal_when_the_sample_has_a_portal_id(): void
+    {
+        $this->freezeTime();
+        $sample = $this->sample('26091020');
+        $sample->update(['portal_sample_id' => 4321]);
+        $other = $this->sample('26091021');
+        Queue::fake();
+        $service = $this->mock(ClientPortalService::class);
+        $service->shouldReceive('sampleStart')->once()
+            ->withArgs(fn ($id, $time, $end): bool => $id == 4321 && $time === now()->timestamp && is_int($end))
+            ->andReturn(new Response(new Psr7Response(200)));
+
+        $this->postJson(route('samples.register.inoculation'), ['barcode' => $sample->barcode])->assertOk();
+        $this->postJson(route('samples.register.inoculation'), ['barcode' => $other->barcode])->assertOk();
     }
 
     public static function sampleTypes(): array

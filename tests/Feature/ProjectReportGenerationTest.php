@@ -98,10 +98,10 @@ class ProjectReportGenerationTest extends TestCase
         $response = $this->post(route('projects.reports.store', $fixture['project']), $this->reportOptions($fixture));
 
         $export = Export::query()->sole();
-        $response->assertRedirect(route('projects.reports.show', [$fixture['project'], $export]))->assertSessionHasNoErrors();
+        $response->assertRedirect(route('reports.send.show', $export->transaction))->assertSessionHasNoErrors();
         $this->assertDatabaseHas('exports', ['id' => $export->id, 'type' => 1, 'temporary' => 0, 'was_authorized' => $authorized]);
         $this->assertDatabaseHas('projects', ['id' => $fixture['project']->id, 'is_ready' => 0, 'auth_status' => $authorized]);
-        $this->get($response->headers->get('Location'))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->get(route('projects.reports.show', [$fixture['project'], $export]))->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->get(route('projects.reports.index', $fixture['project']))->assertViewIs('reports.not-ready');
     }
 
@@ -151,7 +151,7 @@ class ProjectReportGenerationTest extends TestCase
         $response->assertRedirect()->assertSessionHasNoErrors();
 
         $export = Export::query()->firstOrFail();
-        $response->assertRedirect(route('projects.reports.show', [$fixture['project'], $export]));
+        $response->assertRedirect(route('reports.send.show', $export->transaction));
         $this->assertDatabaseHas('projects', ['id' => $fixture['project']->id, 'print_version' => 8, 'rap_stat' => 1, 'rap_by' => $fixture['user']->id, 'rap_rev' => 2, 'rap_on' => (string) now()->timestamp]);
         $this->assertDatabaseHas('exports', [
             'id' => $export->id, 'transaction' => $export->id, 'project' => $fixture['project']->id,
@@ -168,7 +168,7 @@ class ProjectReportGenerationTest extends TestCase
         $this->assertStringStartsWith('%PDF-', $pdf);
         $this->assertStringEndsWith('%%EOF', rtrim($pdf));
         $this->assertSame(2, preg_match_all('/\/Type\s*\/Page\b/', $pdf));
-        $this->get($response->headers->get('Location'))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->get(route('projects.reports.show', [$fixture['project'], $export]))->assertOk()->assertHeader('Content-Type', 'application/pdf');
         Mail::assertNothingSent();
         Queue::assertNothingPushed();
         Http::assertNothingSent();
@@ -186,12 +186,30 @@ class ProjectReportGenerationTest extends TestCase
         $this->assertSame([$exports->first()->id, $exports->first()->id], $exports->pluck('transaction')->all());
         $this->assertSame([[1], [2]], $exports->pluck('sample_id_scope')->all());
         $this->assertSame(9, $fixture['project']->fresh()->print_version);
-        $response->assertRedirect(route('projects.reports.batch', [$fixture['project'], $exports->first()->id]));
-        $this->get($response->headers->get('Location'))->assertViewIs('reports.created')->assertSee('name="report-pdf"', false)->assertSee('Monster 1')->assertSee('Monster 2');
+        $response->assertRedirect(route('reports.send.show', $exports->first()->transaction));
 
         foreach ($exports as $export) {
             Storage::disk('local')->assertExists($export->storagePath());
             $this->get(route('projects.reports.show', [$fixture['project'], $export]))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        }
+    }
+
+    public function test_unauthorised_individual_and_repeated_reports_each_receive_a_distinct_stored_pdf(): void
+    {
+        $fixture = $this->fixture(2);
+        $fixture['project']->update(['auth_status' => 0, 'auth_by' => null]);
+        $url = route('projects.reports.store', $fixture['project']);
+
+        $this->post($url, $this->reportOptions($fixture, ['PDFtypeSelect' => 0]))->assertRedirect()->assertSessionHasNoErrors();
+        $this->post($url, $this->reportOptions($fixture))->assertRedirect()->assertSessionHasNoErrors();
+
+        $exports = Export::query()->orderBy('id')->get();
+        $this->assertSame([8, 9, 10], $exports->pluck('print_version')->all());
+        $this->assertCount(3, $exports->pluck('hash')->unique());
+        $this->assertSame(7, $fixture['project']->fresh()->print_version);
+
+        foreach ($exports as $export) {
+            Storage::disk('local')->assertExists($export->storagePath());
         }
     }
 
@@ -370,6 +388,7 @@ class ProjectReportGenerationTest extends TestCase
                     && $form['history'][0]['transaction'] === 20
                     && $form['history'][0]['type'] === 'Voorlopig rapport'
                     && $form['history'][1]['type'] === 'Rapport per monster'
+                    && $form['history'][1]['send_url'] === route('reports.send.show', 12)
                     && array_column($form['history'][1]['content'], 'url') === [
                         route('projects.reports.show', [$fixture['project'], $first]),
                         route('projects.reports.show', [$fixture['project'], $second]),
@@ -677,6 +696,7 @@ class ProjectReportGenerationTest extends TestCase
             'data.report_url' => null,
             'data.temporary_report_url' => null,
             'data.report_overview_url' => null,
+            'data.send_files_url' => null,
         ]);
     }
 
@@ -999,7 +1019,7 @@ class ProjectReportGenerationTest extends TestCase
         $response = $this->post(route('projects.reports.temporary.store', $fixture['project']), $this->reportOptions($fixture));
 
         $export = Export::query()->firstOrFail();
-        $response->assertRedirect(route('projects.reports.show', [$fixture['project'], $export]))->assertSessionHasNoErrors();
+        $response->assertRedirect(route('reports.send.show', $export->transaction))->assertSessionHasNoErrors();
         $this->assertDatabaseHas('exports', [
             'id' => $export->id, 'transaction' => $export->id, 'project' => $fixture['project']->id,
             'client' => $fixture['client']->id, 'revision' => 2, 'print_version' => 8,
@@ -1008,7 +1028,7 @@ class ProjectReportGenerationTest extends TestCase
         $this->assertSame(hash('sha256', $fixture['project']->id.'281'), $export->hash);
         Storage::disk('local')->assertExists($export->storagePath());
         $this->assertStringStartsWith('%PDF-', Storage::disk('local')->get($export->storagePath()));
-        $this->get($response->headers->get('Location'))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->get(route('projects.reports.show', [$fixture['project'], $export]))->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $project = $fixture['project']->fresh();
         $this->assertSame([0, 0, 3, 8, 0], [(int) $project->auth_status, (int) $project->auth_on, $project->revision, $project->print_version, (int) $project->rap_stat]);
         $this->assertNull($project->rap_by);

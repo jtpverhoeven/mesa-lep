@@ -8,9 +8,9 @@ use App\Actions\SampleProcedures\SetDefaultSampleProcedures;
 use App\Actions\SampleProcedures\UpdateSampleProcedure;
 use App\Http\Requests\SaveDefaultSampleProceduresRequest;
 use App\Http\Requests\SaveSampleProcedureRequest;
-use App\Models\Cvar;
 use App\Models\SampleProcedure;
 use App\Models\SampleProcedureField;
+use App\Support\Cvars;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -61,15 +61,15 @@ class SampleProcedureController extends Controller
         return to_route('sample-procedures.index')->with('success', 'Bemonsterprocedure is gedeactiveerd.');
     }
 
-    public function defaults(): View
+    public function defaults(Cvars $cvars): View
     {
         return view('sample-procedures.defaults', [
             'procedures' => SampleProcedure::where('active', 1)->orderBy('name')->get(),
-            'defaults' => Cvar::whereIn('cvar', [
+            'defaults' => collect([
                 'MESA_STD_SMPL_METHOD',
                 'MESA_STD_LEGSMPL_METHOD',
                 'MESA_STD_RODACSMPL_METHOD',
-            ])->pluck('value', 'cvar'),
+            ])->mapWithKeys(fn (string $name): array => [$name => $cvars->value($name)])->filter(fn (?string $value): bool => $value !== null),
         ]);
     }
 

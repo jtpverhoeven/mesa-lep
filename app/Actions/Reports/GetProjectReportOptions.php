@@ -5,15 +5,17 @@ namespace App\Actions\Reports;
 use App\Actions\Projects\ResolveProjectReference;
 use App\Models\Assay;
 use App\Models\DocgenTemplate;
-use App\Models\Export;
 use App\Models\Project;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Carbon;
 use UnexpectedValueException;
 
 class GetProjectReportOptions
 {
-    public function __construct(private GetReportingPreferences $preferences, private ResolveProjectReference $reference) {}
+    public function __construct(
+        private GetReportingPreferences $preferences,
+        private ResolveProjectReference $reference,
+        private GetProjectReportHistory $history,
+    ) {}
 
     /** @return array<string, mixed> */
     public function handle(Project $project, bool $temporary = false): array
@@ -39,7 +41,7 @@ class GetProjectReportOptions
             'preferences' => $preferences,
             'preferredTemplate' => $preferred?->folder,
             'assayOrder' => $this->defaultAssayOrder($project),
-            'history' => $this->history($project),
+            'history' => $this->history->handle($project),
         ];
     }
 
@@ -119,30 +121,5 @@ class GetProjectReportOptions
         }
 
         return array_values(array_unique([...$order, ...$assays->modelKeys()]));
-    }
-
-    /** @return list<array<string, mixed>> */
-    private function history(Project $project): array
-    {
-        return $project->exports()->orderByDesc('transaction')->orderBy('id')->get()
-            ->groupBy(fn (Export $export): string => $export->transaction === null ? 'legacy-'.$export->id : (string) $export->transaction)
-            ->map(function (Collection $exports) use ($project): array {
-                $last = $exports->last();
-
-                return [
-                    'id' => $last->id,
-                    'transaction' => $last->transaction,
-                    'date' => is_numeric($last->date) ? Carbon::createFromTimestamp((int) $last->date, 'Europe/Amsterdam')->format('d-m-Y') : $last->date,
-                    'type' => match ((int) $last->type) {
-                        1 => 'Rapport', 2 => 'Voorlopig rapport', 3 => 'Rapport per monster', default => 'Onbekend',
-                    },
-                    'revision' => $last->revision,
-                    'content' => $exports->map(fn (Export $export): array => [
-                        'id' => $export->id,
-                        'reference' => ($export->true_reference ?? $project->reference).'.'.$export->revision.'.'.$export->print_version,
-                        'url' => route('projects.reports.show', [$project, $export]),
-                    ])->all(),
-                ];
-            })->values()->all();
     }
 }

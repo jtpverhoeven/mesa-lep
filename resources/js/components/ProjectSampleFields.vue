@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import { LoaderCircle } from '@lucide/vue';
 import InputText from 'openvue/inputtext';
 import Textarea from 'openvue/textarea';
@@ -18,6 +19,15 @@ function saving(source, field) {
 
 function save(source, field, value) {
     emit('save', source, field, value);
+}
+
+const clientDescriptionUnlocked = ref(false);
+
+function unlockClientDescription() {
+    if (clientDescriptionUnlocked.value || !props.canUpdate || props.readOnly) return;
+    if (window.confirm('Deze omschrijving is door de klant ingevoerd. Weet u zeker dat u deze wilt wijzigen?')) {
+        clientDescriptionUnlocked.value = true;
+    }
 }
 
 function filterVolume(event, field) {
@@ -49,7 +59,10 @@ function filterVolume(event, field) {
         </label>
         <label>
             <span>Monster omschrijving klant</span>
-            <InputText :model-value="sampleData.sample.client_description" size="small" fluid readonly />
+            <span class="project-sample-control">
+                <InputText v-model="sampleData.sample.client_description" size="small" fluid :readonly="!clientDescriptionUnlocked" :disabled="saving('attribute', 'client_description')" @click="unlockClientDescription" @change="save('attribute', 'client_description', $event.target.value)" />
+                <LoaderCircle v-if="saving('attribute', 'client_description')" class="spin" :size="14" />
+            </span>
         </label>
         <label v-for="field in sampleData.sample_fields" :key="field.name">
             <span>{{ field.label }}</span>

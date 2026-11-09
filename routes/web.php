@@ -14,6 +14,8 @@ use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\CvarController;
 use App\Http\Controllers\DocgenAssociationController;
 use App\Http\Controllers\DocgenTemplateController;
+use App\Http\Controllers\EmailTemplateController;
+use App\Http\Controllers\FileSenderController;
 use App\Http\Controllers\FooterController;
 use App\Http\Controllers\KeyringAdministrationController;
 use App\Http\Controllers\KeyringController;
@@ -35,6 +37,7 @@ use App\Http\Controllers\ProjectOverviewController;
 use App\Http\Controllers\ProjectReportController;
 use App\Http\Controllers\ProjectSearchController;
 use App\Http\Controllers\ReferenceSourceController;
+use App\Http\Controllers\ReportSenderController;
 use App\Http\Controllers\ResearchProfileController;
 use App\Http\Controllers\ResultController;
 use App\Http\Controllers\SampleAnalysisAssignmentController;
@@ -188,9 +191,20 @@ Route::middleware(['auth', 'can:projects.view', 'can:reports.generate'])
         Route::post('/', [ProjectReportController::class, 'store'])->middleware('throttle:15,1')->name('projects.reports.store');
         Route::get('/temporary', [ProjectReportController::class, 'index'])->defaults('temporary', true)->name('projects.reports.temporary.index');
         Route::post('/temporary', [ProjectReportController::class, 'store'])->defaults('temporary', true)->middleware('throttle:15,1')->name('projects.reports.temporary.store');
-        Route::get('/transactions/{transaction}', [ProjectReportController::class, 'batch'])->whereNumber('transaction')->name('projects.reports.batch');
         Route::get('/{export}', [ProjectReportController::class, 'show'])->whereNumber('export')->scopeBindings()->name('projects.reports.show');
     });
+
+Route::middleware(['auth', 'can:projects.view', 'can:reports.generate'])->group(function () {
+    Route::get('laboratory/reports/{transaction}/send', [ReportSenderController::class, 'show'])->whereNumber('transaction')->name('reports.send.show');
+    Route::get('laboratory/reports/{export}/download', [ReportSenderController::class, 'download'])->whereNumber('export')->name('reports.download');
+    Route::get('laboratory/reports/{transaction}/zip', [ReportSenderController::class, 'zip'])->whereNumber('transaction')->name('reports.zip');
+    Route::post('laboratory/reports/{transaction}/mixed', [ReportSenderController::class, 'mixed'])->whereNumber('transaction')->name('reports.send.mixed');
+    Route::post('laboratory/reports/{transaction}/send', [ReportSenderController::class, 'mail'])->whereNumber('transaction')->middleware('throttle:15,1')->name('reports.send.mail');
+    Route::get('laboratory/projects/{project}/send-files', [FileSenderController::class, 'show'])->whereNumber('project')->name('projects.send-files.show');
+    Route::post('laboratory/projects/{project}/send-files', [FileSenderController::class, 'mail'])->whereNumber('project')->middleware('throttle:15,1')->name('projects.send-files.mail');
+    Route::get('laboratory/send/templates/{emailTemplate}/{lang?}', [ReportSenderController::class, 'template'])->whereNumber('emailTemplate')->where('lang', 'nl|en')->name('send.template');
+    Route::get('laboratory/sample-files/{sampleFile}/history', [ReportSenderController::class, 'history'])->whereNumber('sampleFile')->name('sample-files.history');
+});
 
 Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects')->group(function () {
     foreach (GetProjectOverview::STATUSES as $status => $label) {
@@ -412,6 +426,13 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
         Route::get('/portal/product-groups/data', [ProductGroupController::class, 'data'])->name('portal.product-groups.data');
         Route::put('/portal/connection', [PortalConnectionController::class, 'update'])->name('portal.connection.update');
         Route::post('/portal/connection/test', [PortalConnectionController::class, 'test'])->name('portal.connection.test');
+        Route::get('/email-templates', [EmailTemplateController::class, 'index'])->name('email-templates.index');
+        Route::get('/email-templates/edit/{emailTemplate?}', [EmailTemplateController::class, 'edit'])->whereNumber('emailTemplate')->name('email-templates.edit');
+        Route::post('/email-templates', [EmailTemplateController::class, 'store'])->name('email-templates.store');
+        Route::put('/email-templates/{emailTemplate}', [EmailTemplateController::class, 'update'])->whereNumber('emailTemplate')->name('email-templates.update');
+        Route::delete('/email-templates/{emailTemplate}', [EmailTemplateController::class, 'destroy'])->whereNumber('emailTemplate')->name('email-templates.destroy');
+        Route::post('/email-templates/{emailTemplate}/default', [EmailTemplateController::class, 'setDefault'])->whereNumber('emailTemplate')->name('email-templates.default');
+        Route::get('/email-templates/load-template/{emailTemplate}/{lang?}', [EmailTemplateController::class, 'loadTemplate'])->whereNumber('emailTemplate')->name('email-templates.load-template');
         Route::get('/reference-sources', [ReferenceSourceController::class, 'index'])->name('reference-sources.index');
         Route::get('/reference-sources/create', [ReferenceSourceController::class, 'create'])->name('reference-sources.create');
         Route::post('/reference-sources', [ReferenceSourceController::class, 'store'])->name('reference-sources.store');

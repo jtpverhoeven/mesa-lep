@@ -129,11 +129,7 @@ class ProjectReportController extends Controller
             ]);
         }
 
-        $exports = $result['exports'];
-
-        return $exports->count() === 1
-            ? to_route('projects.reports.show', [$project, $exports->first()])
-            : to_route('projects.reports.batch', [$project, $exports->first()->transaction]);
+        return to_route('reports.send.show', $result['exports']->first()->transaction);
     }
 
     public function show(Project $project, Export $export): BinaryFileResponse
@@ -145,14 +141,6 @@ class ProjectReportController extends Controller
         return response()->file($disk->path($export->storagePath()), [
             'Content-Type' => 'application/pdf', 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff',
         ])->setContentDisposition('inline', $export->filename(), Str::ascii($export->filename()));
-    }
-
-    public function batch(Project $project, int $transaction): View
-    {
-        $exports = $project->exports()->where('transaction', $transaction)->with(['clientRecord', 'projectRecord'])->orderBy('id')->get();
-        abort_if($exports->isEmpty(), 404);
-
-        return view('reports.created', ['project' => $project, 'exports' => $exports]);
     }
 
     private function portalPreferencesUrl(Project $project): ?string

@@ -123,6 +123,20 @@ body {
 .sample-panel { min-width:0; margin:0; border:1px solid var(--line); background:var(--surface); box-shadow:0 1px 2px rgba(20,35,45,.06); }
 .sample-panel h2 { display:flex; align-items:center; gap:7px; min-height:36px; margin:0; padding:8px 10px; border-bottom:1px solid var(--line); background:var(--surface-alt); color:var(--ink); font-size:12px; font-weight:700; }
 .sample-panel h2 svg { color:var(--accent); flex:none; }
+.sender-layout { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; align-items:start; }
+.attention-pulse { position:relative; display:inline-block; flex:none; width:9px; height:9px; border-radius:50%; background:#f59e0b; }
+.attention-pulse::after { content:''; position:absolute; inset:0; border-radius:50%; background:#f59e0b; }
+@media(prefers-reduced-motion:no-preference) { .attention-pulse::after { animation:attention-ping 1.4s cubic-bezier(0,0,.2,1) infinite; } }
+@keyframes attention-ping { 75%,100% { transform:scale(2.6); opacity:0; } }
+.sender-tabs [data-pc-name='tablist'] { border-top:1px solid var(--line); }
+.sender-tabs [data-pc-section='activebar'] { top:0; bottom:auto; }
+.sender-tabs [data-pc-name='tablist'] [data-pc-section='tablist'] { border-bottom:0; }
+.sender-tabs [data-pc-name='tab'] { display:inline-flex; align-items:center; gap:6px; }
+.sender-tabs [data-pc-name='tab'] svg { color:var(--accent); flex:none; }
+.sender-viewer-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--line); }
+.sender-viewer-toolbar select { flex:1 1 220px; min-width:0; width:auto; }
+.sender-viewer-frame { display:block; width:100%; height:min(680px,75vh); min-height:420px; border:0; background:var(--surface-alt); }
+@media(min-width:1100px) { .sender-layout { grid-template-columns:repeat(2,minmax(0,1fr)); } .sender-viewer { position:sticky; top:12px; } .sender-viewer-frame { height:calc(100vh - 190px); min-height:520px; max-height:900px; } }
 .sample-panel-lock-heading { justify-content:space-between; }
 .sample-panel-lock-heading > span { display:flex; align-items:center; gap:7px; }
 .panel-lock-button,.field-lock-button { display:inline-flex; align-items:center; gap:5px; padding:3px 6px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--accent); font:inherit; font-size:10px; cursor:pointer; }

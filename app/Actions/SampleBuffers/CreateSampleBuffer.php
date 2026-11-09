@@ -5,12 +5,13 @@ namespace App\Actions\SampleBuffers;
 use App\Actions\Printing\DispatchLabelEvents;
 use App\Models\Project;
 use App\Models\SampleBuffer;
+use App\Support\Cvars;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 class CreateSampleBuffer
 {
-    public function __construct(private DispatchLabelEvents $dispatchLabelEvents) {}
+    public function __construct(private DispatchLabelEvents $dispatchLabelEvents, private Cvars $cvars) {}
 
     public function handle(array $data): SampleBuffer
     {
@@ -29,7 +30,7 @@ class CreateSampleBuffer
                 'source' => 2,
                 'project' => 'PRJ-'.$data['client'].'-'.$samplingDate?->format('dmY'),
                 'sampling_date' => $samplingDate?->format('d-m-Y') ?? '',
-                'sampling_method' => $data['sampling_method'] ?? 0,
+                'sampling_method' => $data['sampling_method'] ?? $this->defaultSamplingMethod(),
                 'sample_name' => $data['description'] ?? '',
                 'sample_details' => $data['custom_fields']['details'] ?? '',
                 'tht' => $isTht,
@@ -53,6 +54,11 @@ class CreateSampleBuffer
 
             return $buffer;
         });
+    }
+
+    private function defaultSamplingMethod(): int
+    {
+        return (int) $this->cvars->value('MESA_STD_SMPL_METHOD');
     }
 
     private function storageLabel(string $storage): string

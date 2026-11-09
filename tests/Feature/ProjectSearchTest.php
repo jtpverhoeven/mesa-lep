@@ -117,6 +117,7 @@ class ProjectSearchTest extends TestCase
             ->assertJsonPaths([
                 'data.report_url' => route('projects.reports.index', $project),
                 'data.temporary_report_url' => route('projects.reports.temporary.index', $project),
+                'data.send_files_url' => route('projects.send-files.show', $project),
             ]);
     }
 

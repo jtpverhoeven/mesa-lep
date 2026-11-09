@@ -30,7 +30,7 @@ const reportMenuItems = computed(() => [
     { label: 'Rapport genereren', icon: ExternalLink, url: store.projectData?.report_url, disabled: !store.projectData?.report_url },
     { label: 'Voorlopig rapport genereren', icon: ExternalLink, url: store.projectData?.temporary_report_url, disabled: !store.projectData?.temporary_report_url },
     { separator: true },
-    { label: 'Monster bestanden mailen', icon: Mail },
+    { label: 'Monster bestanden mailen', icon: Mail, url: store.projectData?.send_files_url, disabled: !store.projectData?.send_files_url },
     { separator: true },
     { label: 'Data uitvoeren', icon: Download },
 ]);

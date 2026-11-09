@@ -109,7 +109,7 @@ class GenerateProjectReports
                 $transaction = null;
 
                 foreach ($groups as $group) {
-                    $version = (int) $project->print_version + 1;
+                    $version = $this->nextVersion($project);
                     $report = $this->build->handle($project, $group, $options, $version);
 
                     if ($report === null) {
@@ -152,7 +152,7 @@ class GenerateProjectReports
 
                     return [
                         'pdf' => $this->render->handle($reports, true, $temporary),
-                        'filename' => Export::safeFilename('MAZ-L '.$project->reference.'.'.$project->revision.'.'.((int) $project->print_version + 1)).'.pdf',
+                        'filename' => Export::safeFilename('MAZ-L '.$project->reference.'.'.$project->revision.'.'.$this->nextVersion($project)).'.pdf',
                         'exports' => $exports,
                     ];
                 }
@@ -198,6 +198,15 @@ class GenerateProjectReports
         }
 
         return $result;
+    }
+
+    /**
+     * The print number only advances on the project while it is authorised, but the stored PDF name is derived from
+     * it. Unauthorised reports must therefore also continue after the numbers already issued, or they would collide.
+     */
+    private function nextVersion(Project $project): int
+    {
+        return max((int) $project->print_version, (int) $project->exports()->max('print_version')) + 1;
     }
 
     /** @param Collection<int, Sample> $samples */

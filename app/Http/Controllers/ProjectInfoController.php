@@ -53,7 +53,9 @@ class ProjectInfoController extends Controller
         abort_unless($project->portal_id !== null, 404);
 
         $response = $portal->getOrderForm($project->portal_id)->throw();
+
         $status = $response->json('status');
+
         if ((string) $status === '404' || (string) $status === '422') {
             abort(404, 'Geen orderformulier beschikbaar.');
         }

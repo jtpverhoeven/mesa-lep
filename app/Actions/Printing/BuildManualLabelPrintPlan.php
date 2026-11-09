@@ -3,10 +3,10 @@
 namespace App\Actions\Printing;
 
 use App\Actions\PrintProfiles\BuildPrintProfilePlan;
-use App\Models\Cvar;
 use App\Models\LabelDesign;
 use App\Models\Printer;
 use App\Models\PrintProfile;
+use App\Support\Cvars;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -20,6 +20,7 @@ class BuildManualLabelPrintPlan
         private RenderLabelZpl $render,
         private BuildPrintProfilePlan $profiles,
         private GetLabelPrintingSettings $settings,
+        private Cvars $cvars,
     ) {}
 
     /**
@@ -133,8 +134,7 @@ class BuildManualLabelPrintPlan
      */
     private function legionella(array $options, string $currentUser): array
     {
-        $setting = Cvar::query()->where('cvar', 'GENERIC_LEGIONELLA_LABEL_ID')->first();
-        $design = LabelDesign::query()->find((int) ($setting?->value ?? $setting?->default ?? 0));
+        $design = LabelDesign::query()->find((int) $this->cvars->valueOrDefault('GENERIC_LEGIONELLA_LABEL_ID', '0'));
 
         if ($design === null || trim($design->zpl) === '') {
             throw new InvalidArgumentException('Stel GENERIC_LEGIONELLA_LABEL_ID in op een bestaand labelontwerp met ZPL.');

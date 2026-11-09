@@ -1,6 +1,6 @@
 # Report sending (extern page, e-mail templates, portal hand-off)
 
-Status: analysis and implementation plan. No code has been written for this feature yet.
+Status: phases A, B and C implemented. `reports.send.mail` (`SendReportTransaction`) and `projects.send-files.mail` (`SendProjectFiles`) post through `ClientPortalService`; the Vue submit flow (`SenderSubmit.vue`) posts the payload from section 5 (the file sender posts `includeSampleFiles` and `messageFiles`). Notes: unauthorised transactions return 422 (allowed improvement); a missing PDF is skipped like legacy; document sends are recorded whenever the portal was reachable (the response is not inspected), and an empty selection answers `{"message":"empty"}`.
 Audience: the agent that implements it. Everything below is derived from the legacy code in `legacy/app/` and from the current Laravel code base.
 
 ## 0. Ground rules
@@ -84,7 +84,6 @@ Missing (to build):
 2. Extern page, file-sender page, `checkTransactionIsMixed`, file-history modal endpoint, zip-all download, "other versions" block for unauthorised reports (phase B).
 3. `mailer` and `documentMailer` endpoints and actions with portal failure handling (phase C).
 4. Navigation entries (project overview "send" button, admin menu "Uitgaande email").
-5. Decision on the legacy "development mode" portal guard (see 5.6).
 
 ## 3. Phase A: back-end readiness and e-mail template administration
 
@@ -97,8 +96,7 @@ Missing (to build):
    - `visibleProjectFiles(project)`: sample files of the project's samples with `visible_for_client = 1`, ordered by `samples.barcode ASC` (then id for determinism). Must work with zero samples (legacy breaks on `IN ()`).
    - `visibleProjectFilesInReport(project, sampleIds)`: same, restricted to samples that are in the project **and** in `sampleIds`.
    - Each file gets `sent_label` and `sent_count` (`withCount('histories')`).
-5. **Portal status helper**: see 5.6.
-6. **`Export` fixture/factory** with `transaction`, `sample_id_scope`, `was_authorized`, plus a fake PDF on the fake disk, for tests.
+5. **`Export` fixture/factory** with `transaction`, `sample_id_scope`, `was_authorized`, plus a fake PDF on the fake disk, for tests.
 
 ### 3.2 Database
 
@@ -108,7 +106,7 @@ Model `EmailTemplate` (`$table = 'emailtemplates'`, `$timestamps = false`), fact
 
 ### 3.3 Admin screens (legacy: `emailTemplatesController`, `views/emailTemplates/*`)
 
-Menu: "Uitgaande email" under the Client Portal group of the admin menu (legacy `adminSidebar.php`; Laravel `resources/views/layouts/app.blade.php` lines ~47-49). Legacy has no privilege rule for this controller; gate it like the other portal admin pages (`can:settings.advanced`) unless the product owner says otherwise. Sending itself should use `can:projects.view` + `can:reports.generate` like the existing report routes (open decision, flag it in the PR).
+Menu: "Uitgaande email" under the Client Portal group of the admin menu (legacy `adminSidebar.php`; Laravel `resources/views/layouts/app.blade.php` lines ~47-49). Legacy has no privilege rule for this controller. **Decided:** template administration is gated with `can:settings.advanced` (like the other portal admin pages); sending (extern page, file sender, `mailer`, `documentMailer`, history modal, `checkTransactionIsMixed`, downloads) uses `can:projects.view` + `can:reports.generate`, like the existing report routes. No new permissions are needed.
 
 Screens and behaviour:
 
@@ -227,7 +225,7 @@ Template behaviour:
 
 - Initial templates come from the selector (3.4) with the default language of 4.3; att and files containers are initialised with `nl`/`en` in the same way.
 - Changing the template loads `loadTemplate/{id}/{lang}`, replaces the textarea content and **overwrites `#bcc`** with that template's bcc. Initial `#bcc` = bcc of the `reports` default.
-- Legacy quirk: the att selector uses the language switch of the **normal** container (`#mailTemplateSelectorLang`) when its template changes. Keep it (or fix only if the UX owner agrees).
+- **Legacy bug, fix it (decided):** the att selector loads its template using the language switch of the **normal** container (`#mailTemplateSelectorLang`) when its template changes, so changing the att template ignores the att container's own nl/en switch. In the port, each container's template selector must use its own language switch (normal -> normal, att -> att, files -> files). Initial values stay as described above.
 - The message is raw text (Markdown compatible); do not HTML-escape on the way to the portal.
 
 ### 4.9 Submit (`doMail()`)
@@ -300,9 +298,9 @@ Legacy trusts the client. Add only non-behavioural validation: transaction exist
 
 `ClientPortalService` returns `Response` objects. The action must treat the following as a failed send (append the reference to failures, no bookkeeping): `ConnectionException`, non-2xx status, body that is not JSON, JSON without `message`... **Careful**: legacy treats a missing `message` key as success (only `message` present and `!= 'ok'` is a failure). Keep that for 2xx JSON responses; the new strictness applies to transport failures only. Log failures.
 
-### 5.6 Legacy "development mode" guard
+### 5.6 Legacy "development mode" guard: removed
 
-In legacy, `$_SESSION['DEVELOPMENT']` (EXP mode) makes `reportMailer`, `documentMailer` and `notify-reports` return null without contacting the portal (and then `mailer` crashes). There is no Laravel equivalent. Recommended: config flag `services.glass.send_enabled` (env `PORTAL_SEND_ENABLED`, default true) checked inside `ClientPortalService`; when false, the send actions log and report a clear failure instead of crashing. Ask the product owner whether to port this at all.
+Legacy skipped `reportMailer`, `documentMailer` and `notify-reports` when `$_SESSION['DEVELOPMENT']` was set. **Decided:** do not port it. Staging and development use their own `.env` files (portal base URL and bearer from `PortalSettings`), so no send-disabling flag, config key or code path is added. `ClientPortalService` is used as-is.
 
 ### 5.7 Queueing
 
@@ -361,4 +359,4 @@ Anything else (labels, defaults, flows, order of side effects) stays as in legac
 3. Phase C: `SendReportTransaction` and `SendProjectFiles`, wire `doMail()`, redirect behaviour, portal failure handling. Acceptance: tests in section 8 pass and a manual run against a portal sandbox produces identical `filehistories` rows, `sent_to_client` flags and change-tracker events as legacy for the same input.
 4. Wire navigation (extern link after generation, envelope in the report history, "Monster bestanden mailen", admin menu "Uitgaande email") and replace `projects.reports.batch`.
 
-Open decisions for the product owner: permission names for admin and sending (3.3), the development-mode guard (5.6), and whether to fix the att-selector language quirk (4.8).
+Decisions (settled): permissions are `settings.advanced` for template admin and `projects.view` + `reports.generate` for sending (3.3); the development-mode guard is removed (5.6); the att-selector language bug is fixed (4.8).

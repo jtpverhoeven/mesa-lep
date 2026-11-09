@@ -2,20 +2,18 @@
 
 namespace App\Actions\Samples;
 
-use App\Models\Cvar;
 use App\Models\ProjectField;
 use App\Models\ResearchProfile;
 use App\Models\SampleProcedure;
+use App\Support\Cvars;
 
 class BulkSampleRegistrationOptions
 {
-    private ?array $settings = null;
+    public function __construct(private Cvars $cvars) {}
 
     public function value(string $name, string $default = ''): string
     {
-        $this->settings ??= Cvar::query()->pluck('value', 'cvar')->all();
-
-        return (string) ($this->settings[$name] ?? $default);
+        return (string) ($this->cvars->value($name) ?? $default);
     }
 
     public function ids(string $name): array

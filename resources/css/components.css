@@ -96,6 +96,60 @@
         @apply rounded-control border border-line bg-surface-alt p-3 text-ink;
     }
 
+    .report-feedback.attention {
+        @apply flex items-center gap-3 border-2 font-medium;
+        border-color: #f59e0b;
+        background: color-mix(in srgb, #f59e0b 14%, var(--surface));
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .report-feedback.attention {
+            animation: attention-glow 1.5s ease-in-out infinite;
+        }
+    }
+
+    @keyframes attention-glow {
+        0%, 100% { box-shadow: 0 0 0 0 rgb(var(--glow, 245 158 11) / 0); }
+        50% { box-shadow: 0 0 0 4px rgb(var(--glow, 245 158 11) / .45); }
+    }
+
+    .report-feedback.attention svg {
+        color: #f59e0b;
+    }
+
+    .report-feedback.attention.success svg {
+        color: var(--success);
+    }
+
+    .report-feedback.attention.danger svg {
+        color: var(--danger);
+    }
+
+    .attention-draw {
+        stroke-dasharray: 20;
+        stroke-dashoffset: 0;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .attention-draw {
+            animation: attention-draw .6s ease-out;
+        }
+    }
+
+    @keyframes attention-draw {
+        from { stroke-dashoffset: 20; }
+        to { stroke-dashoffset: 0; }
+    }
+
+    .report-feedback.attention.success {
+        @apply border-success bg-success-faint;
+        --glow: 63 125 71;
+    }
+
+    .report-feedback.attention.danger {
+        --glow: 217 83 79;
+    }
+
     .report-feedback.danger {
         @apply border-danger bg-danger-faint;
     }

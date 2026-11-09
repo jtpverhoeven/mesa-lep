@@ -13,6 +13,7 @@ use App\Models\Project;
 use App\Models\ProjectField;
 use App\Models\SampleField;
 use App\Models\SampleProcedure;
+use App\Support\Cvars;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -24,13 +25,17 @@ class SampleController extends Controller
         return view('samples.create');
     }
 
-    public function formData(BarcodeGenerator $barcodeGenerator): JsonResponse
+    public function formData(BarcodeGenerator $barcodeGenerator, Cvars $cvars): JsonResponse
     {
+        $samplingMethods = SampleProcedure::query()->where('active', 1)->orderBy('name')->get(['id', 'name']);
+        $defaultSamplingMethod = (int) $cvars->value('MESA_STD_SMPL_METHOD');
+
         return response()->json([
             'barcode' => $barcodeGenerator->predict(),
             'project_fields' => ProjectField::query()->orderBy('position')->get(['name', 'alias', 'type', 'std_value']),
             'sample_fields' => SampleField::query()->orderBy('position')->get(['name', 'alias', 'type', 'std_value']),
-            'sampling_methods' => SampleProcedure::query()->where('active', 1)->orderBy('name')->get(['id', 'name']),
+            'sampling_methods' => $samplingMethods,
+            'default_sampling_method' => $samplingMethods->contains('id', $defaultSamplingMethod) ? $defaultSamplingMethod : null,
         ]);
     }
 

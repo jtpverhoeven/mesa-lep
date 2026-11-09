@@ -2,13 +2,15 @@
 
 namespace App\Actions\Samples;
 
-use App\Models\Cvar;
 use App\Models\Sample;
+use App\Support\Cvars;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 
 class BarcodeGenerator
 {
+    public function __construct(private Cvars $cvars) {}
+
     public function predict(int $offset = 0, ?CarbonInterface $at = null, ?string $matrix = null): string
     {
         $at ??= now();
@@ -82,8 +84,6 @@ class BarcodeGenerator
 
     private function setting(string $name, string $default): string
     {
-        return Cvar::query()
-            ->where('cvar', $name)
-            ->value('value') ?: $default;
+        return $this->cvars->value($name) ?: $default;
     }
 }

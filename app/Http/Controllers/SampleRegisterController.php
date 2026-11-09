@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Actions\Samples\RegisterSampleInoculation;
 use App\Actions\Samples\UpdateSampleInoculationConditions;
-use App\Models\Cvar;
 use App\Models\Sample;
+use App\Support\Cvars;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +19,8 @@ class SampleRegisterController extends Controller
     private const STORAGE_CVAR = 'MESA_CURRENT_BIN';
 
     private const DILUTION_CVAR = 'MESA_CURRENT_DILUTION';
+
+    public function __construct(private Cvars $cvars) {}
 
     public function index(): View
     {
@@ -198,9 +200,9 @@ class SampleRegisterController extends Controller
 
     private function userSetting(string $name, string $userId, string $fallback): string
     {
-        $values = json_decode((string) Cvar::query()->where('cvar', $name)->value('value'), true);
+        $values = $this->cvars->json($name);
 
-        if (! is_array($values) || ! array_key_exists($userId, $values)) {
+        if (! array_key_exists($userId, $values)) {
             return $fallback;
         }
 
@@ -211,14 +213,14 @@ class SampleRegisterController extends Controller
 
     private function saveUserSetting(string $name, string $userId, string $value, string $fallback): void
     {
-        $cvar = Cvar::query()->firstOrNew(['cvar' => $name]);
-        $values = json_decode((string) $cvar->value, true);
-        $values = is_array($values) ? $values : [];
+        $existing = $this->cvars->find($name);
+        $values = $this->cvars->json($name);
         $values[$userId] = $value;
-        $cvar->value = json_encode($values, JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR);
-        $cvar->default ??= $fallback;
-        $cvar->description ??= 'Monsterregistratie instelling per gebruiker.';
-        $cvar->save();
+
+        $this->cvars->set($name, json_encode($values, JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR), [
+            'default' => $existing?->default ?? $fallback,
+            'description' => $existing?->description ?? 'Monsterregistratie instelling per gebruiker.',
+        ]);
     }
 
     private function parseInoculationDate(string $value): CarbonImmutable

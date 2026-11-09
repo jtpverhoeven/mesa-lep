@@ -7,6 +7,7 @@ use App\Models\AssayProfile;
 use App\Models\Client;
 use App\Models\DocgenAssociation;
 use App\Models\DocgenTemplate;
+use App\Models\EmailTemplate;
 use App\Models\Footer;
 use App\Models\LabelDesign;
 use App\Models\LabelEvent;
@@ -24,6 +25,29 @@ use Tests\TestCase;
 class ImportLegacyCsvDirectoryCommandTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_email_template_exports_preserve_the_legacy_id_and_fields(): void
+    {
+        $exports = [
+            'emailtemplates.csv' => [
+                ['id', 'name', 'template', 'template_en', 'bcc', 'defaultmail', 'defaultmail_with_files', 'defaultmail_for_files'],
+                [61, 'Rapport', 'Nederlandse tekst', 'English text', 'archive@example.test', 0, 1, 0],
+            ],
+        ];
+
+        $this->withCsvExports($exports, function (string $directory): void {
+            $this->artisan('legacy:import-csv', ['directory' => $directory])
+                ->expectsOutput('Imported 1 row(s) from 1 file(s).')
+                ->assertSuccessful();
+        });
+
+        $template = EmailTemplate::query()->findOrFail(61);
+        $this->assertSame('Rapport', $template->name);
+        $this->assertSame('Nederlandse tekst', $template->template);
+        $this->assertSame('English text', $template->template_en);
+        $this->assertSame('archive@example.test', $template->bcc);
+        $this->assertSame(1, $template->defaultmail_with_files);
+    }
 
     public function test_reporting_exports_preserve_legacy_ids_associations_and_exact_certificate_text(): void
     {
