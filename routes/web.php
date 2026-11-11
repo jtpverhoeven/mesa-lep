@@ -42,6 +42,7 @@ use App\Http\Controllers\ResearchProfileController;
 use App\Http\Controllers\ResultController;
 use App\Http\Controllers\SampleAnalysisAssignmentController;
 use App\Http\Controllers\SampleBufferController;
+use App\Http\Controllers\SampleBufferImportController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SampleFieldController;
 use App\Http\Controllers\SampleFileController;
@@ -228,6 +229,14 @@ Route::middleware('auth')->prefix('laboratory/sample-buffers')->group(function (
     Route::get('/tht', [SampleBufferController::class, 'tht'])->middleware('can:shelf-life-studies.view')->name('sample-buffers.tht');
     Route::get('/data', [SampleBufferController::class, 'data'])->name('sample-buffers.data');
     Route::post('/batch', [SampleBufferController::class, 'batch'])->name('sample-buffers.batch');
+});
+
+Route::middleware(['auth', 'can:clients.import'])->prefix('laboratory/client-import')->group(function () {
+    Route::get('/', [SampleBufferImportController::class, 'index'])->name('sample-buffers.import');
+    Route::get('/template', [SampleBufferImportController::class, 'template'])->name('sample-buffers.import.template');
+    Route::get('/clients', [SampleBufferImportController::class, 'clients'])->name('sample-buffers.import.clients');
+    Route::post('/preview', [SampleBufferImportController::class, 'preview'])->name('sample-buffers.import.preview');
+    Route::post('/', [SampleBufferImportController::class, 'store'])->name('sample-buffers.import.store');
 });
 
 Route::middleware(['auth', 'can:assurance-form.view'])->prefix('laboratory/assurance-forms')->group(function () {

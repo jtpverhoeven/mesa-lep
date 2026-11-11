@@ -44,6 +44,7 @@ import ResearchProfileDirectory from './components/ResearchProfileDirectory.vue'
 import ResearchProfileEditor from './components/ResearchProfileEditor.vue';
 import SampleCreateForm from './components/SampleCreateForm.vue';
 import BulkSampleCreateForm from './components/BulkSampleCreateForm.vue';
+import SampleBufferImport from './components/SampleBufferImport.vue';
 import SampleBufferPortal from './components/SampleBufferPortal.vue';
 import SampleLookup from './components/SampleLookup.vue';
 import SampleRegister from './components/SampleRegister.vue';
@@ -98,6 +99,7 @@ app.component('research-profile-directory', ResearchProfileDirectory);
 app.component('research-profile-editor', ResearchProfileEditor);
 app.component('sample-create-form', SampleCreateForm);
 app.component('bulk-sample-create-form', BulkSampleCreateForm);
+app.component('sample-buffer-import', SampleBufferImport);
 app.component('sample-buffer-portal', SampleBufferPortal);
 app.component('sample-lookup', SampleLookup);
 app.component('sample-register', SampleRegister);
