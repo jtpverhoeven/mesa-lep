@@ -13,7 +13,6 @@
 # Known bugs
 
 - Metadata change tracker error. puts from -> to as key->value
-- The DELETE method is not supported for route laboratory/samples/lookup/26101022. Supported methods: GET, HEAD. (on changing/delete colonies in confirmation window, needs checking)
 - Check legionella and rodac special cases in the new code for template selection once we get these things up and running
 
 # Ideas - Improvements after code base done

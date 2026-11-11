@@ -42,7 +42,7 @@ class SaveLabelEventRequest extends FormRequest
             'event_group' => ['required', 'integer', Rule::in(array_keys(LabelEvent::GROUPS))],
             'print_label' => ['required', 'integer', Rule::exists(LabelDesign::class, 'id')],
             'print_to' => ['required', 'integer', Rule::exists(Printer::class, 'id')],
-            'copies' => ['required', 'integer', 'min:1', 'max:'.LabelEvent::MAX_COPIES],
+            'copies' => ['required', 'integer', 'min:0', 'max:'.LabelEvent::MAX_COPIES],
             'event_data' => ['exclude_unless:event,L', 'required', 'array:type,inspect,inspect_value,negative'],
             'event_data.type' => ['exclude_unless:event,L', 'required', 'string', Rule::in(array_keys(LabelEvent::CONDITIONS[$group] ?? []))],
             'event_data.inspect' => [Rule::excludeIf(! $conditional || $type !== 'sField'), 'required', 'string', Rule::exists(SampleField::class, 'name')->whereNull('deleted_at')],

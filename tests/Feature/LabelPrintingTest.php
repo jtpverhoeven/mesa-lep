@@ -587,6 +587,17 @@ class LabelPrintingTest extends TestCase
         $this->assertSame([], $plan);
     }
 
+    public function test_zero_copy_rules_are_ignored_as_temporarily_disabled(): void
+    {
+        $disabled = LabelEvent::factory()->create(['copies' => 0]);
+        $active = LabelEvent::factory()->create();
+
+        $plan = app(BuildLabelPrintPlan::class)->handle(1, []);
+
+        $this->assertSame([$active->id], array_column($plan, 'event_id'));
+        $this->assertNotContains($disabled->id, array_column($plan, 'event_id'));
+    }
+
     #[DataProvider('brokenRuleConfiguration')]
     public function test_matching_rules_with_broken_configuration_fail_before_any_jobs_are_sent(array $attributes): void
     {
@@ -1036,7 +1047,6 @@ class LabelPrintingTest extends TestCase
         return [
             'missing design' => [['print_label' => 999999]],
             'missing printer' => [['print_to' => 999999]],
-            'zero copies' => [['copies' => 0]],
             'too many copies' => [['copies' => 10000]],
         ];
     }

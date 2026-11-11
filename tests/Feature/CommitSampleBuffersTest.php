@@ -13,6 +13,7 @@ use App\Models\ProjectField;
 use App\Models\ResearchProfile;
 use App\Models\SampleBuffer;
 use App\Models\SampleProcedure;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -85,6 +86,23 @@ class CommitSampleBuffersTest extends TestCase
         $this->assertSame('08:00', json_decode($project->custom_fields, true)['project_bemonster_tijd']);
     }
 
+    public function test_rodac_buffers_are_inoculated_only_when_auto_registration_is_enabled(): void
+    {
+        $this->actingAs(User::factory()->create(['enabled' => 1]));
+        $client = Client::create(['name' => 'Ziekenhuis', 'active' => 1]);
+        $this->projectFields();
+
+        foreach (['0' => false, '1' => true] as $setting => $expected) {
+            $this->cvars(['RODAC_AUTO_REGISTER_INNOCULATION' => (string) $setting]);
+            $this->buffer($client, 2, [['property_name' => 'rodacRoom', 'value' => 'OK 3']], ['project' => 'PRJ-'.$setting]);
+
+            $sample = $this->commit(SampleBuffer::pluck('id')->all())->first()->fresh();
+
+            $this->assertSame($expected, filled($sample->sample_innoculated));
+            $this->assertSame($expected, (bool) Project::findOrFail($sample->project)->started);
+        }
+    }
+
     public function test_normal_buffers_keep_legacy_sample_data_and_a_blank_project_name_falls_back_to_the_barcode(): void
     {
         $client = Client::create(['name' => 'Waterbedrijf', 'active' => 1]);
@@ -148,7 +166,7 @@ class CommitSampleBuffersTest extends TestCase
     private function cvars(array $values): void
     {
         foreach ($values as $name => $value) {
-            Cvar::create(['cvar' => $name, 'value' => $value, 'default' => '', 'description' => '']);
+            Cvar::updateOrCreate(['cvar' => $name], ['value' => $value, 'default' => '', 'description' => '']);
         }
     }
 }

@@ -55,7 +55,7 @@ const valueLabel = computed(() => ({ sClient: 'Opdrachtgever', mMethod: 'Monster
 const inspectValue = computed(() => draft.type === 'assayIs' ? assayIds.value.join(',') : draft.value);
 const canSave = computed(() => {
     if (!choices.labelDesigns.some((option) => option.id === draft.label) || !choices.printers.some((option) => option.id === draft.printer)) return false;
-    if (!Number.isInteger(draft.copies) || draft.copies < 1 || draft.copies > props.options.maxCopies) return false;
+    if (!Number.isInteger(draft.copies) || draft.copies < 0 || draft.copies > props.options.maxCopies) return false;
     if (draft.event === 'P') return groups.some((group) => group.id === draft.group);
     if (!conditionTypes.value.some((type) => type.id === draft.type)) return false;
     if (draft.type === 'sField') return sampleFields.some((field) => field.id === draft.inspect);
@@ -183,7 +183,7 @@ function submit(event) {
                 </div>
                 <div class="field max-w-48">
                     <label for="label-event-copies">Aantal exemplaren</label>
-                    <InputNumber v-model="draft.copies" input-id="label-event-copies" :min="1" :max="options.maxCopies" :use-grouping="false" :invalid="Boolean(error('copies'))" :pt="{ incrementButton: { 'aria-label': 'Meer exemplaren', title: 'Meer exemplaren' }, decrementButton: { 'aria-label': 'Minder exemplaren', title: 'Minder exemplaren' } }" show-buttons fluid>
+                    <InputNumber v-model="draft.copies" input-id="label-event-copies" :min="0" :max="options.maxCopies" :use-grouping="false" :invalid="Boolean(error('copies'))" :pt="{ incrementButton: { 'aria-label': 'Meer exemplaren', title: 'Meer exemplaren' }, decrementButton: { 'aria-label': 'Minder exemplaren', title: 'Minder exemplaren' } }" show-buttons fluid>
                         <template #incrementbuttonicon><Plus :size="12" aria-hidden="true" /></template>
                         <template #decrementbuttonicon><Minus :size="12" aria-hidden="true" /></template>
                     </InputNumber>

@@ -89,6 +89,19 @@ class LabelEventAdministrationTest extends TestCase
         $this->assertDatabaseCount('labelevents', 2);
     }
 
+    public function test_zero_copy_rules_can_be_saved_for_temporary_disabling(): void
+    {
+        $event = LabelEvent::factory()->create();
+        $this->actingAs($this->userWithPermissions());
+
+        $this->put(route('label-events.update', $event), [
+            'event' => 'P', 'event_group' => 1,
+            'print_label' => $event->print_label, 'print_to' => $event->print_to, 'copies' => 0,
+        ])->assertRedirect(route('label-events.edit', $event))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('labelevents', ['id' => $event->id, 'copies' => 0]);
+    }
+
     public function test_deleting_a_rule_preserves_other_rules_designs_and_printers(): void
     {
         $event = LabelEvent::factory()->create(['event_group' => 2]);
@@ -319,7 +332,6 @@ class LabelEventAdministrationTest extends TestCase
             'missing printer' => [['print_to' => 999999], ['print_to']],
             'missing design' => [['print_label' => 999999], ['print_label']],
             'non-integer printer' => [['print_to' => 'Zebra'], ['print_to']],
-            'zero copies' => [['copies' => 0], ['copies']],
             'negative copies' => [['copies' => -1], ['copies']],
             'fractional copies' => [['copies' => 1.5], ['copies']],
             'excessive copies' => [['copies' => 10000], ['copies']],

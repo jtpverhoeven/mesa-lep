@@ -33,6 +33,10 @@ class BuildLabelPrintPlan
         $plan = [];
 
         foreach ($events as $event) {
+            if ($event->copies === 0) {
+                continue;
+            }
+
             if (! $this->evaluateLabelEvent->handle($event->getAttributes(), $context['sample'] ?? [], $context['analysis'] ?? [], $context['assay'] ?? [])) {
                 continue;
             }
@@ -41,7 +45,7 @@ class BuildLabelPrintPlan
                 throw new LogicException('Label event #'.$event->id.' references a missing label design or printer.');
             }
 
-            if ($event->copies < 1 || $event->copies > LabelEvent::MAX_COPIES || trim($event->labelDesign->zpl) === '') {
+            if ($event->copies < 0 || $event->copies > LabelEvent::MAX_COPIES || trim($event->labelDesign->zpl) === '') {
                 throw new LogicException('Label event #'.$event->id.' has an invalid copy count or empty ZPL.');
             }
 

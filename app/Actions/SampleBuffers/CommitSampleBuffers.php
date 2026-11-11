@@ -8,6 +8,7 @@ use App\Actions\Projects\ResolveProjectReference;
 use App\Actions\SampleAnalyses\AddResearchProfileToSample;
 use App\Actions\Samples\BulkSampleRegistrationOptions;
 use App\Actions\Samples\CreateSampleWithAnalyses;
+use App\Actions\Samples\RegisterSampleInoculation;
 use App\ClientPortal\ClientPortalService;
 use App\Models\ProjectField;
 use App\Models\ResearchProfile;
@@ -34,6 +35,7 @@ class CommitSampleBuffers
         private ClientPortalService $clientPortal,
         private AddResearchProfileToSample $addResearchProfile,
         private BulkSampleRegistrationOptions $options,
+        private RegisterSampleInoculation $registerSampleInoculation,
     ) {}
 
     public function handle(array $ids, int $registeredBy, array $receipt): Collection
@@ -103,6 +105,10 @@ class CommitSampleBuffers
                     $buffer->meta ?? [],
                     (int) $buffer->source === 3 ? ($buffer->portal_meta ?? []) : [],
                 );
+                if ($isRodac && $this->options->value('RODAC_AUTO_REGISTER_INNOCULATION') === '1' && empty($sample->sample_innoculated)) {
+                    $sample = $this->registerSampleInoculation->handle($sample, storedIn: '', dilutedAt: '');
+                }
+
                 $project = $sample->project()->firstOrFail();
                 $projectFields = json_decode($project->custom_fields ?: '{}', true) ?: [];
                 $project->update([
