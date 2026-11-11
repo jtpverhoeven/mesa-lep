@@ -8,17 +8,23 @@ use App\Events\AnalysisResultCalculated;
 use App\Events\AnalysisResultCalculationFailed;
 use App\Events\ConfirmationDecisionRequired;
 use App\Models\SampleAnalysis;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use DateTimeInterface;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Throwable;
 
-class CalculateAnalysisResultJob implements ShouldBeUnique, ShouldQueue
+class CalculateAnalysisResultJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 1;
+    /**
+     * The uniqueness lock is released when processing starts, so a result saved
+     * mid-calculation queues a fresh job. That job is released while the running
+     * one finishes, which would fail a single-attempt job.
+     */
+    public int $tries = 0;
 
     public int $timeout = 10;
 
@@ -36,6 +42,11 @@ class CalculateAnalysisResultJob implements ShouldBeUnique, ShouldQueue
                 ->releaseAfter(2)
                 ->expireAfter(30),
         ];
+    }
+
+    public function retryUntil(): DateTimeInterface
+    {
+        return now()->addSeconds(60);
     }
 
     public function uniqueId(): string

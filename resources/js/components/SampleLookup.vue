@@ -12,7 +12,7 @@ import SampleMetadataEditor from './SampleMetadataEditor.vue';
 import SampleDetailsDialog from './SampleDetailsDialog.vue';
 import ProjectInfo from './ProjectInfo.vue';
 import ConfirmationDecisionDialog from './ConfirmationDecisionDialog.vue';
-import ConfirmationDialog from './ConfirmationDialog.vue';
+import ConfirmationView from './ConfirmationView.vue';
 import { useConfirmationStore } from '../stores/confirmationStore';
 import { projectReasons, useKeyringStore } from '../stores/keyringStore';
 import ShowRevisions from './ShowRevisions.vue';
@@ -97,7 +97,6 @@ watch(() => store.data?.sample.id, (sampleId) => {
 
             if (Number(event.analysis_id) === confirmationAnalysisId() && Number(event.analysis_id) !== Number(store.selectedId)) {
                 confirmationStore.load(Number(event.analysis_id));
-                store.loadResults(store.selectedId);
                 return;
             }
 
@@ -138,6 +137,18 @@ watch([() => store.selectedId, sampleChannelSettled], async ([analysisId, channe
     if (sampleChannelFailed.value && store.selectedId === analysisId) store.reportRealtimeError();
 }, { flush: 'sync' });
 watch(() => store.selectedId, () => confirmationStore.reset(true), { flush: 'sync' });
+let scrollBeforeConfirmation = 0;
+watch(() => confirmationStore.dialogOpen, (open) => {
+    const scroller = document.querySelector('.main-content');
+    if (!scroller) return;
+
+    if (open) {
+        scrollBeforeConfirmation = scroller.scrollTop;
+        scroller.scrollTop = 0;
+    } else {
+        scroller.scrollTop = scrollBeforeConfirmation;
+    }
+}, { flush: 'post' });
 watch(() => store.resultData?.confirmation, (confirmation) => {
     if (confirmation && store.selectedId) confirmationStore.hydrate(store.selectedId, confirmation);
 });
@@ -166,7 +177,7 @@ onBeforeUnmount(() => {
             <KeyringNotice type="sample" :id="store.data.sample.id" />
             <AuthorizationBlockedNotice :project="store.data.project" />
         </div>
-        <div class="sample-create-grid">
+        <div v-show="!confirmationStore.dialogOpen" class="sample-create-grid">
             <div class="sample-create-column">
                 <section class="sample-panel">
                     <h2><Barcode :size="16" />Monster opzoeken<span class="lookup-tools"><button class="icon-button" title="Vorig monster" :disabled="!store.data?.previous || store.saving" @click="store.lookup(store.data.previous)"><ArrowLeft :size="16" /></button><button class="icon-button" title="Volgend monster" :disabled="!store.data?.next || store.saving" @click="store.lookup(store.data.next)"><ArrowRight :size="16" /></button></span></h2>
@@ -235,7 +246,7 @@ onBeforeUnmount(() => {
                 <section v-if="store.debug" class="sample-panel" aria-live="polite"><h2>{{ store.debug.feature }}</h2><div class="sample-panel-body"><SampleLookupPlaceholder :feature="store.debug.feature" :details="store.debug" /></div></section>
             </div>
         </div>
-        <ConfirmationDialog />
+        <ConfirmationView :barcode="String(store.data?.sample.barcode ?? '')" />
         <ConfirmationDecisionDialog />
         <SampleDetailsDialog v-model:visible="store.detailsVisible" :sample-data="store.detailsData" :barcode="String(store.data?.sample.barcode ?? '')" :can-update="permissions.updateSample" :read-only="store.readOnly" :loading="store.detailsLoading" :saving-fields="store.detailsSaving" :error="store.detailsError" @save="store.saveDetailField" />
         <ShowRevisions :visible="revisionScope !== null" :endpoint="endpoints.revisions" :scope="revisionScope ?? 'sample'" :scope-id="revisionScope === 'analysis' ? store.selectedId : (store.data?.sample.id ?? null)" :sample-id="store.data?.sample.id ?? null" :title="revisionScope === 'analysis' ? 'Resultaatrevisies' : 'Monsterrevisies'" @update:visible="revisionScope = $event ? revisionScope : null" />

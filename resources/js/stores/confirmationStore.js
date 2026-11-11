@@ -30,6 +30,8 @@ export const useConfirmationStore = defineStore('confirmation', {
         assuranceExplanationField: null,
         assuranceExplanation: '',
         requestRevision: 0,
+        loadRevision: 0,
+        mutationEpoch: 0,
     }),
     getters: {
         readOnly(state) {
@@ -66,7 +68,6 @@ export const useConfirmationStore = defineStore('confirmation', {
             this.analysisId = Number(data?.analysis_id ?? this.analysisId);
             const scope = data?.selected_scope ?? data?.scopes?.[0];
             this.selectedScopeKey = scope ? `${scope.df}:${scope.rep}` : null;
-            this.error = '';
             if (data?.decision_required && !this.decisionPrompt) {
                 this.decisionPrompt = { analysis_id: data.analysis_id };
             }
@@ -76,22 +77,41 @@ export const useConfirmationStore = defineStore('confirmation', {
         },
         async load(analysisId = this.analysisId, df = null, rep = 0) {
             if (!analysisId || !this.endpoints.show) return;
-            const revision = ++this.requestRevision;
+            const sameAnalysis = this.data && Number(this.data.analysis_id) === Number(analysisId);
+            const currentScope = sameAnalysis ? this.selectedScope : null;
+            const sameScope = currentScope && (df === null || (String(df) === String(currentScope.df) && String(rep) === String(currentScope.rep)));
+            // A refresh of what is already on screen must patch it in place instead of showing the loading state.
+            const silent = Boolean(sameScope);
+            if (silent && df === null) {
+                df = currentScope.df;
+                rep = currentScope.rep;
+            }
+
+            const revision = ++this.loadRevision;
+            const epoch = this.mutationEpoch;
             this.analysisId = Number(analysisId);
-            this.loading = true;
-            this.error = '';
+            if (!silent) {
+                this.loading = true;
+                this.error = '';
+            }
             const query = df === null ? '' : `?${new URLSearchParams({ df, rep: String(rep) })}`;
 
             try {
                 const response = await fetch(`${this.endpoint('show')}${query}`, { headers: { Accept: 'application/json' } });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.message || 'Bevestiging kon niet worden geladen.');
-                if (revision !== this.requestRevision || Number(analysisId) !== Number(this.analysisId)) return;
+                if (revision !== this.loadRevision || Number(analysisId) !== Number(this.analysisId)) return;
+                if (silent && (this.pendingMutationCount > 0 || epoch !== this.mutationEpoch)) {
+                    // The snapshot predates a save; refresh again once saving has settled.
+                    if (this.pendingMutationCount > 0) this.pendingRealtimeRefresh = true;
+                    else this.load(analysisId, df, rep);
+                    return;
+                }
                 this.applyData(result.data);
             } catch (error) {
-                if (revision === this.requestRevision) this.error = error.message;
+                if (revision === this.loadRevision && !silent) this.error = error.message;
             } finally {
-                if (revision === this.requestRevision) this.loading = false;
+                if (revision === this.loadRevision) this.loading = false;
             }
         },
         async open(analysisId, df = null, rep = 0) {
@@ -154,6 +174,7 @@ export const useConfirmationStore = defineStore('confirmation', {
             const previous = mutationQueues.get(analysisId) ?? Promise.resolve();
             this.mutations[key] = (this.mutations[key] ?? 0) + 1;
             this.pendingMutationCount++;
+            this.mutationEpoch++;
 
             const request = previous.catch(() => {}).then(async () => {
                 this.error = '';
@@ -175,14 +196,19 @@ export const useConfirmationStore = defineStore('confirmation', {
                 }
                 if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Bevestiging kon niet worden opgeslagen.');
                 if (mutationRevision === this.requestRevision && this.analysisId === Number(result.data?.analysis_id)) {
-                    this.applyData(result.data);
+                    // Only the last queued save renders its response, so a fast typist never sees intermediate states.
+                    if (this.pendingMutationCount === 1) this.applyData(result.data);
                 }
                 return result.data;
             }).catch((error) => {
-                if (mutationRevision === this.requestRevision) this.error = error.message;
+                if (mutationRevision === this.requestRevision) {
+                    this.error = error.message;
+                    this.pendingRealtimeRefresh = true;
+                }
                 return null;
             }).finally(() => {
                 if (mutationRevision !== this.requestRevision) return;
+                this.mutationEpoch++;
                 this.mutations[key]--;
                 if (this.mutations[key] === 0) delete this.mutations[key];
                 this.pendingMutationCount--;
@@ -218,6 +244,7 @@ export const useConfirmationStore = defineStore('confirmation', {
         },
         reset(keepSample = false) {
             this.requestRevision++;
+            this.loadRevision++;
             const sampleId = keepSample ? this.sampleId : null;
             this.analysisId = null;
             this.sampleId = sampleId;

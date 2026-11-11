@@ -14,8 +14,8 @@ class CreateSample
         return $this->create->handle([
             ...$data,
             'custom_fields' => $this->customFields($data['custom_fields'] ?? []),
-            'sample_type' => 'S',
-            'leg_type' => '-',
+            'sample_type' => $data['sample_type'] ?? 'S',
+            'leg_type' => $data['leg_type'] ?? '-',
         ], printLabels: $printLabels);
     }
 

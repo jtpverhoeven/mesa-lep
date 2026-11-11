@@ -59,6 +59,7 @@ class ConfirmationRuntimeTest extends TestCase
         $pending = app(GetConfirmation::class)->handle($analysis->fresh(), '0.1', 0);
 
         $this->assertSame('enabled_pending', $pending['status']);
+        $this->assertSame('Confirmation assay', $pending['analysis_name']);
         $this->assertFalse($pending['scopes'][0]['ready']);
         $this->assertSame(1, count($pending['contenders']));
 

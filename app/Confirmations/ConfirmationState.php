@@ -27,6 +27,7 @@ class ConfirmationState
         if ($assay === null) {
             return [
                 'analysis_id' => (int) $analysis->id,
+                'analysis_name' => null,
                 'decision' => (int) $analysis->conf_requested,
                 'status' => 'not_applicable',
                 'read_only' => $editability['read_only'],
@@ -98,6 +99,7 @@ class ConfirmationState
 
         return [
             'analysis_id' => (int) $analysis->id,
+            'analysis_name' => $assay->name,
             'decision' => $decision,
             'status' => $status,
             'read_only' => $editability['read_only'],
