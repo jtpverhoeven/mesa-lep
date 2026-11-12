@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\SequentialDilutions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -36,7 +37,7 @@ class StoreSampleRequest extends FormRequest
             'analyses.*.excluded_assay_profile_ids.*' => ['integer', Rule::exists('assayprofiles', 'id')],
             'analyses.*.assay_id' => ['required_if:analyses.*.type,assay', 'nullable', 'integer', Rule::exists('assays', 'id')],
             'analyses.*.settings' => ['required_if:analyses.*.type,assay', 'nullable', 'array'],
-            'analyses.*.settings.dillutions' => ['nullable', 'array'],
+            'analyses.*.settings.dillutions' => ['nullable', 'array', new SequentialDilutions],
             'analyses.*.settings.replicates' => ['nullable', 'integer', 'min:0'],
             'analyses.*.settings.reference' => ['nullable', 'array'],
             'analyses.*.settings.reference_scope' => ['nullable', 'string', 'max:5'],

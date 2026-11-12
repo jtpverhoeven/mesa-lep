@@ -27,6 +27,15 @@ class Assay extends Model
         return $this->belongsTo(AssayType::class, 'type_base');
     }
 
+    /** A result row's data with every field of the assay type present but empty. */
+    public function emptyResultData(): object
+    {
+        return (object) ($this->assayType?->fields
+            ->pluck('name')
+            ->mapWithKeys(fn (string $name) => [$name => ''])
+            ->all() ?? []);
+    }
+
     public function original(): BelongsTo
     {
         return $this->belongsTo(self::class, 'original_id');

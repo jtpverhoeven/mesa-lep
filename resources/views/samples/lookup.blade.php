@@ -14,6 +14,8 @@
             'research' => route('samples.lookup.research', ['sample' => '__SAMPLE__']),
             'references' => route('samples.lookup.references', ['sample' => '__SAMPLE__', 'analysis' => '__ANALYSIS__']),
             'updateReferences' => route('samples.lookup.references.update', ['sample' => '__SAMPLE__', 'analysis' => '__ANALYSIS__']),
+            'dilutions' => route('samples.lookup.dilutions', ['sample' => '__SAMPLE__', 'analysis' => '__ANALYSIS__']),
+            'updateDilutions' => route('samples.lookup.dilutions.update', ['sample' => '__SAMPLE__', 'analysis' => '__ANALYSIS__']),
             'productGroups' => route('samples.lookup.product-groups', ['sample' => '__SAMPLE__']),
             'updateProductGroup' => route('samples.lookup.product-group.update', ['sample' => '__SAMPLE__']),
             'sampleMetadata' => route('samples.metadata.store', ['sample' => '__SAMPLE__']),
@@ -37,6 +39,7 @@
         'permissions' => [
             'add' => auth()->user()->can('samples.assign-research'),
             'edit' => auth()->user()->can('samples.update-research'),
+            'changeDilutions' => auth()->user()->can('dilutions.update'),
             'updateMetadata' => auth()->user()->can('samples.update'),
             'updateSample' => auth()->user()->can('samples.update'),
             'updateProductGroup' => auth()->user()->can('samples.update'),

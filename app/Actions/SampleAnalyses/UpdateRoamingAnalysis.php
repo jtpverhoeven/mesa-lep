@@ -3,9 +3,8 @@
 namespace App\Actions\SampleAnalyses;
 
 use App\Actions\Projects\EnsureEditable;
-use App\Actions\Results\GetMetaAnalysisParent;
+use App\Actions\Results\InvalidateAnalysisCalculation;
 use App\Calculations\ResultCalculationResolver;
-use App\Jobs\CalculateAnalysisResultJob;
 use App\Keyrings\KeyringType;
 use App\Models\Project;
 use App\Models\ReferenceSource;
@@ -19,7 +18,7 @@ class UpdateRoamingAnalysis
 {
     public function __construct(
         private ResultCalculationResolver $calculations,
-        private GetMetaAnalysisParent $metaParent,
+        private InvalidateAnalysisCalculation $invalidateCalculation,
         private EnsureEditable $ensureEditable,
     ) {}
 
@@ -82,13 +81,7 @@ class UpdateRoamingAnalysis
             $roaming->save();
 
             if ($roaming->wasChanged()) {
-                $analysis->update(['is_ready' => false, 'storedResult' => null]);
-                CalculateAnalysisResultJob::dispatch($analysis->id)->afterCommit();
-                $parent = $this->metaParent->handle($analysis);
-                if ($parent !== null) {
-                    $parent->update(['is_ready' => false, 'storedResult' => null]);
-                    CalculateAnalysisResultJob::dispatch($parent->id)->afterCommit();
-                }
+                $this->invalidateCalculation->handle($analysis);
             }
 
             return $roaming->fresh('referenceSource');

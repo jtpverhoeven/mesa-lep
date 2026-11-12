@@ -4,12 +4,15 @@ namespace App\Calculations;
 
 use App\Calculations\Contracts\ResultCalculation;
 use App\Models\SampleAnalysis;
+use App\Support\DilutionCurve;
 
 class Maz7218Calculation implements ResultCalculation
 {
     private const REPORT_FIELD = 'kve';
 
     private const INVALID_CURVE_MESSAGE = 'Onjuiste gegevens in de verdunningscurve.';
+
+    private const NON_SEQUENTIAL_CURVE_MESSAGE = 'Onjuiste verdunningscurve: de verdunningen moeten op elkaar aansluiten, bijvoorbeeld -1, -2 en -3.';
 
     private const P_VALUE_CUTOFF = 0.01;
 
@@ -21,6 +24,10 @@ class Maz7218Calculation implements ResultCalculation
 
         if ($counts === null || $counts === []) {
             return $this->failedResult();
+        }
+
+        if (! DilutionCurve::isSequential(array_keys($counts))) {
+            return $this->failedResult(self::NON_SEQUENTIAL_CURVE_MESSAGE);
         }
 
         if (! $this->curveIsValid($counts)) {
@@ -111,7 +118,7 @@ class Maz7218Calculation implements ResultCalculation
                 return null;
             }
 
-            $counts[$this->dilutionKey($dilution)][$replicate] = $value === '>' ? '>' : (float) $value;
+            $counts[DilutionCurve::format($dilution)][$replicate] = $value === '>' ? '>' : (float) $value;
         }
 
         return $counts;
@@ -360,11 +367,6 @@ class Maz7218Calculation implements ResultCalculation
         return number_format($rounded, 0, ',', '.');
     }
 
-    private function dilutionKey(float $dilution): string
-    {
-        return rtrim(rtrim(sprintf('%.10F', $dilution), '0'), '.');
-    }
-
     private function successfulResult(
         string $result,
         ?string $disposition = null,
@@ -375,13 +377,13 @@ class Maz7218Calculation implements ResultCalculation
         return $this->resultPayload($result, true, $disposition, [], $numericValue, $targetAnalysisId, $addenda);
     }
 
-    private function failedResult(): array
+    private function failedResult(string $message = self::INVALID_CURVE_MESSAGE): array
     {
         return $this->resultPayload(
             'Fout resultaat gevonden',
             false,
             null,
-            [self::INVALID_CURVE_MESSAGE],
+            [$message],
         );
     }
 

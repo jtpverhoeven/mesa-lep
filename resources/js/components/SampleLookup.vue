@@ -16,6 +16,7 @@ import ConfirmationView from './ConfirmationView.vue';
 import { useConfirmationStore } from '../stores/confirmationStore';
 import { projectReasons, useKeyringStore } from '../stores/keyringStore';
 import ShowRevisions from './ShowRevisions.vue';
+import SampleAnalysisDilutionsDialog from './SampleAnalysisDilutionsDialog.vue';
 import AuthorizationBlockedNotice from './AuthorizationBlockedNotice.vue';
 import KeyringNotice from './KeyringNotice.vue';
 
@@ -241,11 +242,12 @@ onBeforeUnmount(() => {
             </div>
             <div class="sample-create-column lookup-results-column">
                 <section class="sample-panel"><h2>Resultaat uitgedrukt in</h2><div class="sample-panel-body"><EndResultDisplay :calculation="store.calculation" :confirmation="confirmationStore.data" :confirmation-busy="confirmationStore.pendingMutationCount > 0" :confirmation-error="confirmationStore.error" :can-reset-confirmation="permissions.resetConfirmation" :read-only="store.readOnly || confirmationStore.readOnly" :loading="store.calculationLoading" :error="store.calculationError" empty-text="Selecteer een analyse om het eindresultaat te bekijken." @confirmation-decision="setConfirmationDecision" @open-confirmation="openConfirmation" /></div></section>
-                <section class="sample-panel"><h2>Laboratoriumresultaten<span class="lookup-tools"><button class="icon-button" title="Resultaatrevisies" aria-label="Resultaatrevisies" :disabled="!store.selected" @click="revisionScope = 'analysis'"><FileClock :size="15" /></button><button class="icon-button" title="Verdunningen wijzigen" :disabled="!store.selected" @click="store.placeholder('Verdunningen wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body"><SampleLookupResults @finished-entry="focusBarcodeInput" /></div></section>
+                <section class="sample-panel"><h2>Laboratoriumresultaten<span class="lookup-tools"><button class="icon-button" title="Resultaatrevisies" aria-label="Resultaatrevisies" :disabled="!store.selected" @click="revisionScope = 'analysis'"><FileClock :size="15" /></button><button v-if="permissions.changeDilutions" class="icon-button" type="button" title="Verdunningen wijzigen" aria-label="Verdunningen wijzigen" :disabled="!store.canEditDilutions" @click="store.openDilutions()"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body"><SampleLookupResults @finished-entry="focusBarcodeInput" /></div></section>
                 <section class="sample-panel"><h2>Monster notities<span class="lookup-tools"><button class="icon-button" title="Notities wijzigen" :disabled="!store.data" @click="store.placeholder('Monsternotities wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body lookup-note">{{ store.data?.sample.sample_note || 'Geen notities.' }}</div></section>
                 <section v-if="store.debug" class="sample-panel" aria-live="polite"><h2>{{ store.debug.feature }}</h2><div class="sample-panel-body"><SampleLookupPlaceholder :feature="store.debug.feature" :details="store.debug" /></div></section>
             </div>
         </div>
+        <SampleAnalysisDilutionsDialog v-if="permissions.changeDilutions" />
         <ConfirmationView :barcode="String(store.data?.sample.barcode ?? '')" />
         <ConfirmationDecisionDialog />
         <SampleDetailsDialog v-model:visible="store.detailsVisible" :sample-data="store.detailsData" :barcode="String(store.data?.sample.barcode ?? '')" :can-update="permissions.updateSample" :read-only="store.readOnly" :loading="store.detailsLoading" :saving-fields="store.detailsSaving" :error="store.detailsError" @save="store.saveDetailField" />

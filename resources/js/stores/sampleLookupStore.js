@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia';
 import { useSampleResearchStore } from './sampleResearchStore.js';
 import { rejectNotEditable, useKeyringStore } from './keyringStore.js';
+import { createDilutionDraft, dilutionPayload, draftDilutionProblem } from '../dilutions.js';
 import { createAssayDraft, referenceSourceProblem, referenceValues } from '../researchProfileAssays.js';
 
 export const useSampleLookupStore = defineStore('sampleLookup', {
-    state: () => ({ endpoints: {}, data: null, barcode: '', loading: false, saving: false, error: '', selectedId: null, scannedPlateFollowNumber: null, plateFocusRevision: 0, tab: 'general', adding: false, requestId: 0, debug: null, resultData: null, resultsLoading: false, resultSaving: {}, resultError: '', calculation: null, calculationLoading: false, calculationError: '', calculationRevision: 0, resultRequestId: 0, detailsVisible: false, detailsData: null, detailsLoading: false, detailsSaving: {}, detailsError: '', detailsRequestId: 0, referencesVisible: false, referencesLoading: false, referencesError: '', referenceDraft: null, referenceSources: [], referencesRequestId: 0 }),
+    state: () => ({ endpoints: {}, data: null, barcode: '', loading: false, saving: false, error: '', selectedId: null, scannedPlateFollowNumber: null, plateFocusRevision: 0, tab: 'general', adding: false, requestId: 0, debug: null, resultData: null, resultsLoading: false, resultSaving: {}, resultError: '', calculation: null, calculationLoading: false, calculationError: '', calculationRevision: 0, resultRequestId: 0, detailsVisible: false, detailsData: null, detailsLoading: false, detailsSaving: {}, detailsError: '', detailsRequestId: 0, referencesVisible: false, referencesLoading: false, referencesError: '', referenceDraft: null, referenceSources: [], referencesRequestId: 0, dilutionsVisible: false, dilutionsLoading: false, dilutionsError: '', dilutionDraft: null, dilutionsRequestId: 0 }),
     getters: {
         selected: (state) => state.data?.analyses.find((analysis) => analysis.id === state.selectedId) ?? null,
         progress: (state) => state.data?.progress ?? 0,
@@ -16,6 +17,12 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
         canEditReferences() {
             return Boolean(this.selected && Number(this.selected.profile) === 0 && !this.readOnly && !this.loading && !this.saving);
         },
+        canEditDilutions() {
+            return Boolean(this.selected && !this.readOnly && !this.loading && !this.saving);
+        },
+        dilutionProblem() {
+            return draftDilutionProblem(this.dilutionDraft);
+        },
         referenceProblem() {
             return this.referenceDraft ? referenceSourceProblem(this.referenceDraft, this.referenceSources, !this.referencesLoading, 'dit monster') : '';
         },
@@ -24,6 +31,7 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
         async lookup(barcode = this.barcode) {
             if (this.saving || Object.keys(this.detailsSaving).length) return null;
             this.closeReferences();
+            this.closeDilutions();
             const requestId = ++this.requestId;
             const scannedBarcode = String(barcode ?? '').trim();
             const [sampleBarcode, analysisFollowNumber, plateFollowNumber] = scannedBarcode.split('.');
@@ -228,6 +236,66 @@ export const useSampleLookupStore = defineStore('sampleLookup', {
                 this.saving = false;
             }
             this.closeReferences();
+            this.markCalculationQueued(analysisId);
+            await this.loadResults(analysisId);
+            return true;
+        },
+        closeDilutions() {
+            if (this.saving) return;
+            this.dilutionsRequestId++;
+            this.dilutionsVisible = false;
+            this.dilutionsLoading = false;
+            this.dilutionDraft = null;
+            this.dilutionsError = '';
+        },
+        async openDilutions() {
+            if (!this.canEditDilutions) return;
+            const analysisId = this.selectedId;
+            const requestId = ++this.dilutionsRequestId;
+            this.dilutionsVisible = true;
+            this.dilutionsLoading = true;
+            this.dilutionsError = '';
+            this.dilutionDraft = null;
+            try {
+                const endpoint = this.endpoints.dilutions.replace('__SAMPLE__', this.data.sample.id).replace('__ANALYSIS__', analysisId);
+                const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+                const result = await response.json();
+                if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Verdunningen konden niet worden geladen.');
+                if (requestId !== this.dilutionsRequestId || this.selectedId !== analysisId) return;
+                this.dilutionDraft = createDilutionDraft(result.data);
+            } catch (error) {
+                if (requestId === this.dilutionsRequestId) this.dilutionsError = error.message;
+            } finally {
+                if (requestId === this.dilutionsRequestId) this.dilutionsLoading = false;
+            }
+        },
+        async saveDilutions() {
+            if (!this.canEditDilutions || this.dilutionsLoading || !this.dilutionDraft || this.dilutionDraft.analysis_id !== this.selectedId) return false;
+            if (this.dilutionProblem) {
+                this.dilutionsError = this.dilutionProblem;
+                return false;
+            }
+            const analysisId = this.dilutionDraft.analysis_id;
+            this.saving = true;
+            this.dilutionsError = '';
+            try {
+                const endpoint = this.endpoints.updateDilutions.replace('__SAMPLE__', this.data.sample.id).replace('__ANALYSIS__', analysisId);
+                const response = await fetch(endpoint, {
+                    method: 'PATCH',
+                    headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '' },
+                    body: JSON.stringify({ dilutions: dilutionPayload(this.dilutionDraft) }),
+                });
+                const result = await response.json();
+                rejectNotEditable(response, result, this.data);
+                if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || result.message || 'Verdunningen konden niet worden opgeslagen.');
+                this.data = result.data;
+            } catch (error) {
+                this.dilutionsError = error.message;
+                return false;
+            } finally {
+                this.saving = false;
+            }
+            this.closeDilutions();
             this.markCalculationQueued(analysisId);
             await this.loadResults(analysisId);
             return true;

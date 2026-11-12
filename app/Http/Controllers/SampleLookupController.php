@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Actions\ProductGroups\UpdateSampleProductGroup;
+use App\Actions\Results\GetAnalysisDilutions;
+use App\Actions\Results\UpdateAnalysisDilutions;
 use App\Actions\SampleAnalyses\GetSampleAnalysisOptions;
 use App\Actions\SampleAnalyses\GetSampleAnalysisReferences;
 use App\Actions\SampleAnalyses\UpdateRoamingAnalysis;
 use App\Actions\Samples\LookupSample;
 use App\Actions\Samples\UpdateLookupResearch;
 use App\Http\Requests\StoreSampleRequest;
+use App\Http\Requests\UpdateSampleAnalysisDilutionsRequest;
 use App\Http\Requests\UpdateSampleAnalysisReferencesRequest;
 use App\Models\ProductGroup;
 use App\Models\Sample;
@@ -50,6 +53,23 @@ class SampleLookupController extends Controller
         LookupSample $lookup,
     ): JsonResponse {
         $update->handle($analysis, $request->validated());
+
+        return response()->json(['data' => $lookup->handle($sample->barcode)]);
+    }
+
+    public function dilutions(Sample $sample, SampleAnalysis $analysis, GetAnalysisDilutions $dilutions): JsonResponse
+    {
+        return response()->json(['data' => $dilutions->handle($analysis)]);
+    }
+
+    public function updateDilutions(
+        UpdateSampleAnalysisDilutionsRequest $request,
+        Sample $sample,
+        SampleAnalysis $analysis,
+        UpdateAnalysisDilutions $update,
+        LookupSample $lookup,
+    ): JsonResponse {
+        $update->handle($analysis, $request->validated('dilutions'));
 
         return response()->json(['data' => $lookup->handle($sample->barcode)]);
     }

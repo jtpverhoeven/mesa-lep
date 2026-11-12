@@ -37,10 +37,23 @@ projects cannot be changed. Analyses with stored results, readiness, or
 confirmation activity cannot be removed by this initial implementation.
 Repeated assay assignments remain supported by the existing legacy actions.
 
+## Dilutions
+
+Dilutions must be consecutive decades (`-1`, `-2`, `-3`; `-1` and `-3` is rejected). `App\Support\DilutionCurve`
+holds the rule; `SequentialDilutions` applies it to registration, the roaming/research-profile dialog
+(`dilutions.js` mirrors it in the browser) and the "Verdunningen wijzigen" dialog, and `Maz7218Calculation`
+refuses a non-sequential curve as defense in depth.
+
+"Verdunningen wijzigen" requires `dilutions.update` and an editable sample. It edits only the result rows
+of that analysis (legacy behaviour; the profile/roaming settings stay untouched): rows of removed dilutions
+or replicates are deleted, missing rows are added, results already entered are kept, the confirmation scopes
+are recalculated, the stored result is dropped and recalculated, and change type 10 is recorded.
+Result completeness is judged on the stored rows for that reason.
+
 ## Placeholders
 
-Result input, result calculation/units, confirmations, revisions, dilution
-editing, sample-detail/note editing, portal metadata, product groups,
+Result input, result calculation/units, confirmations, revisions,
+sample-detail/note editing, portal metadata, product groups,
 THT operations, documents, and collaborative user-presence locks are not implemented.
 The result panes and placeholder controls show sample, sampleanalysis, assay,
 profile, and roaming IDs where applicable. They do not send result or portal

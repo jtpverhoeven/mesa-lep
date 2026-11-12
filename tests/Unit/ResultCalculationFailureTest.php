@@ -99,6 +99,25 @@ class ResultCalculationFailureTest extends TestCase
         $this->assertSame(['Onjuiste gegevens in de verdunningscurve.'], $result['messageBag']);
     }
 
+    public function test_a_curve_that_skips_a_dilution_is_rejected_instead_of_calculated(): void
+    {
+        $analysis = new SampleAnalysis;
+        $analysis->setRelation('results', collect([
+            new Result(['df' => '0.1', 'rep' => 0, 'data' => ['kve' => '12']]),
+            new Result(['df' => '0.001', 'rep' => 0, 'data' => ['kve' => '1']]),
+        ]));
+        $assay = new Assay;
+        $assay->min_count = 10;
+        $assay->max_count = 300;
+
+        $result = app(Maz7218Calculation::class)->calculate(
+            new ResultCalculationContext($analysis, $assay, new AssayProfile),
+        );
+
+        $this->assertFalse($result['isReady']);
+        $this->assertSame(['Onjuiste verdunningscurve: de verdunningen moeten op elkaar aansluiten, bijvoorbeeld -1, -2 en -3.'], $result['messageBag']);
+    }
+
     public function test_rodac_uses_the_rodac_calculator(): void
     {
         $assay = new Assay;

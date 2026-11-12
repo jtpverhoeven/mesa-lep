@@ -1,19 +1,39 @@
 # Roadmap
 
-- Research profiles
-    - Should allow deleting individual analyses on sample create screens.
-  
-- User printers
+- Change dillutions
 
-- Temporary projects
+- Sample notes
 
-- Email composer / sender 
+- Bevestigings tabellen
+
+- Monster fotos
+
+- Werklijsten
+
+- Other calculations
+
+- Audit trail
+
+- Status indicators
+
+- Default printer
+
+Data mining:
+
+    - Resultaten uitvoeren
+
+    - Rapportages
+
+    - Deauthorisatie
+    
+    - User printers
        
    
 # Known bugs
-
+- Should allow deleting individual analyses on sample create screens.
 - Metadata change tracker error. puts from -> to as key->value
 - Check legionella and rodac special cases in the new code for template selection once we get these things up and running
+- Check UX on input of samplelookup, are we focusing properly on first fields
 
 # Ideas - Improvements after code base done
 * Should input in assays be allowed  when sample not yet innoculated?
