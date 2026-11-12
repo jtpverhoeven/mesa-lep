@@ -39,6 +39,7 @@ class SampleRegisterController extends Controller
 
         $query = Sample::query()
             ->with(['client', 'project', 'analyses.assayRecord'])
+            ->withExists('internalNotes as has_internal_note')
             ->orderByDesc('id');
 
         if ($search === '') {
@@ -96,7 +97,7 @@ class SampleRegisterController extends Controller
 
         return response()->json(['data' => [
             'message' => 'Monster '.$sample->barcode.' is ingezet.',
-            'sample' => $this->sampleData($sample->load(['client', 'project', 'analyses.assayRecord'])),
+            'sample' => $this->sampleData($sample->load(['client', 'project', 'analyses.assayRecord'])->loadExists('internalNotes as has_internal_note')),
         ]]);
     }
 
@@ -130,7 +131,7 @@ class SampleRegisterController extends Controller
 
         return response()->json(['data' => [
             'message' => 'Monster '.$updated->barcode.' is bijgewerkt.',
-            'sample' => $this->sampleData($updated->load(['client', 'project', 'analyses.assayRecord'])),
+            'sample' => $this->sampleData($updated->load(['client', 'project', 'analyses.assayRecord'])->loadExists('internalNotes as has_internal_note')),
         ]]);
     }
 
@@ -284,7 +285,7 @@ class SampleRegisterController extends Controller
             'started' => $inoculatedAt['date'] !== '',
             'stored_in' => (string) ($sample->stored_in ?? ''),
             'diluted_at' => (string) ($sample->diluted_at ?? ''),
-            'has_note' => filled($sample->sample_note),
+            'has_note' => (bool) $sample->has_internal_note,
             'flags' => $flags,
             'sample_type' => (string) $sample->sample_type,
             'project_url' => $project ? route('projects.search', ['project' => $project->id]) : null,

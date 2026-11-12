@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { FileClock, FileText, FlaskConical, FolderOpen, Search, Trash2 } from '@lucide/vue';
+import { FileClock, FileText, FlaskConical, FolderOpen, MessageSquareText, Search, StickyNote, Trash2 } from '@lucide/vue';
+import Badge from 'openvue/badge';
 import Tab from 'openvue/tab';
 import TabList from 'openvue/tablist';
 import TabPanel from 'openvue/tabpanel';
@@ -8,9 +9,12 @@ import TabPanels from 'openvue/tabpanels';
 import Tabs from 'openvue/tabs';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
 import { projectReasons } from '../stores/keyringStore';
+import { useNoteStore } from '../stores/noteStore';
 import AppConfirmDialog from './AppConfirmDialog.vue';
 import ProjectSampleFields from './ProjectSampleFields.vue';
 import ProjectSampleResults from './ProjectSampleResults.vue';
+import ReportNoteEditor from './ReportNoteEditor.vue';
+import SampleNoteFeed from './SampleNoteFeed.vue';
 import SampleFiles from './SampleFiles.vue';
 import SampleMetadataEditor from './SampleMetadataEditor.vue';
 import ShowRevisions from './ShowRevisions.vue';
@@ -23,6 +27,7 @@ defineProps({
 });
 
 const store = useProjectSearchStore();
+const noteStore = useNoteStore();
 const deleteDialogVisible = ref(false);
 const readOnlyMessage = computed(() => (projectReasons(store.projectData?.reasons).length
     ? 'Dit project is vergrendeld of geautoriseerd.'
@@ -32,6 +37,16 @@ const revisionsVisible = ref(false);
 watch(() => [store.selectedProjectId, store.selectedSampleId, store.projectReadOnly], () => {
     deleteDialogVisible.value = false;
 });
+
+function reportNoteSaved(note) {
+    store.sampleData.report_note = note;
+    if (store.selectedSample) store.selectedSample.has_report_note = note !== null;
+}
+
+function internalNotesChanged(notes) {
+    store.sampleData.notes = notes;
+    if (store.selectedSample) store.selectedSample.has_internal_note = notes.length > 0;
+}
 
 async function confirmDelete() {
     if (await store.deleteSample()) deleteDialogVisible.value = false;
@@ -52,7 +67,7 @@ async function confirmDelete() {
         <p v-if="store.sampleError" class="project-sample-error" role="alert">{{ store.sampleError }}</p>
         <p v-if="store.loadingSample" class="empty-state" role="status">Monstergegevens en resultaten laden...</p>
         <template v-else-if="store.sampleData">        
-            <Tabs value="details">
+            <Tabs value="details" class="panel-tabs">
                 <TabPanels>
                     <TabPanel value="details"><ProjectSampleFields :sample-data="store.sampleData" :can-update="canUpdate" :read-only="store.sampleReadOnly" :read-only-message="readOnlyMessage" :saving-fields="store.savingSample" @save="store.updateSampleField" /></TabPanel>
                     <TabPanel value="metadata" class="project-sample-metadata-panel"><SampleMetadataEditor v-model:metadata="store.sampleData.metadata" :sample-id="store.sampleData.sample.id" :endpoint="store.endpoints.metadata" :read-only="!canUpdate || store.sampleReadOnly" /></TabPanel>
@@ -67,11 +82,19 @@ async function confirmDelete() {
                             :project-read-only="store.projectReadOnly"
                         />
                     </TabPanel>
+                    <TabPanel value="report">
+                        <ReportNoteEditor :key="store.sampleData.sample.id" :note="store.sampleData.report_note" :endpoint="noteStore.endpoint('sampleReportNote', { project: store.selectedProjectId, sample: store.sampleData.sample.id })" :read-only="store.sampleReadOnly" :lock-target="store.sampleData" @update:note="reportNoteSaved" />
+                    </TabPanel>
+                    <TabPanel value="notes">
+                        <SampleNoteFeed :key="store.sampleData.sample.id" :notes="store.sampleData.notes" :sample-id="store.sampleData.sample.id" @update:notes="internalNotesChanged" />
+                    </TabPanel>
                 </TabPanels>
                 <TabList>
                     <Tab value="details"><FlaskConical :size="14" />Details</Tab>
                     <Tab value="metadata"><FolderOpen :size="14" />Metadata</Tab>
                     <Tab value="files"><FileText :size="14" />Bestanden</Tab>
+                    <Tab value="report" title="Notitie op het rapport"><MessageSquareText :size="14" />Rapport<Badge v-if="store.sampleData.report_note" value="!" severity="warn" size="small" aria-label="Rapportnotitie aanwezig" /></Tab>
+                    <Tab value="notes" title="Interne notities"><StickyNote :size="14" />Intern<Badge v-if="store.sampleData.notes.length" :value="store.sampleData.notes.length" severity="warn" size="small" :aria-label="`${store.sampleData.notes.length} interne notities`" /></Tab>
                 </TabList>
             </Tabs>
             <ProjectSampleResults :can-veto="canVeto" />
@@ -97,12 +120,5 @@ async function confirmDelete() {
 <style scoped>
 .project-sample-sublead { margin:0; padding:9px 12px 5px; color:var(--muted); font-size:12px; }
 .project-sample-error { margin:0; padding:9px 12px; border-bottom:1px solid #d9aba3; background:#fff1ed; color:#903e32; font-size:11px; }
-:deep([data-pc-name='tablist']) { display:block; width:100%; border-top:1px solid var(--line); }
-:deep([data-pc-name='tablist'] [data-pc-section='content']) { width:100%; overflow:hidden; }
-:deep([data-pc-name='tablist'] [data-pc-section='tablist']) { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:100%; }
-:deep([data-pc-name='tab']) { display:flex; align-items:center; justify-content:center; gap:5px; padding:9px 6px; border:0; background:var(--surface-alt); color:var(--ink); font:inherit; font-size:11px; cursor:pointer; }
-:deep([data-pc-name='tab'][data-p-active='true']) { box-shadow:inset 0 -2px var(--accent); background:var(--accent-faint); color:var(--accent); }
-:deep([data-pc-name='tabpanel']) { padding:12px; }
 :deep(.project-sample-metadata-panel) { padding:6px; }
-:deep([data-pc-section='prevbutton']),:deep([data-pc-section='nextbutton']) { display:none; }
 </style>

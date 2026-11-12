@@ -60,8 +60,10 @@ class ProjectReportController extends Controller
                     ...$assay->only(['id', 'name']),
                     'hidden' => (int) $assay->hide_report === 1,
                 ])->all(),
-                'samples' => $data['samples']->map(fn ($sample): array => [
-                    ...$sample->only(['id', 'barcode', 'client_description', 'sample_note']),
+                'projectNote' => $project->reportNote?->body,
+                'samples' => $data['samples']->load('reportNote:id,notable_type,notable_id,kind,body')->map(fn ($sample): array => [
+                    ...$sample->only(['id', 'barcode', 'client_description']),
+                    'report_note' => $sample->reportNote?->body,
                 ])->all(),
                 'old' => $request->session()->getOldInput(),
                 'editability' => $editability->handle($project, KeyringType::Export, $project->id, $request->user(), applyProjectRule: false),

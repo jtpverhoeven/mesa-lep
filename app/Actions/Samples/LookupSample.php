@@ -2,6 +2,7 @@
 
 namespace App\Actions\Samples;
 
+use App\Actions\Notes\ListSampleNotes;
 use App\Actions\Projects\GetEditability;
 use App\Actions\Projects\GetProjectInfo;
 use App\Actions\SampleFiles\ListSampleFiles;
@@ -19,6 +20,7 @@ class LookupSample
         private GetProjectInfo $projectInfo,
         private GetEditability $editability,
         private ListSampleFiles $listSampleFiles,
+        private ListSampleNotes $listSampleNotes,
     ) {}
 
     public function handle(string $barcode): array
@@ -41,7 +43,7 @@ class LookupSample
             'sample' => $sample->only([
                 'id', 'barcode', 'description', 'client_description', 'client', 'project',
                 'date_registered', 'predicted_end', 'sample_innoculated', 'stored_in',
-                'diluted_at', 'sample_note', 'sample_type', 'tht_code', 'source',
+                'diluted_at', 'sample_type', 'tht_code', 'source',
                 'portal_sample_id', 'portal_product_group_id', 'portal_project_id', 'portal_notes',
             ]),
             'sample_fields' => $this->fields($sample->custom_fields, SampleField::query()->orderBy('position')->get()),
@@ -55,6 +57,7 @@ class LookupSample
                 'id', 'sample', 'name', 'value', 'meta_data_key_id', 'meta_order',
             ])->values()->all(),
             'sample_files' => $this->listSampleFiles->handle($sample),
+            'notes' => $this->listSampleNotes->handle($sample),
             'project_follow_number' => $projectSamples->search(fn ($item) => $item->id === $sample->id) + 1,
             'sampling_method' => SampleProcedure::query()->whereKey($sample->sampling_method)->value('name'),
             'registered_by' => User::query()->whereKey($sample->registered_by)->value('name'),

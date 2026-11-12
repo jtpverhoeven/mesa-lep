@@ -36,6 +36,7 @@ class DeleteProjectSearchSample
 
             Result::query()->where('sample', $lockedSample->id)->delete();
             $lockedSample->metadata()->delete();
+            $lockedSample->notes()->delete();
             $this->changeTracker->changed(11, project: $lockedProject->id, sample: $lockedSample->id,
                 event: 'Monster verwijderd: '.$lockedSample->barcode, from: false, to: false);
             $lockedSample->delete();

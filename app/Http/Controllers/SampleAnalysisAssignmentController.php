@@ -37,9 +37,10 @@ class SampleAnalysisAssignmentController extends Controller
             ->with([
                 'client:id,name,notes,attachment',
                 'project:id,custom_fields',
+                'internalNotes:id,notable_type,notable_id,kind,body,created_at',
             ])
             ->select([
-                'id', 'client', 'project', 'barcode', 'description', 'sample_note',
+                'id', 'client', 'project', 'barcode', 'description',
                 'sample_innoculated', 'source', 'analyses_data', 'portal_analyses',
             ])
             ->orderBy('id');
@@ -144,7 +145,7 @@ class SampleAnalysisAssignmentController extends Controller
             'inzet_datum' => is_numeric($sample->sample_innoculated) && (int) $sample->sample_innoculated > 0
                 ? date('d-m-Y', (int) $sample->sample_innoculated)
                 : 'Niet ingezet',
-            'sample_note' => trim((string) ($sample->sample_note ?? '')),
+            'sample_note' => $sample->internalNotes->pluck('body')->implode("\n"),
             'client_has_wishes' => $wishes !== [],
             'client_wishes_title' => implode(' ', $wishes),
             ...$importDetails,

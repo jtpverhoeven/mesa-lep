@@ -1,12 +1,10 @@
 # Roadmap
 
-- Sample notes
-
 - Bevestigings tabellen
 
-- Monster fotos
-
 - Werklijsten
+
+- Monster fotos
 
 - Other calculations
 
@@ -28,7 +26,8 @@ Data mining:
 
 # To verify
 - Check if supporting media is always on in legacy?    
-   
+- agent reports "I added Quill's core CSS to the stylesheet. Without it the bullet markers didn't render.", perhaps this was just tailwind, and we are bloating the css? 
+
 # Known bugs
 - Should allow deleting individual analyses on sample create screens.
 - Metadata change tracker error. puts from -> to as key->value

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Building2, Check, ChevronDown, CloudUpload, Download, ExternalLink, Flame, FlaskConical, Lock, Mail, Printer, Settings, StickyNote, ThumbsDown, ThumbsUp, Trash2, Unlock } from '@lucide/vue';
+import { Building2, Check, ChevronDown, CloudUpload, Download, ExternalLink, Flame, FlaskConical, Lock, Mail, MessageSquareText, Printer, Settings, StickyNote, ThumbsDown, ThumbsUp, Trash2, Unlock } from '@lucide/vue';
 import Menu from 'openvue/menu';
 import Textarea from 'openvue/textarea';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
@@ -231,7 +231,7 @@ function updateDeauthorizationDialog(visible) {
             <button v-for="sample in store.projectData.samples" :key="sample.id" type="button" :aria-pressed="store.selectedSampleId === sample.id" @click="store.selectSample(sample.id)">
                 <span class="project-sample-follow">{{ sample.follow }}.</span>
                 <span class="project-sample-copy"><strong>{{ sample.description || 'Geen omschrijving' }}</strong><small>{{ sample.barcode }} · {{ sample.analyses_count }} analyses</small></span>
-                <span class="project-sample-flags"><StickyNote v-if="sample.sample_note" :size="14" aria-label="Notitie aanwezig" /><Check v-if="sample.is_ready" :size="15" aria-label="Gereed" /></span>
+                <span class="project-sample-flags"><MessageSquareText v-if="sample.has_report_note" :size="14" aria-label="Rapportnotitie aanwezig" /><StickyNote v-if="sample.has_internal_note" :size="14" aria-label="Interne notitie aanwezig" /><Check v-if="sample.is_ready" :size="15" aria-label="Gereed" /></span>
             </button>
         </div>
         <p v-else-if="store.projectData" class="empty-state">Dit project bevat geen monsters.</p>

@@ -5,6 +5,7 @@
     <sample-lookup v-bind="{{ Illuminate\Support\Js::from([
         'initialBarcode' => $initialBarcode,
         'keyrings' => App\Keyrings\KeyringClientConfig::for(auth()->user()),
+        'notes' => App\Support\NoteClientConfig::for(auth()->user()),
         'endpoints' => [
             'page' => route('samples.lookup'),
             'lookup' => route('samples.lookup.data'),

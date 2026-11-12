@@ -2,6 +2,7 @@
 import { onBeforeUnmount, ref, watch } from 'vue';
 import { Check, Circle } from '@lucide/vue';
 import Avatar from 'openvue/avatar';
+import { noteHtml } from '../notes.js';
 
 const props = defineProps({
     info: { type: Object, required: true },
@@ -80,7 +81,7 @@ onBeforeUnmount(() => portalRequest?.abort());
         <div><dt>Monstername tot analyse:</dt><dd>{{ info.sampling_to_analysis }}</dd></div>
         <div><dt>Gereed verwacht:</dt><dd>{{ info.expected_date }}</dd></div>
         <div v-for="(field, index) in info.extra_fields" :key="index"><dt>{{ field.label }}</dt><dd>{{ field.value || '-' }}</dd></div>
-        <div v-if="mode === 'sample'"><dt>Notities</dt><dd>{{ info.project.project_notes || '-' }}</dd></div>
+        <div v-if="mode === 'sample'"><dt>Notities</dt><dd><div v-if="info.report_note" class="note-html" v-html="noteHtml(info.report_note.body)"></div><template v-else>-</template></dd></div>
         <div v-if="mode === 'sample' && samples.length > 1">
             <dt><label for="lookup-project-sample">Andere Monsters in project</label></dt>
             <dd>

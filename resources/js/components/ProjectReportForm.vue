@@ -8,6 +8,7 @@ import TabPanel from 'openvue/tabpanel';
 import TabPanels from 'openvue/tabpanels';
 import Tabs from 'openvue/tabs';
 import { getEcho } from '../echo.js';
+import { noteHtml } from '../notes.js';
 import { useKeyringStore } from '../stores/keyringStore';
 import KeyringNotice from './KeyringNotice.vue';
 
@@ -58,6 +59,7 @@ onBeforeUnmount(() => {
 const chosenSamples = computed(() => reportType.value === 'projectSample'
     ? props.config.samples.filter((sample) => selectedSamples.value.includes(Number(sample.id)))
     : props.config.samples);
+const notedSamples = computed(() => chosenSamples.value.filter((sample) => sample.report_note));
 const reportableAssays = computed(() => props.config.assays.filter((assay) => !assay.hidden && selectedAssays.value.includes(Number(assay.id))));
 watch(visibleTemplates, () => {
     if (!visibleTemplates.value.some((item) => item.folder === template.value)) {
@@ -227,10 +229,11 @@ async function submit(event) {
                 </Tabs>
             </section>
             <section class="sample-panel" aria-labelledby="report-sample-notes">
-                <h2 id="report-sample-notes">Monster notities</h2>
+                <h2 id="report-sample-notes">Notities op het rapport</h2>
                 <div class="sample-panel-body grid gap-3">
-                    <p v-for="sample in config.samples" :key="sample.id"><strong>{{ sample.barcode }}</strong><br><span class="whitespace-pre-line">{{ sample.sample_note || 'Geen notities' }}</span></p>
-                    <p v-if="!config.samples.length" class="text-muted">Geen monsters gevonden.</p>
+                    <div v-if="config.projectNote"><strong class="text-xs">Algemeen</strong><div class="note-html" v-html="noteHtml(config.projectNote)"></div></div>
+                    <div v-for="sample in notedSamples" :key="sample.id"><strong class="text-xs">MAZ-L {{ sample.barcode }}</strong><div class="note-html" v-html="noteHtml(sample.report_note)"></div></div>
+                    <p v-if="!config.projectNote && !notedSamples.length" class="m-0 text-xs text-muted">Geen notities.</p>
                 </div>
             </section>
         </div>

@@ -18,6 +18,7 @@ use App\Models\DocgenTemplate;
 use App\Models\Export;
 use App\Models\Footer;
 use App\Models\Keyring;
+use App\Models\Note;
 use App\Models\Project;
 use App\Models\ReferenceSource;
 use App\Models\ResearchProfile;
@@ -249,11 +250,10 @@ class ProjectReportGenerationTest extends TestCase
     {
         $fixture = $this->fixture(2);
         $selected = $fixture['samples']->last();
-        $fixture['project']->update(['project_notes' => json_encode([
-            'project' => 'Algemene opmerking.',
-            $fixture['samples']->first()->id => 'Niet opnemen.',
-            $selected->id => 'Wel opnemen.',
-        ])]);
+        Note::factory()->report()->forNotable($fixture['project'])->create(['body' => '<p>Algemene opmerking.</p>']);
+        Note::factory()->report()->forNotable($fixture['samples']->first())->create(['body' => '<p>Niet opnemen.</p>']);
+        Note::factory()->report()->forNotable($selected)->create(['body' => '<p>Wel opnemen.</p><script>unsafe()</script>']);
+        Note::factory()->forNotable($selected)->create(['body' => 'Interne notitie.']);
 
         $report = app(BuildProjectReport::class)->handle(
             $fixture['project']->fresh(), new Collection([$selected]), $this->reportOptions($fixture), 8,
@@ -261,13 +261,26 @@ class ProjectReportGenerationTest extends TestCase
 
         $this->assertSame([$selected->id], array_map(fn (array $row): int => $row['sample']->id, $report['samples']));
         $this->assertSame(['Algemeen', 'MAZ-L '.$selected->barcode], array_column($report['notes'], 'barcode'));
-        $this->assertSame('Wel opnemen.', (string) $report['notes'][1]['text']);
+        $this->assertSame('<p>Wel opnemen.</p>', (string) $report['notes'][1]['text']);
         $this->assertStringContainsString('Omschrijving: Monster 2<br />Aanvullende informatie: Partij 2', (string) $report['samples'][0]['description']);
         $this->assertStringContainsString('Ruimte: Koelcel 1', (string) $report['samples'][0]['description']);
         $this->assertStringContainsString('Temperatuur: 4 C', (string) $report['samples'][0]['description']);
 
         $this->post(route('projects.reports.store', $fixture['project']), $this->reportOptions($fixture, ['reportType' => 'projectSample', 'exportSample' => [$selected->id]]))->assertRedirect()->assertSessionHasNoErrors();
         $this->assertSame([$selected->id], Export::query()->firstOrFail()->sample_id_scope);
+    }
+
+    public function test_report_form_lists_the_report_notes_and_never_the_internal_notes(): void
+    {
+        $fixture = $this->fixture(2);
+        Note::factory()->report()->forNotable($fixture['project'])->create(['body' => '<p>Projecttekst</p>']);
+        Note::factory()->report()->forNotable($fixture['samples']->last())->create(['body' => '<p>Rapporttekst</p>']);
+        Note::factory()->forNotable($fixture['samples']->first())->create(['body' => 'Alleen intern']);
+
+        $this->get(route('projects.reports.index', ['project' => $fixture['project'], 'continue' => 1]))
+            ->assertViewHas('form', fn (array $form): bool => $form['projectNote'] === '<p>Projecttekst</p>'
+                && array_column($form['samples'], 'report_note') === [null, '<p>Rapporttekst</p>']
+                && ! str_contains(json_encode($form), 'Alleen intern'));
     }
 
     public function test_template_eligibility_is_the_intersection_of_all_assays_including_hidden_ones(): void
@@ -1267,7 +1280,7 @@ class ProjectReportGenerationTest extends TestCase
         $project = Project::query()->create([
             'client' => $client->id, 'subclient' => 0, 'reference' => '261024', 'project_name' => 'Klantreferentie',
             'revision' => 2, 'print_version' => 7, 'auth_status' => 1, 'auth_by' => $user->id,
-            'is_ready' => 1, 'started' => 1, 'project_notes' => '{"project":"Algemene opmerking."}',
+            'is_ready' => 1, 'started' => 1,
             'custom_fields' => '{"project_monster":"23-10-2026","project_ontvangst":"24-10-2026"}',
         ]);
         $procedure = SampleProcedure::query()->create(['name' => 'Bemonstering', 'active' => 1, 'hide' => 0, 'fields' => '{"door":"Opdrachtgever","accred":"","conform":"Eigen methode","referentiemethode":"NEN-EN ISO 7218"}']);

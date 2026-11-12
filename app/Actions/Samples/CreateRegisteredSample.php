@@ -2,6 +2,7 @@
 
 namespace App\Actions\Samples;
 
+use App\Actions\Notes\AddSampleNote;
 use App\Actions\Printing\DispatchLabelEvents;
 use App\Actions\ProductGroups\FindClientDefaultProductGroup;
 use App\Actions\Projects\ResolveSampleRegistrationProject;
@@ -19,6 +20,7 @@ class CreateRegisteredSample
         private FindClientDefaultProductGroup $productGroups,
         private ChangeTracker $changeTracker,
         private DispatchLabelEvents $dispatchLabelEvents,
+        private AddSampleNote $addNote,
     ) {}
 
     public function handle(array $data, ?Project $project = null, ?CarbonInterface $at = null, bool $printLabels = true): Sample
@@ -45,7 +47,6 @@ class CreateRegisteredSample
                 'predicted_end' => $at->timestamp,
                 'sample_innoculated' => $data['sample_innoculated'] ?? '',
                 'stored_in' => null,
-                'sample_note' => $data['sample_note'] ?? null,
                 'sample_type' => $data['sample_type'] ?? 'S',
                 'leg_type' => $data['leg_type'] ?? '-',
                 'sample_extra' => isset($data['sample_extra']) ? json_encode($data['sample_extra']) : null,
@@ -55,6 +56,7 @@ class CreateRegisteredSample
                 'portal_product_group_id' => $this->productGroups->handle((int) $data['client'])?->portal_id,
             ]);
 
+            $this->addNote->handle($sample, (string) ($data['sample_note'] ?? ''), (int) $data['registered_by']);
             $this->changeTracker->changed(2, project: $project->id, sample: $sample->id,
                 event: 'Monster aangemaakt: '.$sample->barcode, from: false, to: false, userId: (int) $data['registered_by']);
 

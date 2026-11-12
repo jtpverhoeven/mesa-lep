@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, Barcode, FileClock, Pencil, Search } from '@luci
 import { getEcho } from '../echo.js';
 import { sfx } from '../sfx.js';
 import { useSampleLookupStore } from '../stores/sampleLookupStore';
+import { useNoteStore } from '../stores/noteStore';
+import SampleNoteFeed from './SampleNoteFeed.vue';
 import SampleLookupResearch from './SampleLookupResearch.vue';
 import SampleLookupResults from './SampleLookupResults.vue';
 import SampleFiles from './SampleFiles.vue';
@@ -20,8 +22,9 @@ import SampleAnalysisDilutionsDialog from './SampleAnalysisDilutionsDialog.vue';
 import AuthorizationBlockedNotice from './AuthorizationBlockedNotice.vue';
 import KeyringNotice from './KeyringNotice.vue';
 
-const props = defineProps({ endpoints: { type: Object, required: true }, permissions: { type: Object, required: true }, keyrings: { type: Object, default: () => ({}) }, initialBarcode: { type: String, default: '' } });
+const props = defineProps({ endpoints: { type: Object, required: true }, permissions: { type: Object, required: true }, keyrings: { type: Object, default: () => ({}) }, notes: { type: Object, required: true }, initialBarcode: { type: String, default: '' } });
 const store = useSampleLookupStore();
+useNoteStore().configure(props.notes);
 const confirmationStore = useConfirmationStore();
 const keyringStore = useKeyringStore();
 keyringStore.configure(props.keyrings, getEcho);
@@ -243,7 +246,7 @@ onBeforeUnmount(() => {
             <div class="sample-create-column lookup-results-column">
                 <section class="sample-panel"><h2>Resultaat uitgedrukt in</h2><div class="sample-panel-body"><EndResultDisplay :calculation="store.calculation" :confirmation="confirmationStore.data" :confirmation-busy="confirmationStore.pendingMutationCount > 0" :confirmation-error="confirmationStore.error" :can-reset-confirmation="permissions.resetConfirmation" :read-only="store.readOnly || confirmationStore.readOnly" :loading="store.calculationLoading" :error="store.calculationError" empty-text="Selecteer een analyse om het eindresultaat te bekijken." @confirmation-decision="setConfirmationDecision" @open-confirmation="openConfirmation" /></div></section>
                 <section class="sample-panel"><h2>Laboratoriumresultaten<span class="lookup-tools"><button class="icon-button" title="Resultaatrevisies" aria-label="Resultaatrevisies" :disabled="!store.selected" @click="revisionScope = 'analysis'"><FileClock :size="15" /></button><button v-if="permissions.changeDilutions" class="icon-button" type="button" title="Verdunningen wijzigen" aria-label="Verdunningen wijzigen" :disabled="!store.canEditDilutions" @click="store.openDilutions()"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body"><SampleLookupResults @finished-entry="focusBarcodeInput" /></div></section>
-                <section class="sample-panel"><h2>Monster notities<span class="lookup-tools"><button class="icon-button" title="Notities wijzigen" :disabled="!store.data" @click="store.placeholder('Monsternotities wijzigen')"><Pencil :size="15" /></button></span></h2><div class="sample-panel-body lookup-note">{{ store.data?.sample.sample_note || 'Geen notities.' }}</div></section>
+                <section class="sample-panel"><h2>Monster notities</h2><div class="sample-panel-body"><SampleNoteFeed v-if="store.data" v-model:notes="store.data.notes" :sample-id="store.data.sample.id" /><p v-else class="m-0 text-xs text-muted">Geen notities.</p></div></section>
                 <section v-if="store.debug" class="sample-panel" aria-live="polite"><h2>{{ store.debug.feature }}</h2><div class="sample-panel-body"><SampleLookupPlaceholder :feature="store.debug.feature" :details="store.debug" /></div></section>
             </div>
         </div>
@@ -282,7 +285,6 @@ onBeforeUnmount(() => {
 .lookup-progress progress { display:block; width:100%; height:6px; accent-color:var(--accent); }
 .lookup-progress > span { text-align:right; font-variant-numeric:tabular-nums; }
 .sample-lookup select { width:100%; min-width:0; margin-top:6px; }
-.lookup-note { white-space:pre-wrap; overflow-wrap:anywhere; }
 .lookup-add-modal { width:min(760px, calc(100vw - 24px)); }
 .lookup-add-modal fieldset { margin:0; border:0; min-width:0; display:grid; gap:16px; }
 .lookup-confirmations { margin-top:12px; }

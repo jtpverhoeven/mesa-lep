@@ -4,6 +4,7 @@ import { LoaderCircle } from '@lucide/vue';
 import { getEcho } from '../echo.js';
 import { useProjectSearchStore } from '../stores/projectSearchStore';
 import { useKeyringStore } from '../stores/keyringStore';
+import { useNoteStore } from '../stores/noteStore';
 import AuthorizationBlockedNotice from './AuthorizationBlockedNotice.vue';
 import KeyringNotice from './KeyringNotice.vue';
 import ProjectDetailsPanel from './ProjectDetailsPanel.vue';
@@ -15,9 +16,11 @@ const props = defineProps({
     endpoints: { type: Object, required: true },
     permissions: { type: Object, required: true },
     keyrings: { type: Object, default: () => ({}) },
+    notes: { type: Object, required: true },
     initialProjectId: { type: Number, default: null },
 });
 const store = useProjectSearchStore();
+useNoteStore().configure(props.notes);
 store.configure(props.endpoints);
 const keyringStore = useKeyringStore();
 keyringStore.configure(props.keyrings, getEcho);

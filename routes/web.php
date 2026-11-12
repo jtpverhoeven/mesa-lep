@@ -24,6 +24,8 @@ use App\Http\Controllers\LabelEventController;
 use App\Http\Controllers\ManualLabelPrintingController;
 use App\Http\Controllers\MatrixController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\MentionableUserController;
+use App\Http\Controllers\NoteTemplateController;
 use App\Http\Controllers\PortalAssayController;
 use App\Http\Controllers\PortalConnectionController;
 use App\Http\Controllers\PrinterController;
@@ -37,6 +39,7 @@ use App\Http\Controllers\ProjectOverviewController;
 use App\Http\Controllers\ProjectReportController;
 use App\Http\Controllers\ProjectSearchController;
 use App\Http\Controllers\ReferenceSourceController;
+use App\Http\Controllers\ReportNoteController;
 use App\Http\Controllers\ReportSenderController;
 use App\Http\Controllers\ResearchProfileController;
 use App\Http\Controllers\ResultController;
@@ -48,6 +51,7 @@ use App\Http\Controllers\SampleFieldController;
 use App\Http\Controllers\SampleFileController;
 use App\Http\Controllers\SampleLookupController;
 use App\Http\Controllers\SampleMetadataController;
+use App\Http\Controllers\SampleNoteController;
 use App\Http\Controllers\SampleProcedureController;
 use App\Http\Controllers\SampleProcedureFieldController;
 use App\Http\Controllers\SampleRegisterController;
@@ -161,6 +165,22 @@ Route::middleware(['auth', 'can:samples.update'])->prefix('laboratory/samples/{s
     Route::post('/', [SampleMetadataController::class, 'store'])->name('samples.metadata.store');
     Route::patch('/{metadata}', [SampleMetadataController::class, 'update'])->name('samples.metadata.update');
     Route::delete('/{metadata}', [SampleMetadataController::class, 'destroy'])->name('samples.metadata.destroy');
+});
+
+Route::middleware('auth')->prefix('laboratory/samples/{sample}/notes')->group(function () {
+    Route::get('/', [SampleNoteController::class, 'index'])->name('samples.notes.index');
+    Route::post('/', [SampleNoteController::class, 'store'])->name('samples.notes.store');
+    Route::delete('/{note}', [SampleNoteController::class, 'destroy'])->scopeBindings()->name('samples.notes.destroy');
+});
+
+Route::middleware(['auth', 'can:samples.notes.update'])->get('laboratory/notes/users', MentionableUserController::class)->name('notes.users');
+
+Route::middleware(['auth', 'can:projects.notes.create'])->prefix('laboratory')->group(function () {
+    Route::put('/projects/{project}/report-note', [ReportNoteController::class, 'updateProject'])->whereNumber('project')->name('projects.report-note.update');
+    Route::put('/projects/{project}/samples/{sample}/report-note', [ReportNoteController::class, 'updateSample'])->whereNumber('project')->scopeBindings()->name('projects.samples.report-note.update');
+    Route::get('/note-templates', [NoteTemplateController::class, 'index'])->name('note-templates.index');
+    Route::post('/note-templates', [NoteTemplateController::class, 'store'])->name('note-templates.store');
+    Route::delete('/note-templates/{noteTemplate}', [NoteTemplateController::class, 'destroy'])->name('note-templates.destroy');
 });
 
 Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects/search')->group(function () {

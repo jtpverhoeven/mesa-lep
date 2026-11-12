@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Enums\NoteKind;
 use App\Support\ProjectStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 #[Fillable([
     'reference', 'client', 'subclient', 'project_name', 'project_notes', 'project_date',
@@ -115,5 +118,22 @@ class Project extends Model
         return $this->hasManyThrough(SampleFile::class, Sample::class, 'project', 'sample_id')
             ->orderBy('samples.barcode')
             ->orderBy('samplefiles.id');
+    }
+
+    public function notes(): MorphMany
+    {
+        return $this->morphMany(Note::class, 'notable');
+    }
+
+    public function reportNote(): MorphOne
+    {
+        return $this->morphOne(Note::class, 'notable')->ofKind(NoteKind::Report);
+    }
+
+    public function sampleReportNotes(): HasManyThrough
+    {
+        return $this->hasManyThrough(Note::class, Sample::class, 'project', 'notable_id')
+            ->where('notes.notable_type', 'sample')
+            ->ofKind(NoteKind::Report);
     }
 }

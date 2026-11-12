@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use App\Actions\Samples\EstimateRegisteredSampleEndpoints;
+use App\Enums\NoteKind;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 #[Fillable([
     'barcode', 'tht_code', 'follow_no', 'description', 'client_description', 'sampling_method',
@@ -67,5 +70,20 @@ class Sample extends Model
     public function sampleFiles(): HasMany
     {
         return $this->hasMany(SampleFile::class, 'sample_id');
+    }
+
+    public function notes(): MorphMany
+    {
+        return $this->morphMany(Note::class, 'notable');
+    }
+
+    public function internalNotes(): MorphMany
+    {
+        return $this->notes()->ofKind(NoteKind::Internal)->orderByDesc('notes.created_at')->orderByDesc('notes.id');
+    }
+
+    public function reportNote(): MorphOne
+    {
+        return $this->morphOne(Note::class, 'notable')->ofKind(NoteKind::Report);
     }
 }

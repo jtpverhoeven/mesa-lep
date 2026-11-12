@@ -5,6 +5,7 @@
     <project-search v-bind="{{ Illuminate\Support\Js::from([
         'initialProjectId' => $initialProjectId,
         'keyrings' => App\Keyrings\KeyringClientConfig::for(auth()->user()),
+        'notes' => App\Support\NoteClientConfig::for(auth()->user()),
         'endpoints' => [
             'page' => route('projects.search'),
             'search' => route('projects.search.data'),

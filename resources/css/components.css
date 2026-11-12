@@ -380,4 +380,80 @@
     .project-status.success {
         --project-status-bg: var(--status-success);
     }
+
+    .note-html {
+        @apply text-xs wrap-anywhere;
+    }
+
+    .note-html p {
+        @apply m-0;
+    }
+
+    .note-html ul {
+        @apply my-0.5 list-disc pl-5;
+    }
+
+    .note-html ol {
+        @apply my-0.5 list-decimal pl-5;
+    }
+
+    .note-feed-body {
+        @apply text-xs whitespace-pre-wrap wrap-anywhere;
+    }
+
+    .note-mention {
+        @apply font-semibold text-accent;
+    }
+
+    .note-editor [data-pc-name='editor'] .ql-editor {
+        @apply min-h-20 text-xs;
+    }
+
+    .note-editor [data-pc-name='editor'] .ql-toolbar {
+        @apply py-1;
+    }
+
+    .note-template-button {
+        @apply inline-flex h-6 w-7 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-ink hover:text-accent disabled:cursor-default disabled:opacity-50;
+    }
+
+    .panel-tabs [data-pc-name='tablist'] {
+        @apply block w-full border-t border-line;
+    }
+
+    .panel-tabs [data-pc-name='tablist'] [data-pc-section='content'] {
+        @apply w-full overflow-hidden;
+    }
+
+    .panel-tabs [data-pc-name='tablist'] [data-pc-section='tablist'] {
+        @apply grid w-full auto-cols-fr grid-flow-col;
+    }
+
+    .panel-tabs [data-pc-name='tab'] {
+        @apply flex cursor-pointer items-center justify-center gap-1 border-0 bg-surface-alt px-1 py-[9px] text-[11px] text-ink;
+        font: inherit;
+        font-size: 11px;
+    }
+
+    .panel-tabs [data-pc-name='tab'] svg {
+        @apply shrink-0;
+    }
+
+    .panel-tabs [data-pc-name='tab'][data-p-active='true'] {
+        @apply bg-accent-faint text-accent;
+        box-shadow: inset 0 -2px var(--accent);
+    }
+
+    .panel-tabs [data-pc-name='tabpanel'] {
+        @apply p-3;
+    }
+
+    .panel-tabs [data-pc-name='tabpanel'].flush {
+        @apply p-0;
+    }
+
+    .panel-tabs [data-pc-section='prevbutton'],
+    .panel-tabs [data-pc-section='nextbutton'] {
+        @apply hidden;
+    }
 }

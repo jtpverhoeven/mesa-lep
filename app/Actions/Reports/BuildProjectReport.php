@@ -253,21 +253,17 @@ class BuildProjectReport
      */
     private function notes(Project $project, Collection $samples): array
     {
-        $notes = $this->fields($project->project_notes);
-        ksort($notes);
         $result = [];
 
-        foreach ($notes as $id => $text) {
-            if (empty($text) || ($id !== 'project' && ! $samples->contains('id', $id))) {
-                continue;
-            }
+        if ($project->reportNote !== null) {
+            $result[] = ['barcode' => 'Algemeen', 'text' => ReportHtml::richText($project->reportNote->body)];
+        }
 
-            $note = ['barcode' => $id === 'project' ? 'Algemeen' : 'MAZ-L '.$samples->firstWhere('id', $id)->barcode, 'text' => ReportHtml::lines($text)];
+        $sampleNotes = $project->sampleReportNotes()->whereIn('notes.notable_id', $samples->modelKeys())->get()->keyBy('notable_id');
 
-            if ($id === 'project') {
-                array_unshift($result, $note);
-            } else {
-                $result[] = $note;
+        foreach ($samples->sortBy('id') as $sample) {
+            if ($sampleNotes->has($sample->id)) {
+                $result[] = ['barcode' => 'MAZ-L '.$sample->barcode, 'text' => ReportHtml::richText($sampleNotes[$sample->id]->body)];
             }
         }
 

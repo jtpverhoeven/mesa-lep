@@ -2,6 +2,7 @@
 
 namespace App\Actions\Projects;
 
+use App\Actions\Notes\PresentNote;
 use App\Models\Project;
 use App\Models\ProjectField;
 use App\Models\SampleProcedure;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Storage;
 
 class GetProjectInfo
 {
+    public function __construct(private PresentNote $presentNote) {}
+
     public function handle(Project $project): array
     {
         $project->loadMissing([
@@ -49,7 +52,7 @@ class GetProjectInfo
                 ...$project->only([
                     'id', 'client', 'reference', 'project_name', 'project_date', 'revision',
                     'print_version', 'portal_id', 'auth_status', 'auth_on', 'rap_stat', 'rap_on',
-                    'is_ready', 'started', 'locked', 'lock_message', 'project_notes', 'predicted_end',
+                    'is_ready', 'started', 'locked', 'lock_message', 'predicted_end',
                 ]),
                 'client_name' => $project->getRelation('client')?->name,
                 ...$project->status()->toArray(),
@@ -64,6 +67,7 @@ class GetProjectInfo
                 ] : null,
                 'reported_by' => (int) $project->rap_stat === 1 ? $this->fullName($project->reportedBy) : null,
             ],
+            'report_note' => $this->presentNote->optional($project->reportNote),
             'fields' => $definitions
                 ->concat(collect(array_keys($values))->diff($definitions->pluck('name'))->map(
                     fn (string $name): object => (object) ['name' => $name, 'alias' => $name],

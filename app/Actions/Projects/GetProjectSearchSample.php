@@ -2,6 +2,8 @@
 
 namespace App\Actions\Projects;
 
+use App\Actions\Notes\ListSampleNotes;
+use App\Actions\Notes\PresentNote;
 use App\Actions\SampleFiles\ListSampleFiles;
 use App\Keyrings\KeyringType;
 use App\Models\Project;
@@ -11,7 +13,12 @@ use App\Models\SampleProcedure;
 
 class GetProjectSearchSample
 {
-    public function __construct(private GetEditability $editability, private ListSampleFiles $listSampleFiles) {}
+    public function __construct(
+        private GetEditability $editability,
+        private ListSampleFiles $listSampleFiles,
+        private ListSampleNotes $listSampleNotes,
+        private PresentNote $presentNote,
+    ) {}
 
     public function handle(Project $project, Sample $sample): array
     {
@@ -54,6 +61,8 @@ class GetProjectSearchSample
                 'id', 'sample', 'name', 'value', 'meta_data_key_id', 'meta_order',
             ])->values()->all(),
             'sample_files' => $this->listSampleFiles->handle($sample),
+            'notes' => $this->listSampleNotes->handle($sample),
+            'report_note' => $this->presentNote->optional($sample->reportNote),
             'analyses' => $sample->analyses->map(fn ($analysis): array => [
                 ...$analysis->only([
                     'id', 'profile_group', 'profile', 'follow_number', 'conf_requested', 'is_ready',
