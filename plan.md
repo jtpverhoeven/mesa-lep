@@ -1,7 +1,5 @@
 # Roadmap
 
-- Change dillutions
-
 - Sample notes
 
 - Bevestigings tabellen
@@ -27,7 +25,9 @@ Data mining:
     - Deauthorisatie
     
     - User printers
-       
+
+# To verify
+- Check if supporting media is always on in legacy?    
    
 # Known bugs
 - Should allow deleting individual analyses on sample create screens.
