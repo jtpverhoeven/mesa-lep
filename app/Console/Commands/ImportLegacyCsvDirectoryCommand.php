@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Actions\Imports\DecodeCsvJsonAttributes;
 use App\Actions\Imports\InsertLegacyCsvBatch;
 use App\Actions\Imports\RestoreLegacyConfirmationTables;
+use App\Actions\Imports\RestoreLegacyWorklistImages;
 use App\Models\Assay;
 use App\Models\AssayField;
 use App\Models\AssayProfile;
@@ -34,6 +35,7 @@ use App\Models\ResearchProfile;
 use App\Models\SampleField;
 use App\Models\SampleProcedure;
 use App\Models\SampleProcedureField;
+use App\Models\Worklist;
 use Faker\Generator;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
@@ -89,12 +91,14 @@ class ImportLegacyCsvDirectoryCommand extends Command
         'docgenassociations.csv' => DocgenAssociation::class,
         'emailtemplates.csv' => EmailTemplate::class,
         'footers.csv' => Footer::class,
+        'worklists.csv' => Worklist::class,
     ];
 
     public function handle(
         DecodeCsvJsonAttributes $decodeJsonAttributes,
         InsertLegacyCsvBatch $insertBatch,
         RestoreLegacyConfirmationTables $restoreConfirmationTables,
+        RestoreLegacyWorklistImages $restoreWorklistImages,
     ): int {
         $directory = $this->resolveDirectory((string) $this->argument('directory'));
 
@@ -106,6 +110,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
 
         $this->truncateImportTables();
         $restoreConfirmationTables->reset();
+        $restoreWorklistImages->reset();
 
         $imported = 0;
         $failures = 0;
@@ -133,6 +138,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
         }
 
         $restoreConfirmationTables->handle($directory);
+        $restoreWorklistImages->handle($directory);
         $this->resetPrimaryKeySequences($importedModelClasses);
 
         $this->info("Imported {$imported} row(s) from {$foundFiles} file(s).");

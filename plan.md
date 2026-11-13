@@ -1,7 +1,5 @@
 # Roadmap
 
-- Werklijsten
-
 - Monster fotos
 
 - Other calculations

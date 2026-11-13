@@ -3,6 +3,7 @@
 namespace App\Actions\Imports;
 
 use App\Models\AssayProfile;
+use App\Models\Worklist;
 use Illuminate\Database\Eloquent\Model;
 use JsonException;
 use RuntimeException;
@@ -17,6 +18,14 @@ class DecodeCsvJsonAttributes
     {
         if ($model instanceof AssayProfile) {
             foreach (['dillutions', 'reference'] as $attribute) {
+                if (array_key_exists($attribute, $attributes)) {
+                    $attributes[$attribute] = $this->decodeLegacyArray($attribute, $attributes[$attribute]);
+                }
+            }
+        }
+
+        if ($model instanceof Worklist) {
+            foreach (['analyses', 'columns', 'colum_groups', 'extra_rows'] as $attribute) {
                 if (array_key_exists($attribute, $attributes)) {
                     $attributes[$attribute] = $this->decodeLegacyArray($attribute, $attributes[$attribute]);
                 }

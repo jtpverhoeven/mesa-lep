@@ -2,12 +2,13 @@
 
 namespace App\Actions\ConfirmationTables;
 
+use App\Actions\Media\StoreEditorImages;
 use App\Models\ConfirmationTable;
 use Illuminate\Support\Facades\DB;
 
 class SaveConfirmationTable
 {
-    public function __construct(private StoreConfirmationTableImages $images) {}
+    public function __construct(private StoreEditorImages $images) {}
 
     /**
      * @param  array{name: string, html?: ?string}  $data

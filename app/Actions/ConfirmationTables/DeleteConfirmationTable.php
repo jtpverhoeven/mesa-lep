@@ -2,6 +2,7 @@
 
 namespace App\Actions\ConfirmationTables;
 
+use App\Actions\Media\StoreEditorImages;
 use App\Models\ConfirmationTable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +16,6 @@ class DeleteConfirmationTable
             $table->delete();
         });
 
-        Storage::disk('local')->deleteDirectory(StoreConfirmationTableImages::directory($table));
+        Storage::disk('local')->deleteDirectory(StoreEditorImages::directory($table));
     }
 }

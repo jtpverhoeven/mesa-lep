@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\ConfirmationTables\DeleteConfirmationTable;
 use App\Actions\ConfirmationTables\SaveConfirmationTable;
-use App\Actions\ConfirmationTables\StoreConfirmationTableImages;
+use App\Actions\Media\StoreEditorImages;
 use App\Http\Requests\SaveConfirmationTableRequest;
 use App\Models\ConfirmationTable;
 use Illuminate\Http\RedirectResponse;
@@ -61,7 +61,7 @@ class ConfirmationTableController extends Controller
     {
         abort_unless($request->user()->canAny(['samples.view', 'media.manage']), 403);
 
-        $path = StoreConfirmationTableImages::directory($confirmationTable).'/'.$image;
+        $path = StoreEditorImages::directory($confirmationTable).'/'.$image;
         abort_unless(Storage::disk('local')->exists($path), 404);
 
         return Storage::disk('local')->response($path, null, [

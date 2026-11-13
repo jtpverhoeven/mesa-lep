@@ -15,6 +15,7 @@ use App\Models\LabelEvent;
 use App\Models\Printer;
 use App\Models\ReferenceSource;
 use App\Models\ResearchProfile;
+use App\Models\Worklist;
 use Closure;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,6 +50,50 @@ class ImportLegacyCsvDirectoryCommandTest extends TestCase
         $this->assertSame('English text', $template->template_en);
         $this->assertSame('archive@example.test', $template->bcc);
         $this->assertSame(1, $template->defaultmail_with_files);
+    }
+
+    public function test_worklist_exports_keep_their_legacy_definitions_and_images(): void
+    {
+        Storage::fake('local');
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+        $columns = '{"1":{"name":"Telling","tick_on":["41","42"]},"2":{"name":"Opmerking"}}';
+        $groups = '{"0":{"title":"","colspan":"1"},"1":{"title":"Plaat","colspan":"2"}}';
+        $extraPages = '<p><img src="http://10.50.56.1/workLists/loadImage/3439084fbfeb4a598586f0688decf161.jpg"></p>';
+        $exports = [
+            'worklists.csv' => [
+                ['id', 'analyses', 'no_columns', 'title', 'subtitle', 'footer_text', 'columns', 'colum_groups', 'extra_rows', 'extra_pages', 'orientation'],
+                [7, '["41","42"]', 2, 'Listeria', 'Sub', 'Voet', $columns, $groups, '["RM-LM","blanco"]', $extraPages, 'L'],
+                [8, '', 1, 'Leeg', 'NULL', 'NULL', 'NULL', 'NULL', '', 'NULL', 'P'],
+            ],
+        ];
+
+        $this->withCsvExports($exports, function (string $directory) use ($png): void {
+            mkdir($directory.'/worklistUpload');
+            file_put_contents($directory.'/worklistUpload/3439084fbfeb4a598586f0688decf161.jpg', $png);
+
+            try {
+                $this->artisan('legacy:import-csv', ['directory' => $directory])
+                    ->expectsOutput('Imported 2 row(s) from 1 file(s).')
+                    ->assertSuccessful();
+            } finally {
+                unlink($directory.'/worklistUpload/3439084fbfeb4a598586f0688decf161.jpg');
+                rmdir($directory.'/worklistUpload');
+            }
+        });
+
+        $worklist = Worklist::query()->findOrFail(7);
+        $this->assertSame(['41', '42'], $worklist->analyses);
+        $this->assertSame([41, 42], $worklist->columnList()[0]['tick_on']);
+        $this->assertSame(['Plaat', 'Plaat'], array_column($worklist->columnList(), 'group'));
+        $this->assertSame(['RM-LM', 'blanco'], $worklist->extra_rows);
+        $this->assertSame('L', $worklist->orientation);
+        $this->assertMatchesRegularExpression('#src="/worklists/7/images/[a-f0-9]{40}\.png"#', $worklist->extra_pages);
+        $this->assertCount(1, Storage::disk('local')->files('worklists/7'));
+
+        $empty = Worklist::query()->findOrFail(8);
+        $this->assertSame([], $empty->analyses);
+        $this->assertSame([], $empty->columnList());
+        $this->assertNull($empty->subtitle);
     }
 
     public function test_reporting_exports_preserve_legacy_ids_associations_and_exact_certificate_text(): void

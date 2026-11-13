@@ -60,6 +60,8 @@ use App\Http\Controllers\UserAvatarController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserGroupController;
 use App\Http\Controllers\VetoResultController;
+use App\Http\Controllers\WorklistController;
+use App\Http\Controllers\WorklistPrintController;
 use App\Keyrings\KeyringType;
 use App\Models\Assay;
 use Illuminate\Support\Facades\Route;
@@ -106,6 +108,11 @@ Route::get('/users/{user}/avatar', UserAvatarController::class)->middleware('aut
 Route::middleware(['auth', 'can:scan-to-print.use'])->prefix('laboratory/printing')->group(function () {
     Route::get('/', [ManualLabelPrintingController::class, 'index'])->name('printing.index');
     Route::post('/', [ManualLabelPrintingController::class, 'store'])->name('printing.store');
+});
+
+Route::middleware(['auth', 'can:lists.view'])->prefix('laboratory/worklists')->group(function () {
+    Route::get('/', [WorklistPrintController::class, 'index'])->name('worklists.print');
+    Route::get('/pdf', [WorklistPrintController::class, 'pdf'])->middleware('throttle:30,1')->name('worklists.pdf');
 });
 
 Route::middleware(['auth', 'can:clients.view'])->prefix('laboratory')->group(function () {
@@ -267,6 +274,11 @@ Route::middleware('auth')
     ->whereNumber('confirmationTable')->where('image', '[a-f0-9]{40}\.(?:png|jpg|gif|webp)')
     ->name('confirmation-tables.images.show');
 
+Route::middleware('auth')
+    ->get('worklists/{worklist}/images/{image}', [WorklistController::class, 'image'])
+    ->whereNumber('worklist')->where('image', '[a-f0-9]{40}\.(?:png|jpg|gif|webp)')
+    ->name('worklists.images.show');
+
 Route::middleware(['auth', 'can:assurance-form.view'])->prefix('laboratory/assurance-forms')->group(function () {
     Route::get('/', [AssuranceFormController::class, 'index'])->name('assurance-forms.index');
     Route::get('/{date}', [AssuranceFormController::class, 'show'])->name('assurance-forms.show');
@@ -351,6 +363,7 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
     Route::put('/media/{media}', [MediaController::class, 'update'])->name('media.update');
     Route::delete('/media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
     Route::middleware('can:media.manage')->resource('confirmation-tables', ConfirmationTableController::class)->except(['show']);
+    Route::middleware('can:worksheets.manage')->resource('worklists', WorklistController::class)->except(['show']);
     Route::get('/assay-types', [AssayTypeController::class, 'index'])->name('assay-types.index');
     Route::get('/assay-types/create', [AssayTypeController::class, 'create'])->name('assay-types.create');
     Route::post('/assay-types', [AssayTypeController::class, 'store'])->name('assay-types.store');

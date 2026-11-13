@@ -52,6 +52,9 @@ import SampleLookup from './components/SampleLookup.vue';
 import SampleRegister from './components/SampleRegister.vue';
 import SampleAnalysisAssignment from './components/SampleAnalysisAssignment.vue';
 import UserMenu from './components/UserMenu.vue';
+import WorklistDirectory from './components/WorklistDirectory.vue';
+import WorklistForm from './components/WorklistForm.vue';
+import WorklistPrint from './components/WorklistPrint.vue';
 import { SfxPlugin } from './sfx';
 
 const app = createApp({});
@@ -109,4 +112,7 @@ app.component('sample-lookup', SampleLookup);
 app.component('sample-register', SampleRegister);
 app.component('sample-analysis-assignment', SampleAnalysisAssignment);
 app.component('user-menu', UserMenu);
+app.component('worklist-directory', WorklistDirectory);
+app.component('worklist-form', WorklistForm);
+app.component('worklist-print', WorklistPrint);
 app.mount('#app');

@@ -64,6 +64,7 @@
                             @can('settings.advanced')<a href="{{ route('reference-sources.index') }}" @class(['selected' => request()->is('admin/reference-sources*')])>Referentie bronnen</a>@endcan
                             <a href="{{ route('media.index') }}" @class(['selected' => request()->is('admin/media*')])>Media &amp; bevestigingen</a>
                             @can('media.manage')<a href="{{ route('confirmation-tables.index') }}" @class(['selected' => request()->routeIs('confirmation-tables.*')])>Bevestigingstabellen</a>@endcan
+                            @can('worksheets.manage')<a href="{{ route('worklists.index') }}" @class(['selected' => request()->routeIs('worklists.index', 'worklists.create', 'worklists.edit')])>Werklijsten</a>@endcan
                             @can('sampling-procedure-fields.manage')<a href="{{ route('sample-procedure-fields.index') }}" @class(['selected' => request()->is('admin/sample-procedure-fields*')])>Monstername velden</a>@endcan
                             @can('sample-fields.manage')<a href="{{ route('sample-fields.index') }}" @class(['selected' => request()->is('admin/sample-fields*')])>Monster velden</a>@endcan
                             @can('project-fields.manage')<a href="{{ route('project-fields.index') }}" @class(['selected' => request()->is('admin/project-fields*')])>Project velden</a>@endcan
@@ -108,6 +109,7 @@
                             @can('clients.view')<a href="{{ route('client-categories.index') }}" @class(['selected' => request()->is('laboratory/client-categories*')])>Klantcategorieen</a>@endcan
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><path d="M3 5v14"></path><path d="M8 5v14"></path><path d="M12 5v14"></path><path d="M17 5v14"></path><path d="M21 5v14"></path></svg>Afdrukken</span>
                             @can('scan-to-print.use')<a href="{{ route('printing.index') }}" @class(['selected' => request()->routeIs('printing.*')])>Labels printen</a>@endcan
+                            @can('lists.view')<a href="{{ route('worklists.print') }}" @class(['selected' => request()->routeIs('worklists.print')])>Werklijsten</a>@endcan
                         @endif
                     </nav>
                     <div class="sidebar-footer">MESA <span>{{ app()->environment() }}</span></div>

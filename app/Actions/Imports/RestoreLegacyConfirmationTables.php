@@ -2,7 +2,7 @@
 
 namespace App\Actions\Imports;
 
-use App\Actions\ConfirmationTables\StoreConfirmationTableImages;
+use App\Actions\Media\StoreEditorImages;
 use App\Models\Assay;
 use App\Models\ConfirmationTable;
 use Illuminate\Support\Facades\DB;
@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Storage;
 
 class RestoreLegacyConfirmationTables
 {
-    public function __construct(private StoreConfirmationTableImages $images) {}
+    public function __construct(private StoreEditorImages $images) {}
 
     /** Clears everything this restore derives, so a re-import starts from the CSV exports alone. */
     public function reset(): void
