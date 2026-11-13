@@ -139,6 +139,8 @@ The optional `assays.show_conf_table` setting points to legacy administrator-aut
 
 Preserve this table if old assay configurations reference it. Render its content only through an explicit sanitization boundary. Do not execute embedded scripts.
 
+Assays now link to any number of tables through the `assay_confirmation_table` pivot (per assay revision). `assays.show_conf_table` is only an import source: the migration and `legacy:import-csv` fill the pivot from it, and nothing writes it anymore. Images in the HTML live in private storage under `confirmation-tables/{id}/`.
+
 ### `confkeystore`
 
 The legacy control-value cache uses:

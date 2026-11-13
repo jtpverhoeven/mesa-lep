@@ -57,6 +57,11 @@ class Assay extends Model
             ->withPivot('id');
     }
 
+    public function confirmationTables(): BelongsToMany
+    {
+        return $this->belongsToMany(ConfirmationTable::class, 'assay_confirmation_table');
+    }
+
     public function assayProfiles(): HasMany
     {
         return $this->hasMany(AssayProfile::class, 'assay');

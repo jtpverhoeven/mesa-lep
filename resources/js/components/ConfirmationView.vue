@@ -4,6 +4,7 @@ import { ArrowLeft, MessageSquare, Plus, Save } from '@lucide/vue';
 import { useConfirmationStore } from '../stores/confirmationStore';
 import ConfirmationDateInput from './ConfirmationDateInput.vue';
 import ConfirmationRacetrack from './ConfirmationRacetrack.vue';
+import { noteHtml } from '../notes.js';
 import { vSyncValue } from '../syncValue.js';
 
 defineProps({
@@ -124,6 +125,11 @@ function scopeLabel(scope) {
             <div class="confirmation-section">
                 <label for="confirmation-note"><h3>Notitie</h3></label>
                 <textarea id="confirmation-note" ref="noteField" v-model="noteDraft" class="confirmation-note" :disabled="store.readOnly" rows="4" @change="saveNote"></textarea>
+            </div>
+
+            <div v-for="table in store.data?.tables ?? []" :key="table.id" class="confirmation-section">
+                <h3>{{ table.name }}</h3>
+                <div class="note-html" v-html="noteHtml(table.html)"></div>
             </div>
 
             <div class="confirmation-actions"><button class="button primary" type="button" @click="store.close()">Sluiten</button></div>

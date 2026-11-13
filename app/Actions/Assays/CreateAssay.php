@@ -41,9 +41,6 @@ class CreateAssay
                 'confirmation_support' => array_key_exists('confirmation_support', $data)
                     ? AssayConfirmationConfiguration::serializeSupport($data['confirmation_support'])
                     : null,
-                'show_conf_table' => array_key_exists('show_conf_table', $data)
-                    ? $data['show_conf_table']
-                    : null,
                 'custom_fields' => json_encode((object) $customFields->all(), JSON_THROW_ON_ERROR),
                 'script' => $data['script'] ?? '',
                 'hide_report' => $data['hide_report'],
@@ -55,6 +52,7 @@ class CreateAssay
 
             $assay->update(['original_id' => $assay->id]);
             $assay->matrices()->sync($data['matrices'] ?? []);
+            $assay->confirmationTables()->sync($data['confirmation_tables'] ?? []);
 
             return $assay;
         });

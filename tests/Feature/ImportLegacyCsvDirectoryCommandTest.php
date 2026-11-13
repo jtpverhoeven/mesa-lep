@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Assay;
 use App\Models\AssayProfile;
 use App\Models\Client;
+use App\Models\ConfirmationTable;
 use App\Models\DocgenAssociation;
 use App\Models\DocgenTemplate;
 use App\Models\EmailTemplate;
@@ -19,6 +20,7 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -154,6 +156,54 @@ class ImportLegacyCsvDirectoryCommandTest extends TestCase
         $this->assertGreaterThan(72, $newPrinter->id);
         $this->assertGreaterThan(103, $newDesign->id);
         $this->assertGreaterThan(207, $newEvent->id);
+    }
+
+    public function test_confirmation_tables_are_restored_and_linked_to_the_assays_that_referenced_them(): void
+    {
+        Storage::fake('local');
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+        $assayColumns = ['id', 'original_id', 'name', 'type_base', 'media_id', 'dillution', 'replicates', 'confirmation', 'confirmation_script', 'type', 'meta_assays', 'max_count', 'min_count', 'script', 'custom_fields', 'duration', 'start_from', 'article_code', 'show_conf_table'];
+        $assay = fn (int $id, string $linked): array => [$id, $id, 'Assay '.$id, 1, '[]', 0, 0, 0, '[]', 1, '', 300, 10, '', '{}', '1', 'r', '', $linked];
+        $exports = [
+            'confirmationtables.csv' => [
+                ['id', 'name', 'html'],
+                [4, 'Bacillus', '<table class="table table-bordered"><tbody><tr><td>+</td></tr></tbody></table>'],
+                [13, 'Vibrio', '<p><img src="http://10.50.56.1/workLists/loadImage/3439084fbfeb4a598586f0688decf161.jpg"><img src="http://10.50.56.1/workLists/loadImage/missing.jpg"></p>'],
+            ],
+            'assays.csv' => [
+                $assayColumns,
+                $assay(1, '4'),
+                $assay(2, 'NULL'),
+                $assay(3, '13, 4'),
+                $assay(4, '15'),
+            ],
+        ];
+
+        $this->withCsvExports($exports, function (string $directory) use ($png): void {
+            mkdir($directory.'/worklistUpload');
+            file_put_contents($directory.'/worklistUpload/3439084fbfeb4a598586f0688decf161.jpg', $png);
+
+            try {
+                $this->artisan('legacy:import-csv', ['directory' => $directory])->assertSuccessful();
+            } finally {
+                unlink($directory.'/worklistUpload/3439084fbfeb4a598586f0688decf161.jpg');
+                rmdir($directory.'/worklistUpload');
+            }
+        });
+
+        $this->assertSame([4, 13], Assay::query()->findOrFail(3)->confirmationTables()->orderBy('confirmationtables.id')->pluck('confirmationtables.id')->all());
+        $this->assertSame([4], Assay::query()->findOrFail(1)->confirmationTables->modelKeys());
+        $this->assertSame([], Assay::query()->findOrFail(2)->confirmationTables->modelKeys());
+        $this->assertSame([], Assay::query()->findOrFail(4)->confirmationTables->modelKeys());
+        $this->assertSame('15', Assay::query()->findOrFail(4)->show_conf_table);
+        $this->assertStringContainsString('table-bordered', ConfirmationTable::query()->findOrFail(4)->html);
+
+        $stored = sha1($png).'.png';
+        $html = ConfirmationTable::query()->findOrFail(13)->html;
+        $this->assertStringContainsString('src="/confirmation-tables/13/images/'.$stored.'"', $html);
+        $this->assertStringContainsString('/workLists/loadImage/missing.jpg', $html);
+        Storage::disk('local')->assertExists('confirmation-tables/13/'.$stored);
+        $this->assertGreaterThan(13, ConfirmationTable::factory()->create()->id);
     }
 
     public function test_profile_exports_preserve_json_settings_ids_revisions_and_reference_sources(): void

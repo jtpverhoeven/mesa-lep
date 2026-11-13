@@ -1,0 +1,228 @@
+﻿"id","name","html"
+"4","Bacillus cereus","<br><div><table class=""table table-bordered""><tbody><tr><td><br></td><td><span style=""font-weight: bold;"">Hemolyse</span></td></tr><tr><td><span style=""font-weight: bold;"">B. cereus</span></td><td>+</td></tr><tr><td><span style=""font-weight: bold;"">B. subtilis</span></td><td>-</td></tr></tbody></table><br></div>"
+"5","Campylobacter","<table class=""table table-bordered"">
+
+    <thead>
+    <tr>
+        <th></th>
+        <th>Morfologie</th>
+        <th>Oxidase</th>
+        <th>Beweeglijkheid</th>
+        <th>Aerobe groei 41,5 °C</th>
+        <th>Micro-aerofiele groei 25 °C
+        </th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr>
+        <td>Campylobacter</td>
+        <td>Smalle gebogen staafjes</td>
+        <td>+</td>
+        <td>+ (Kurkentrekker beweging)</td>
+        <td>-</td>
+        <td>-</td>
+    </tr>
+
+    </tbody>
+</table>
+"
+"6","Coliformen","<table class=""table table-bordered"" style=""background-color: rgb(255, 255, 255); width: 798px;""><tbody><tr><td><br></td><td><span style=""font-weight: bold;"">BGB-buis</span></td></tr><tr><td><span style=""font-weight: bold;"">Escherichia coli</span></td><td>+</td></tr><tr><td><span style=""font-weight: bold;"">Pseudomonas aeruginosa</span></td><td>-</td></tr></tbody></table>"
+"7","Entero","<table class=""table table-bordered"">
+
+    <thead>
+    <tr>
+        <th></th>
+        <th>Oxidase</th>
+        <th>Glucose</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr>
+        <td>E. coli</td>
+        <td>-</td>
+        <td>+</td>
+    </tr>
+    <tr>
+        <td>P. aeruginosa</td>
+        <td>+</td>
+        <td>-</td>
+    </tr>
+    </tbody>
+
+</table>"
+"8","Listeria","<div><br></div><table class=""table table-bordered"">
+
+    <thead>
+    <tr>
+        <th>Species</th>
+        <th>Katalase</th>
+        <th>Gram</th>
+        <th>Beweeglijkheid</th>
+        <th>Hemolyse</th>
+        <th colspan=""2"">Zuurproductie</th>
+        <th colspan=""2"">CAMP-test</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>Rhamnose</td>
+        <td>Xylose</td>
+        <td>S. aureus</td>
+        <td>R. equi</td>
+    </tr>
+
+    <tr>
+        <td>L. monocytogenes</td>
+        <td>+</td>
+        <td>+ staaf</td>
+        <td>paraplugroei</td>
+        <td>+</td>
+        <td>+</td>
+        <td>-</td>
+        <td>+</td>
+        <td>-</td>
+    </tr>
+
+    <tr>
+        <td>L. innocua</td>
+        <td>+</td>
+        <td>+ staaf</td>
+        <td>paraplugroei</td>
+        <td>-</td>
+        <td>V</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+    </tr>
+
+    <tr>
+        <td>L. ivanovii</td>
+        <td>+</td>
+        <td>+ staaf</td>
+        <td>paraplugroei</td>
+        <td>+</td>
+        <td>-</td>
+        <td>+</td>
+        <td>-</td>
+        <td>+</td>
+    </tr>
+
+    </tbody>
+
+</table>"
+"9","Melkzuur","<div><br></div><div><table class=""table table-bordered"" style=""background-color: rgb(255, 255, 255); width: 950px;""><tbody><tr><td><span style=""font-weight: bold;"">Species</span></td><td><span style=""font-weight: bold;"">Katalase</span></td></tr><tr><td>Lactobacillus plantarum</td><td>-</td></tr><tr><td>Staphylococcus aureus</td><td>+</td></tr></tbody></table></div><div><br></div>"
+"10","Salmonella","<table class=""table table-bordered"">
+
+    <thead>
+    <tr>
+        <th></th>
+        <th>TSI (gluc)</th>
+        <th>TSI (lact)</th>
+        <th>TSI (gas)</th>
+        <th>TSI (H2S)</th>
+        <th>Ureum</th>
+        <th>LDC</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr>
+        <td>Salmonella</td>
+        <td>+</td>
+        <td>-/-</td>
+        <td>+</td>
+        <td>+</td>
+        <td>-</td>
+        <td>+</td>
+    </tr>
+    <tr>
+        <td>E. coli</td>
+        <td>+</td>
+        <td>+</td>
+        <td>+</td>
+        <td>-</td>
+        <td style=""background-color: #000;""></td>
+        <td style=""background-color: #000;""></td>
+    </tr>
+    <tr>
+        <td>P. mirabilis</td>
+        <td style=""background-color: #000;""></td>
+        <td style=""background-color: #000;""></td>
+        <td style=""background-color: #000;""></td>
+        <td style=""background-color: #000;""></td>
+        <td>+</td>
+        <td>-</td>
+    </tr>
+    </tbody>
+
+</table>"
+"11","Shigella","<table class=""table table-bordered"">
+
+    <thead>
+    <tr>
+        <th></th>
+        <th>Oxidase</th>
+        <th>Beweeglijkheid</th>
+        <th>TSI (gluc)</th>
+        <th>TSI (lact)</th>
+        <th>TSI (gas) </th>
+        <th>TSI  (H2S)</th>
+        <th>Ureum</th>
+        <th>LDC</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr>
+        <td>Shigella</td>
+        <td>-</td>
+        <td>-</td>
+        <td>+</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+    </tr>
+
+    </tbody>
+</table>
+"
+"12","Staphylococcus aureus","<table class=""table table-bordered"">
+
+    <thead>
+    <tr>
+        <th></th>
+        <th>BHI</th>
+        <th>Coagulase</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr>
+        <td>S. aureus</td>
+        <td>+</td>
+        <td>+</td>
+    </tr>
+    <tr>
+        <td>S. epidermidis</td>
+        <td>+</td>
+        <td>-</td>
+    </tr>
+    </tbody>
+
+</table>"
+"13","Vibrio","<div><span style=""color: rgb(255, 0, 0);""><span style=""background-color: yellow;"">Let op!</span> </span></div><div><span style=""font-weight: bold;"">Indien Vibrio spp aangetoond (alle species!) dan API inzetten.</span></div><div><span style=""font-weight: bold;"">Bij aanwezigheid van Vibrio parahaemoliticus, cholerae of vulnificus afenten op bloedagar voor eventuele bepaling THX-genen. Eerst overleg met klant nodig!</span></div><div><span style=""font-weight: bold;""><br></span></div><p></p><img src=""http://10.50.56.1/workLists/loadImage/3439084fbfeb4a598586f0688decf161.jpg"" style=""width: 939.578px; height: 173.719px;""><br><p></p>"
+"14","Coliformen (CCA)","<p></p><table class=""table table-bordered""><tbody><tr><td><br></td><td><span style=""font-weight: bold;"">Oxidase</span></td></tr><tr><td><span style=""font-weight: bold;"">Escherichia coli</span></td><td>-</td></tr><tr><td><span style=""font-weight: bold;"">Pseudomonas aeruginosa</span></td><td>+</td></tr></tbody></table><br><p></p>"
+"16","TAB","<p><span style=""font-weight: bold;""></span></p><table class=""table table-bordered""><tbody><tr><td><span style=""background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-weight: bold;"">Growth on culter medium with neutral pH, PCA</span></td><td><span style=""background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-weight: bold;"">Growth on ACB-agar</span></td><td><span style=""background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-weight: bold;"">Results after 74 ± 4 h incubation at 45°C</span></td></tr><tr><td><span style=""background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-weight: bold;"">+</span></td><td><span style=""background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-weight: bold;"">+</span></td><td><span style=""background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);""><span style=""font-weight: bold;"">Negative</span><br><span style=""font-weight: normal;"">for spore-forming thermo-acidiphilic bacteria</span><br><span style=""font-weight: normal;"">(Alycyclobacillus spp.)</span></span></td></tr><tr><td><span style=""background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-weight: bold;"">-</span></td><td><span style=""background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-weight: bold;"">+</span></td><td><span style=""color: rgb(255, 0, 0); background-color: rgb(255, 255, 0); font-weight: bold;"">Positive</span><br><span style=""background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-weight: normal;"">for spore-forming thermo-acidiphilic bacteria</span><br><span style=""background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-weight: normal;"">(Alycyclobacillus spp.)</span><br></td></tr></tbody></table><p></p><p><br></p>"
+"17","Guaiacoltest","<p><span style=""color: rgb(255, 0, 0); background-color: yellow;"">-- Let op! --</span></p><p>Indien guaiacol is <span style=""font-weight: bold;"">aangetoond</span> dient mogelijk een PCR analyse te worden uitgevoerd als bevestiging.<br>Voeg dan de analyse Alicyclobacillus spp. (PCR) en/of de analyse Alicyclobacillus acidoterrestris (PCR) toe aan dit monster en voer deze analyse verder uit.<br></p>"
+"18","Enterococcen - water","<p><br></p><table class=""table table-bordered"" style=""background-color: rgb(255, 255, 255); width: 798px;""><tbody><tr><td><br></td><td><span style=""font-weight: bold;"">BEA  (zwart verkleuring)</span></td></tr><tr><td><span style=""font-weight: bold;"">Enteroccus feacalis</span></td><td>+   </td></tr><tr><td><span style=""font-weight: bold;"">Escherichia coli</span></td><td>-<br></td></tr></tbody></table>"
+"19","Listeria spp. Bio-Rad PCR","<div><span style=""font-weight: bold;""><span style=""font-size: 18px; background-color: yellow;""><span style=""color: rgb(255, 0, 0);"">Let op!</span> Bij Listeria spp. verdachte kolonies, voer bij twijfel ook een gramkleuring en katalase test uit! </span><br><span style=""font-size: 14px;"">Vul de resultaten daarvan bij de ''notities'' onderaan in dit scherm in.</span></span></div><p><br></p><table class=""table table-bordered"" style=""background-color: rgb(255, 255, 255); width: 1164px;""><thead><tr><th>Species</th><th>Katalase</th><th>Gram</th><th>Beweeglijkheid</th><th>Hemolyse</th><th colspan=""2"">Zuurproductie</th><th colspan=""2"">CAMP-test</th></tr></thead><tbody><tr><td></td><td></td><td></td><td></td><td></td><td>Rhamnose</td><td>Xylose</td><td>S. aureus</td><td>R. equi</td></tr><tr><td>L. monocytogenes</td><td>+</td><td>+ staaf</td><td>paraplugroei</td><td>+</td><td>+</td><td>-</td><td>+</td><td>-</td></tr><tr><td>L. innocua</td><td>+</td><td>+ staaf</td><td>paraplugroei</td><td>-</td><td>V</td><td>-</td><td>-</td><td>-</td></tr><tr><td>L. ivanovii</td><td>+</td><td>+ staaf</td><td>paraplugroei</td><td>+</td><td>-</td><td>+</td><td>-</td><td>+</td></tr></tbody></table>"

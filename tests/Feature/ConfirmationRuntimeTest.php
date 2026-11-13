@@ -11,6 +11,7 @@ use App\Actions\Confirmations\UpdateConfirmationMetadata;
 use App\Actions\Confirmations\UpdateConfirmationTrackValue;
 use App\Actions\Results\UpdateResultValue;
 use App\Models\Assay;
+use App\Models\ConfirmationTable;
 use App\Models\Media;
 use App\Models\Result;
 use App\Models\SampleAnalysis;
@@ -74,6 +75,21 @@ class ConfirmationRuntimeTest extends TestCase
         $this->assertSame(1, $complete['summary']['tested']);
         $this->assertSame(1, $complete['summary']['confirmed']);
         $this->assertSame(1, $complete['summary']['ratio']);
+    }
+
+    public function test_the_confirmation_lists_the_reference_tables_of_the_assay_by_name(): void
+    {
+        [$analysis] = $this->analysis();
+        $second = ConfirmationTable::factory()->create(['name' => 'B tabel', 'html' => '<p>b</p>']);
+        $first = ConfirmationTable::factory()->create(['name' => 'A tabel', 'html' => '<p>a</p>']);
+        $analysis->assayRecord->confirmationTables()->attach([$second->id, $first->id]);
+
+        $state = app(GetConfirmation::class)->handle($analysis->fresh(), '0.1', 0);
+
+        $this->assertSame([
+            ['id' => $first->id, 'name' => 'A tabel', 'html' => '<p>a</p>'],
+            ['id' => $second->id, 'name' => 'B tabel', 'html' => '<p>b</p>'],
+        ], $state['tables']);
     }
 
     public function test_correcting_a_mismatch_reopens_the_next_confirmation_step(): void

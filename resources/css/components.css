@@ -397,6 +397,22 @@
         @apply my-0.5 list-decimal pl-5;
     }
 
+    .note-html table {
+        @apply border-collapse;
+    }
+
+    .note-html :is(td, th) {
+        @apply border border-line px-2 py-1 text-left align-top;
+    }
+
+    .note-html th {
+        @apply bg-surface-alt font-semibold;
+    }
+
+    .note-html img {
+        @apply h-auto max-w-full;
+    }
+
     .note-feed-body {
         @apply text-xs whitespace-pre-wrap wrap-anywhere;
     }
@@ -410,6 +426,18 @@
     }
 
     .note-editor [data-pc-name='editor'] .ql-toolbar {
+        @apply py-1;
+    }
+
+    .table-editor [data-pc-name='editor'] .ql-editor {
+        @apply min-h-72 text-xs;
+    }
+
+    .table-editor [data-pc-name='editor'] .ql-editor td {
+        @apply border-line;
+    }
+
+    .table-editor [data-pc-name='editor'] .ql-toolbar {
         @apply py-1;
     }
 

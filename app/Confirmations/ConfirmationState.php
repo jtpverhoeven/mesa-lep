@@ -6,6 +6,7 @@ use App\Actions\Confirmations\RecalculateConfirmation;
 use App\Actions\Projects\GetEditability;
 use App\Keyrings\KeyringType;
 use App\Models\Confirmation;
+use App\Models\ConfirmationTable;
 use App\Models\Media;
 use App\Models\SampleAnalysis;
 
@@ -39,6 +40,7 @@ class ConfirmationState
                 'contenders' => [],
                 'metadata_fields' => [],
                 'support_fields' => [],
+                'tables' => [],
                 'summary' => ['tested' => 0, 'confirmed' => 0, 'ratio' => null, 'scope_ready' => false, 'all_ready' => false],
                 'note' => (string) ($confirmation->note ?? ''),
             ];
@@ -142,6 +144,12 @@ class ConfirmationState
                 'all_ready' => (bool) $confirmation->isReady,
             ],
             'note' => (string) ($confirmation->note ?? ''),
+            'tables' => $assay->confirmationTables()
+                ->orderBy('name')
+                ->orderBy('confirmationtables.id')
+                ->get(['confirmationtables.id', 'confirmationtables.name', 'confirmationtables.html'])
+                ->map(fn (ConfirmationTable $table): array => ['id' => (int) $table->id, 'name' => (string) $table->name, 'html' => (string) $table->html])
+                ->all(),
         ];
     }
 

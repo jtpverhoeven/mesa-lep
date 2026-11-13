@@ -36,6 +36,9 @@ class UpdateAssay
             }
 
             $updatedAssay->matrices()->sync($data['matrices'] ?? []);
+            $updatedAssay->confirmationTables()->sync(
+                $data['confirmation_tables'] ?? $assay->confirmationTables()->allRelatedIds()->all(),
+            );
 
             return $updatedAssay->fresh();
         });
@@ -71,9 +74,6 @@ class UpdateAssay
             'confirmation_support' => array_key_exists('confirmation_support', $data)
                 ? AssayConfirmationConfiguration::serializeSupport($data['confirmation_support'])
                 : $assay->confirmation_support,
-            'show_conf_table' => array_key_exists('show_conf_table', $data)
-                ? $data['show_conf_table']
-                : $assay->show_conf_table,
             'hide_report' => $data['hide_report'] ?? $assay->hide_report,
             'uses_indicator' => $data['uses_indicator'] ?? $assay->uses_indicator,
             'uses_trip_indicator' => $data['uses_trip_indicator'] ?? $assay->uses_trip_indicator,

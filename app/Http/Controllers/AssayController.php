@@ -66,7 +66,7 @@ class AssayController extends Controller
                 old('confirmation_type', 1),
                 old('confirmation_init', 0),
                 old('confirmation_depth', 5),
-                old('show_conf_table'),
+                old('confirmation_tables', []),
             ),
         ]);
     }
@@ -150,7 +150,7 @@ class AssayController extends Controller
                 old('confirmation_type', $assay->confirmation_type),
                 old('confirmation_init', $assay->confirmation_init),
                 old('confirmation_depth', $assay->confirmation_depth),
-                old('show_conf_table', $assay->show_conf_table),
+                old('confirmation_tables', $assay->confirmationTables->modelKeys()),
             ),
         ]);
     }
@@ -305,7 +305,7 @@ class AssayController extends Controller
         mixed $type,
         mixed $initiation,
         mixed $depth,
-        mixed $selectedTable,
+        mixed $selectedTables,
     ): array {
         return [
             'enabled' => filter_var($enabled, FILTER_VALIDATE_BOOLEAN),
@@ -314,7 +314,7 @@ class AssayController extends Controller
             'depth' => $depth,
             'script' => $script,
             'support' => $support,
-            'selectedTable' => $selectedTable,
+            'selectedTables' => array_values(array_map('strval', array_filter((array) $selectedTables, fn ($id): bool => filled($id)))),
         ];
     }
 

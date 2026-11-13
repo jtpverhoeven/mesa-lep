@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Actions\Imports\DecodeCsvJsonAttributes;
 use App\Actions\Imports\InsertLegacyCsvBatch;
+use App\Actions\Imports\RestoreLegacyConfirmationTables;
 use App\Models\Assay;
 use App\Models\AssayField;
 use App\Models\AssayProfile;
@@ -13,6 +14,7 @@ use App\Models\Client;
 use App\Models\ClientCategory;
 use App\Models\ClientCategoryAssignment;
 use App\Models\ClientPortalAssay;
+use App\Models\ConfirmationTable;
 use App\Models\Cvar;
 use App\Models\DocgenAssociation;
 use App\Models\DocgenTemplate;
@@ -62,6 +64,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
         'assaytypefields.csv' => AssayTypeField::class,
         'assayfields.csv' => AssayField::class,
         'media.csv' => Media::class,
+        'confirmationtables.csv' => ConfirmationTable::class,
         'assays.csv' => Assay::class,
         'portalassays.csv' => PortalAssay::class,
         'portalassaycontent.csv' => PortalAssayContent::class,
@@ -88,8 +91,11 @@ class ImportLegacyCsvDirectoryCommand extends Command
         'footers.csv' => Footer::class,
     ];
 
-    public function handle(DecodeCsvJsonAttributes $decodeJsonAttributes, InsertLegacyCsvBatch $insertBatch): int
-    {
+    public function handle(
+        DecodeCsvJsonAttributes $decodeJsonAttributes,
+        InsertLegacyCsvBatch $insertBatch,
+        RestoreLegacyConfirmationTables $restoreConfirmationTables,
+    ): int {
         $directory = $this->resolveDirectory((string) $this->argument('directory'));
 
         if (! is_dir($directory) || ! is_readable($directory)) {
@@ -99,6 +105,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
         }
 
         $this->truncateImportTables();
+        $restoreConfirmationTables->reset();
 
         $imported = 0;
         $failures = 0;
@@ -125,6 +132,7 @@ class ImportLegacyCsvDirectoryCommand extends Command
             return self::FAILURE;
         }
 
+        $restoreConfirmationTables->handle($directory);
         $this->resetPrimaryKeySequences($importedModelClasses);
 
         $this->info("Imported {$imported} row(s) from {$foundFiles} file(s).");

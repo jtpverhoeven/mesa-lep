@@ -63,6 +63,7 @@
                             <a href="{{ route('matrices.index') }}" @class(['selected' => request()->is('admin/matrices*')])>Analyse matrices</a>
                             @can('settings.advanced')<a href="{{ route('reference-sources.index') }}" @class(['selected' => request()->is('admin/reference-sources*')])>Referentie bronnen</a>@endcan
                             <a href="{{ route('media.index') }}" @class(['selected' => request()->is('admin/media*')])>Media &amp; bevestigingen</a>
+                            @can('media.manage')<a href="{{ route('confirmation-tables.index') }}" @class(['selected' => request()->routeIs('confirmation-tables.*')])>Bevestigingstabellen</a>@endcan
                             @can('sampling-procedure-fields.manage')<a href="{{ route('sample-procedure-fields.index') }}" @class(['selected' => request()->is('admin/sample-procedure-fields*')])>Monstername velden</a>@endcan
                             @can('sample-fields.manage')<a href="{{ route('sample-fields.index') }}" @class(['selected' => request()->is('admin/sample-fields*')])>Monster velden</a>@endcan
                             @can('project-fields.manage')<a href="{{ route('project-fields.index') }}" @class(['selected' => request()->is('admin/project-fields*')])>Project velden</a>@endcan

@@ -1,7 +1,5 @@
 # Roadmap
 
-- Bevestigings tabellen
-
 - Werklijsten
 
 - Monster fotos
@@ -25,7 +23,7 @@ Data mining:
     - User printers
 
 # To verify
-- Check if supporting media is always on in legacy?    
+- Check if supporting media is always on in legacy? (i think they might be default: on)   
 - agent reports "I added Quill's core CSS to the stylesheet. Without it the bullet markers didn't render.", perhaps this was just tailwind, and we are bloating the css? 
 
 # Known bugs
@@ -43,3 +41,4 @@ Data mining:
 * If a reference is set, we should also show in normal lims result if it's over the limit. 
 * "Social" like ways of tagging users in basically any section of the application. 
 * Locked projects should not be allowed to generate a report / temp report i think. Make cvar for behaviour?
+* Shoudl show some feedback when authorizing a project that work is underway, and do a little SFX probbably.

@@ -7,6 +7,7 @@ use App\Actions\Assays\UpdateAssay;
 use App\Http\Controllers\AssayController;
 use App\Http\Requests\StoreAssayRequest;
 use App\Models\AssayType as AssayTypeModel;
+use App\Models\ConfirmationTable;
 use App\Models\Matrix;
 use App\Models\Media;
 use Illuminate\Contracts\Validation\Validator as ValidatorContract;
@@ -34,6 +35,7 @@ class AssayConfirmationAdministrationTest extends TestCase
         $this->migration()->up();
         (require database_path('migrations/2026_09_08_000001_add_active_to_assayfields_table.php'))->up();
         $this->confirmationMigration()->up();
+        (require database_path('migrations/2026_11_12_181312_create_assay_confirmation_table.php'))->up();
         (require database_path('migrations/2026_09_20_115010_create_portal_assay_tables.php'))->up();
         (require database_path('migrations/2026_10_24_122322_create_report_generation_tables.php'))->up();
     }
@@ -70,7 +72,8 @@ class AssayConfirmationAdministrationTest extends TestCase
         $this->assertSame(1, $assay->confirmation_type);
         $this->assertSame(0, $assay->confirmation_init);
         $this->assertSame(4, $assay->confirmation_depth);
-        $this->assertSame('2', $assay->show_conf_table);
+        $this->assertSame(ConfirmationTable::query()->orderBy('id')->pluck('id')->all(), $assay->confirmationTables->modelKeys());
+        $this->assertCount(2, $assay->confirmationTables);
     }
 
     public function test_update_preserves_confirmation_payload_when_it_is_not_submitted(): void
@@ -101,7 +104,30 @@ class AssayConfirmationAdministrationTest extends TestCase
 
         $this->assertSame($assay->confirmation_script, $revised->confirmation_script);
         $this->assertSame($assay->confirmation_support, $revised->confirmation_support);
-        $this->assertSame($assay->show_conf_table, $revised->show_conf_table);
+        $this->assertSame($assay->confirmationTables->modelKeys(), $revised->confirmationTables->modelKeys());
+    }
+
+    public function test_update_replaces_or_clears_the_confirmation_tables_of_the_new_revision(): void
+    {
+        [$type, $matrix, $chainMedia, $supportMedia] = $this->fixtures();
+        $assay = app(CreateAssay::class)->handle($this->payload($type, $matrix, $chainMedia, $supportMedia));
+        [$first, $second] = ConfirmationTable::query()->orderBy('id')->pluck('id')->all();
+        $payload = [...$this->payload($type, $matrix, $chainMedia, $supportMedia), 'type' => 1];
+
+        $revised = app(UpdateAssay::class)->handle($assay->fresh(), [...$payload, 'confirmation_tables' => [$second]]);
+        $cleared = app(UpdateAssay::class)->handle($revised, [...$payload, 'confirmation_tables' => []]);
+
+        $this->assertSame([$second], $revised->confirmationTables->modelKeys());
+        $this->assertSame([], $cleared->confirmationTables->modelKeys());
+        $this->assertSame([$first, $second], $assay->fresh()->confirmationTables->modelKeys());
+    }
+
+    public function test_confirmation_table_selection_ignores_the_blank_marker_the_form_always_posts(): void
+    {
+        $request = TestableStoreAssayRequest::create('/admin/assays', 'POST', ['confirmation_tables' => ['', '2', null]]);
+        $request->normalizePayloadForTest();
+
+        $this->assertSame(['2'], $request->input('confirmation_tables'));
     }
 
     public function test_edit_payload_keeps_referenced_inactive_media_visible(): void
@@ -196,6 +222,7 @@ class AssayConfirmationAdministrationTest extends TestCase
             'added_date' => '12-09-2026',
         ]);
         $matrix = Matrix::create(['name' => 'Water']);
+        ConfirmationTable::factory()->count(2)->create();
         $chainMedia = Media::create([
             'name' => 'Confirmation medium',
             'confirmation_media' => 1,
@@ -236,7 +263,7 @@ class AssayConfirmationAdministrationTest extends TestCase
             'confirmation_support' => [
                 ['mediaId' => $supportMedia->id, 'chainId' => 22],
             ],
-            'show_conf_table' => '2',
+            'confirmation_tables' => ConfirmationTable::query()->orderBy('id')->pluck('id')->all(),
             'hide_report' => 0,
             'uses_indicator' => 1,
             'uses_trip_indicator' => 1,

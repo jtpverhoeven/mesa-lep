@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue';
 import { ArrowDown, ArrowUp, Plus, Search, Trash2 } from '@lucide/vue';
+import MultiSelect from 'openvue/multiselect';
 
 const props = defineProps({
     enabled: { type: Boolean, default: false },
@@ -12,7 +13,7 @@ const props = defineProps({
     media: { type: Array, default: () => [] },
     supportMedia: { type: Array, default: () => [] },
     confirmationTables: { type: Array, default: () => [] },
-    selectedTable: { type: [Number, String], default: null },
+    selectedTables: { type: Array, default: () => [] },
     disabled: { type: Boolean, default: false },
 });
 
@@ -26,7 +27,7 @@ const enabled = ref(Boolean(props.enabled));
 const mode = ref(String(props.type));
 const initiation = ref(String(props.initiation));
 const depth = ref(props.depth ?? '');
-const selectedTable = ref(props.selectedTable ?? '');
+const selectedTables = ref(props.selectedTables.map(String));
 
 function rowKey() {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -165,11 +166,10 @@ function mediaLabel(medium) {
                         <input id="confirmation-depth" v-model="depth" type="number" name="confirmation_depth" min="0" :disabled="disabled">
                     </div>
                     <div class="field">
-                        <label for="confirmation-table">Bevestigingstabel</label>
-                        <select id="confirmation-table" v-model="selectedTable" name="show_conf_table" :disabled="disabled">
-                            <option value="">Geen tabel</option>
-                            <option v-for="table in confirmationTables" :key="table.id" :value="table.id">{{ table.name || `Tabel ${table.id}` }}</option>
-                        </select>
+                        <label for="confirmation-table">Bevestigingstabellen</label>
+                        <MultiSelect v-model="selectedTables" input-id="confirmation-table" :options="confirmationTables" option-label="name" option-value="id" display="chip" :show-toggle-all="false" filter :disabled="disabled" append-to="self" fluid />
+                        <input type="hidden" name="confirmation_tables[]" value="" :disabled="disabled">
+                        <input v-for="id in selectedTables" :key="id" type="hidden" name="confirmation_tables[]" :value="id" :disabled="disabled">
                     </div>
                 </div>
 

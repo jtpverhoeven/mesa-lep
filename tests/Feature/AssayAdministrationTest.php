@@ -23,6 +23,7 @@ class AssayAdministrationTest extends TestCase
         DB::purge('sqlite');
 
         $this->migration()->up();
+        (require database_path('migrations/2026_11_12_181312_create_assay_confirmation_table.php'))->up();
         (require database_path('migrations/2026_09_20_115010_create_portal_assay_tables.php'))->up();
         (require database_path('migrations/2026_10_24_122322_create_report_generation_tables.php'))->up();
     }
@@ -178,7 +179,6 @@ class AssayAdministrationTest extends TestCase
             'confirmation_depth' => 3,
             'confirmation_script' => '{"step":1}',
             'confirmation_support' => 'support',
-            'show_conf_table' => 'table',
             'hide_report' => 1,
             'uses_indicator' => 0,
             'uses_trip_indicator' => 1,

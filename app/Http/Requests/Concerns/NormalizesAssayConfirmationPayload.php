@@ -11,6 +11,14 @@ trait NormalizesAssayConfirmationPayload
 
     protected function normalizeAssayConfirmationPayload(): void
     {
+        // The form always posts one blank entry so that deselecting every table still reaches the server.
+        if (is_array($this->input('confirmation_tables'))) {
+            $this->merge(['confirmation_tables' => array_values(array_filter(
+                $this->input('confirmation_tables'),
+                static fn ($id): bool => $id !== null && $id !== '',
+            ))]);
+        }
+
         foreach (['confirmation_script', 'confirmation_support'] as $field) {
             if (! $this->exists($field)) {
                 continue;

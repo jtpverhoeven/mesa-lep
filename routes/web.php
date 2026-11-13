@@ -11,6 +11,7 @@ use App\Http\Controllers\ChangeRevisionController;
 use App\Http\Controllers\ClientCategoryController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConfirmationController;
+use App\Http\Controllers\ConfirmationTableController;
 use App\Http\Controllers\CvarController;
 use App\Http\Controllers\DocgenAssociationController;
 use App\Http\Controllers\DocgenTemplateController;
@@ -261,6 +262,11 @@ Route::middleware(['auth', 'can:clients.import'])->prefix('laboratory/client-imp
     Route::post('/', [SampleBufferImportController::class, 'store'])->name('sample-buffers.import.store');
 });
 
+Route::middleware('auth')
+    ->get('confirmation-tables/{confirmationTable}/images/{image}', [ConfirmationTableController::class, 'image'])
+    ->whereNumber('confirmationTable')->where('image', '[a-f0-9]{40}\.(?:png|jpg|gif|webp)')
+    ->name('confirmation-tables.images.show');
+
 Route::middleware(['auth', 'can:assurance-form.view'])->prefix('laboratory/assurance-forms')->group(function () {
     Route::get('/', [AssuranceFormController::class, 'index'])->name('assurance-forms.index');
     Route::get('/{date}', [AssuranceFormController::class, 'show'])->name('assurance-forms.show');
@@ -344,6 +350,7 @@ Route::middleware(['auth', 'can:viewAny,'.Assay::class])->prefix('admin')->group
     Route::get('/media/{media}/edit', [MediaController::class, 'edit'])->name('media.edit');
     Route::put('/media/{media}', [MediaController::class, 'update'])->name('media.update');
     Route::delete('/media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
+    Route::middleware('can:media.manage')->resource('confirmation-tables', ConfirmationTableController::class)->except(['show']);
     Route::get('/assay-types', [AssayTypeController::class, 'index'])->name('assay-types.index');
     Route::get('/assay-types/create', [AssayTypeController::class, 'create'])->name('assay-types.create');
     Route::post('/assay-types', [AssayTypeController::class, 'store'])->name('assay-types.store');
