@@ -8,7 +8,8 @@ class StoreSampleFileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->canAny(['samples.view', 'projects.view']) ?? false;
+        return ($this->user()?->canAny(['samples.view', 'projects.view']) ?? false)
+            || ($this->boolean('photo_mode') && ($this->user()?->can('samples.photos.manage') ?? false));
     }
 
     /**
@@ -17,7 +18,9 @@ class StoreSampleFileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file'],
+            'file' => $this->boolean('photo_mode')
+                ? ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp', 'max:20480']
+                : ['required', 'file'],
             'photo_mode' => ['sometimes', 'boolean'],
             'instant_visible' => ['sometimes', 'boolean'],
         ];

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Printing;
 
+use App\Actions\Samples\FindScannedSample;
 use App\Models\Project;
 use App\Models\ProjectField;
 use App\Models\Sample;
@@ -12,11 +13,13 @@ use Illuminate\Validation\ValidationException;
 
 class SelectManualPrintSamples
 {
+    public function __construct(private FindScannedSample $findSample) {}
+
     /** @param array<string, mixed> $options */
     public function handle(array $options): Builder
     {
         if (($options['mode'] ?? 'sample_range') === 'scan') {
-            $sample = $this->endpoint(explode('.', $options['barcode'])[0]);
+            $sample = $this->findSample->handle($options['barcode']);
 
             if ($sample === null) {
                 throw ValidationException::withMessages(['barcode' => 'Geen monster gevonden voor deze barcode.']);
@@ -31,10 +34,10 @@ class SelectManualPrintSamples
 
         $start = explode('.', $options['bar_range_start'])[0];
         $stop = explode('.', $options['bar_range_stop'])[0];
-        $first = $this->endpoint($start);
-        $last = $this->endpoint($stop);
+        $first = $this->findSample->handle($start);
+        $last = $this->findSample->handle($stop);
 
-        if ($first === null || $last === null || $first->sample_type !== $last->sample_type || $first->leg_type !== $last->leg_type || $this->isShorthand($start) !== $this->isShorthand($stop)) {
+        if ($first === null || $last === null || $first->sample_type !== $last->sample_type || $first->leg_type !== $last->leg_type || $this->findSample->isShorthand($start) !== $this->findSample->isShorthand($stop)) {
             throw ValidationException::withMessages(['bar_range_stop' => 'Geen geldig monsterbereik: controleer beide barcodes, monstertype en matrix.']);
         }
 
@@ -65,28 +68,6 @@ class SelectManualPrintSamples
         }
 
         return $types;
-    }
-
-    private function endpoint(string $barcode): ?Sample
-    {
-        $exact = Sample::query()->where('barcode', $barcode)->latest('id')->first();
-
-        if ($exact !== null || ! $this->isShorthand($barcode)) {
-            return $exact;
-        }
-
-        preg_match('/^(L[ABC]?|R)?(\d+)$/i', $barcode, $parts);
-        $prefix = strtoupper($parts[1]);
-        $type = str_starts_with($prefix, 'L') ? 'L' : ($prefix === 'R' ? 'R' : 'S');
-        $matrix = strlen($prefix) === 2 ? $prefix[1] : '-';
-
-        return Sample::query()->where('follow_no', (int) $parts[2])->where('sample_type', $type)
-            ->where('leg_type', $matrix)->latest('id')->first();
-    }
-
-    private function isShorthand(string $barcode): bool
-    {
-        return preg_match('/^(?:L[ABC]?|R)?\d{1,7}$/i', $barcode) === 1;
     }
 
     /** @param array<string, mixed> $options */

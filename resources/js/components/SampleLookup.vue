@@ -9,6 +9,7 @@ import SampleNoteFeed from './SampleNoteFeed.vue';
 import SampleLookupResearch from './SampleLookupResearch.vue';
 import SampleLookupResults from './SampleLookupResults.vue';
 import SampleFiles from './SampleFiles.vue';
+import SampleInfoList from './SampleInfoList.vue';
 import SampleProductGroup from './SampleProductGroup.vue';
 import SampleMetadataEditor from './SampleMetadataEditor.vue';
 import SampleDetailsDialog from './SampleDetailsDialog.vue';
@@ -41,15 +42,8 @@ const sampleChannelFailed = ref(false);
 store.endpoints = props.endpoints;
 confirmationStore.configure(props.endpoints.confirmation);
 const tabs = [{ id: 'general', label: 'Algemeen' }, { id: 'metadata', label: 'Metadata' }, { id: 'product', label: 'Productgroep / THT' }, { id: 'documents', label: 'Documenten' }];
-function date(value) {
-    if (!value || !Number(value)) return '-';
-    return new Date(Number(value) * 1000).toLocaleString('nl-NL');
-}
 function expectedDate(value) {
     return Number(value) > 0 ? new Date(Number(value) * 1000).toLocaleDateString('nl-NL') : 'Nog niet bekend';
-}
-function display(value) {
-    return value !== null && typeof value === 'object' ? JSON.stringify(value) : (value ?? '-');
 }
 function confirmationAnalysisId() {
     return Number(confirmationStore.data?.analysis_id ?? store.calculation?.confirmation?.target_analysis_id ?? store.selectedId);
@@ -199,23 +193,7 @@ onBeforeUnmount(() => {
                                 <div class="lookup-progress"><progress :value="store.progress" max="100" :aria-label="`Voortgang ${store.progress}%`"></progress><span>{{ store.progress }}%</span></div>
                             </div>
                             
-                            <dl v-if="store.tab === 'general'" class="lookup-details">
-                                <dt>Barcode</dt><dd><strong>{{ store.data.sample.barcode }}</strong></dd>
-                                <dt>Volgnummer</dt><dd>{{ store.data.project_follow_number }}</dd>
-                                <dt>Omschrijving</dt><dd>{{ store.data.sample.description }}</dd>
-                                <dt>Klant</dt><dd>{{ store.data.client?.name ?? store.data.sample.client }}</dd>
-                                <dt>Klantomschrijving</dt><dd>{{ store.data.sample.client_description }}</dd>
-                                <dt>Aangemeld</dt><dd>{{ date(store.data.sample.date_registered) }}</dd>
-                                <dt>Door</dt><dd>{{ store.data.registered_by ?? '-' }}</dd>
-                                <dt>Monstername</dt><dd>{{ store.data.sampling_method ?? '-' }}</dd>
-                                <dt>Type</dt><dd>{{ store.data.sample.sample_type }}</dd>
-                                <dt>Ingezet</dt><dd>{{ date(store.data.sample.sample_innoculated) }}</dd>
-                                <dt>Opgeslagen</dt><dd>{{ store.data.sample.stored_in || '-' }}</dd>
-                                <dt>Afweegstation</dt><dd>{{ store.data.sample.diluted_at || '-' }}</dd>
-                                <dt>Bron</dt><dd>{{ ({ 0: 'LIMS', 1: 'CSV import', 2: 'LIMS', 3: 'Portal' })[store.data.sample.source] ?? store.data.sample.source }}</dd>
-                                <template v-for="field in store.data.sample_fields" :key="field.name"><dt>{{ field.label }}</dt><dd>{{ display(field.value) }}</dd></template>
-                                <template v-for="field in store.data.sample_extra" :key="field.name"><dt>{{ field.label }}</dt><dd>{{ display(field.value) }}</dd></template>
-                            </dl>
+                            <SampleInfoList v-if="store.tab === 'general'" :data="store.data" />
                             <SampleMetadataEditor v-else-if="store.tab === 'metadata'" v-model:metadata="store.data.metadata" :sample-id="store.data.sample.id" :endpoint="endpoints.sampleMetadata" :read-only="store.readOnly || !permissions.updateMetadata" />
                             <SampleProductGroup v-else-if="store.tab === 'product'" :sample="store.data.sample" :product-group="store.data.product_group" :groups-endpoint="endpoints.productGroups" :update-endpoint="endpoints.updateProductGroup" :read-only="store.readOnly || !permissions.updateProductGroup" @updated="store.data.product_group = $event; store.data.sample.portal_product_group_id = $event.portal_id" />
                             <SampleFiles
@@ -264,9 +242,6 @@ onBeforeUnmount(() => {
 .lookup-barcode-control { position:relative; display:flex; align-items:center; flex:1; min-width:0; }
 .lookup-barcode-control > svg { position:absolute; left:10px; z-index:1; color:var(--muted); pointer-events:none; }
 .lookup-barcode-control input { width:100%; min-width:0; min-height:35px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); padding:8px 10px 8px 34px; font:inherit; }
-.lookup-details { display:grid; grid-template-columns:minmax(80px, 1fr) minmax(0, 2fr); gap:8px 12px; margin:0 0 16px; font-size:12px; }
-.lookup-details dt { color:var(--muted); }
-.lookup-details dd { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }
 .lookup-tabs { display:flex; flex-wrap:wrap; border-top:1px solid var(--line); }
 .lookup-tabs button { flex:1; padding:9px 6px; border:0; background:var(--surface-alt); color:var(--ink); font:inherit; font-size:11px; cursor:pointer; }
 .lookup-tabs button[aria-selected=true] { box-shadow:inset 0 -2px var(--accent); color:var(--accent); background:var(--accent-faint); }

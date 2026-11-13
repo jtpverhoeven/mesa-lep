@@ -20,6 +20,7 @@ class StoreSampleFile
         private ChangeTracker $changeTracker,
         private EnsureEditable $ensureEditable,
         private SetSampleFileVisibility $setVisibility,
+        private NormalizeSamplePhoto $normalizePhoto,
     ) {}
 
     public function handle(
@@ -29,21 +30,25 @@ class StoreSampleFile
         bool $instantVisible = false,
     ): SampleFile {
         $storedPath = null;
+        $photo = $photoMode ? $this->normalizePhoto->handle($uploadedFile) : null;
 
         try {
-            $sampleFile = DB::transaction(function () use ($sample, $uploadedFile, $photoMode, &$storedPath): SampleFile {
+            return DB::transaction(function () use ($sample, $uploadedFile, $photoMode, $instantVisible, $photo, &$storedPath): SampleFile {
                 $lockedSample = Sample::query()->lockForUpdate()->findOrFail($sample->id);
                 $this->ensureEditable->handle(null, KeyringType::Sample, $lockedSample->id, applyProjectRule: false);
                 $originalName = $this->safeOriginalName($uploadedFile);
 
                 if ($photoMode) {
-                    $originalName = $this->photoName($lockedSample, pathinfo($originalName, PATHINFO_EXTENSION));
+                    $originalName = $this->photoName($lockedSample, 'jpg');
                 }
 
                 $hashName = (string) Str::uuid();
-                $storedPath = $uploadedFile->storeAs(SampleFile::STORAGE_DIRECTORY, $hashName, 'local');
+                $storedPath = SampleFile::STORAGE_DIRECTORY.'/'.$hashName;
+                $saved = $photoMode
+                    ? Storage::disk('local')->put($storedPath, $photo)
+                    : $uploadedFile->storeAs(SampleFile::STORAGE_DIRECTORY, $hashName, 'local');
 
-                if ($storedPath === false) {
+                if ($saved === false) {
                     throw new RuntimeException('Het bestand kon niet worden opgeslagen.');
                 }
 
@@ -64,7 +69,9 @@ class StoreSampleFile
                     to: $originalName,
                 );
 
-                return $sampleFile;
+                return $instantVisible
+                    ? $this->setVisibility->handle($sampleFile, true)
+                    : $sampleFile;
             });
         } catch (Throwable $exception) {
             if ($storedPath !== null) {
@@ -73,10 +80,6 @@ class StoreSampleFile
 
             throw $exception;
         }
-
-        return $instantVisible
-            ? $this->setVisibility->handle($sampleFile, true)
-            : $sampleFile;
     }
 
     private function safeOriginalName(UploadedFile $uploadedFile): string

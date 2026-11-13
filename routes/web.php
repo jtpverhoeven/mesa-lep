@@ -53,6 +53,7 @@ use App\Http\Controllers\SampleFileController;
 use App\Http\Controllers\SampleLookupController;
 use App\Http\Controllers\SampleMetadataController;
 use App\Http\Controllers\SampleNoteController;
+use App\Http\Controllers\SamplePhotoController;
 use App\Http\Controllers\SampleProcedureController;
 use App\Http\Controllers\SampleProcedureFieldController;
 use App\Http\Controllers\SampleRegisterController;
@@ -145,6 +146,11 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
     Route::patch('/{sample}/product-group', [SampleLookupController::class, 'updateProductGroup'])->name('samples.lookup.product-group.update');
     Route::post('/{sample}/research', [SampleLookupController::class, 'update'])->name('samples.lookup.research');
     Route::get('/{barcode?}', [SampleLookupController::class, 'index'])->where('barcode', '[^/]{1,32}')->name('samples.lookup');
+});
+
+Route::middleware(['auth', 'can:samples.photos.manage'])->prefix('laboratory/samples/photos')->group(function () {
+    Route::get('/', [SamplePhotoController::class, 'index'])->name('samples.photos.index');
+    Route::get('/data', [SamplePhotoController::class, 'show'])->name('samples.photos.data');
 });
 
 Route::middleware('auth')->prefix('laboratory/samples/{sample}/files')->scopeBindings()->group(function () {

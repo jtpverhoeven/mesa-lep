@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\Sample;
 use App\Models\SampleFile;
 use App\Models\User;
+use App\Support\Cvars;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -96,15 +97,134 @@ class SampleFileTest extends TestCase
         ]);
 
         $this->post(route('samples.files.store', $sample), [
-            'file' => UploadedFile::fake()->createWithContent('camera.jpeg', 'image bytes'),
+            'file' => UploadedFile::fake()->image('camera.png', 1200, 600),
             'photoMode' => '1',
         ])->assertCreated()
-            ->assertJsonPath('data.1.original_name', $sample->barcode.'_2.jpeg');
+            ->assertJsonPath('data.1.original_name', $sample->barcode.'_2.jpg');
 
         $this->assertDatabaseHas('samplefiles', [
             'sample_id' => $sample->id,
-            'original_name' => $sample->barcode.'_2.jpeg',
+            'original_name' => $sample->barcode.'_2.jpg',
         ]);
+        $this->assertSame('image/jpeg', getimagesizefromstring(Storage::disk('local')->get(SampleFile::query()->latest('id')->firstOrFail()->storagePath()))['mime']);
+    }
+
+    public function test_photo_upload_respects_max_edge_cvar_and_sends_the_jpeg_to_the_portal(): void
+    {
+        [, $sample] = $this->sample(['auth_status' => 1]);
+        app(Cvars::class)->set('SAMPLE_PHOTO_MAX_EDGE', '800');
+        Http::fake([$this->portalUrl('accept-sample-file') => Http::response(['ok' => true])]);
+
+        $this->post(route('samples.files.store', $sample), [
+            'file' => UploadedFile::fake()->image('camera.png', 1600, 800),
+            'photo_mode' => '1',
+            'instant_visible' => '1',
+        ])->assertCreated()
+            ->assertJsonPath('data.0.original_name', $sample->barcode.'_1.jpg')
+            ->assertJsonPath('data.0.visible_for_client', true);
+
+        $sampleFile = SampleFile::query()->firstOrFail();
+        $bytes = Storage::disk('local')->get($sampleFile->storagePath());
+        $this->assertSame([800, 400], array_slice(getimagesizefromstring($bytes), 0, 2));
+        $this->assertSame('image/jpeg', getimagesizefromstring($bytes)['mime']);
+        $image = new \Imagick;
+        $image->readImageBlob($bytes);
+        $this->assertSame(90, $image->getImageCompressionQuality());
+        $this->assertSame([], $image->getImageProfiles('*', false));
+        Http::assertSent(fn (Request $request): bool => $request->url() === $this->portalUrl('accept-sample-file')
+            && $request->hasFile('fileData', base64_encode($bytes))
+            && $request->hasFile('originalFileName', $sample->barcode.'_1.jpg'));
+    }
+
+    public function test_small_gif_camera_photos_are_converted_without_upscaling(): void
+    {
+        [, $sample] = $this->sample();
+
+        $this->post(route('samples.files.store', $sample), [
+            'file' => UploadedFile::fake()->image('camera.gif', 120, 80),
+            'photo_mode' => '1',
+        ])->assertCreated()->assertJsonPath('data.0.original_name', $sample->barcode.'_1.jpg');
+
+        $bytes = Storage::disk('local')->get(SampleFile::query()->firstOrFail()->storagePath());
+        $this->assertSame([120, 80], array_slice(getimagesizefromstring($bytes), 0, 2));
+        $this->assertSame('image/jpeg', getimagesizefromstring($bytes)['mime']);
+    }
+
+    public function test_invalid_photo_uploads_do_not_store_a_file(): void
+    {
+        [, $sample] = $this->sample();
+
+        $this->postJson(route('samples.files.store', $sample), [
+            'file' => UploadedFile::fake()->createWithContent('document.pdf', '%PDF-1.4'),
+            'photo_mode' => '1',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['file']);
+        $this->postJson(route('samples.files.store', $sample), [
+            'file' => UploadedFile::fake()->image('camera.png')->size(20481),
+            'photo_mode' => '1',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['file']);
+
+        $this->assertDatabaseCount('samplefiles', 0);
+        Storage::disk('local')->assertDirectoryEmpty(SampleFile::STORAGE_DIRECTORY);
+    }
+
+    public function test_failed_instant_photo_portal_sync_leaves_no_file_or_success_log(): void
+    {
+        [, $sample] = $this->sample();
+        Http::fake([$this->portalUrl('accept-sample-file') => Http::response(['message' => 'Portal unavailable.'], 503)]);
+
+        $this->postJson(route('samples.files.store', $sample), [
+            'file' => UploadedFile::fake()->image('camera.jpg'),
+            'photo_mode' => '1',
+            'instant_visible' => '1',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['visible_for_client']);
+
+        $this->assertDatabaseCount('samplefiles', 0);
+        $this->assertDatabaseMissing('changetracker', ['type' => '25', 'sample' => $sample->id]);
+        Storage::disk('local')->assertDirectoryEmpty(SampleFile::STORAGE_DIRECTORY);
+        Http::assertSentCount(1);
+    }
+
+    public function test_photo_page_lookup_and_upload_are_available_to_photo_managers_only(): void
+    {
+        [, $sample] = $this->sample();
+        Gate::define('samples.photos.manage', fn (): bool => true);
+        Gate::define('samples.view', fn (): bool => false);
+        Gate::define('projects.view', fn (): bool => false);
+
+        $this->get(route('samples.photos.index'))->assertOk()->assertSee('sample-photos');
+        $this->getJson(route('samples.photos.data', ['barcode' => $sample->barcode]))
+            ->assertOk()
+            ->assertJsonPath('data.sample.id', $sample->id)
+            ->assertJsonPath('data.project_info.project.project_name', 'Sample files')
+            ->assertJsonPath('data.project_follow_number', 1)
+            ->assertJsonStructure(['data' => ['sample_fields', 'sample_extra', 'project_samples']])
+            ->assertJsonMissingPath('data.analyses');
+        $this->getJson(route('samples.photos.data', ['barcode' => 'unknown']))->assertNotFound();
+        $this->post(route('samples.files.store', $sample), [
+            'file' => UploadedFile::fake()->image('snap.jpg'),
+            'photo_mode' => '1',
+        ])->assertCreated()->assertJsonPath('data.0.original_name', $sample->barcode.'_1.jpg');
+        $this->post(route('samples.files.store', $sample), [
+            'file' => UploadedFile::fake()->createWithContent('document.txt', 'no'),
+        ])->assertForbidden();
+
+        Gate::define('samples.photos.manage', fn (): bool => false);
+        $this->get(route('samples.photos.index'))->assertForbidden();
+        $this->getJson(route('samples.photos.data', ['barcode' => $sample->barcode]))->assertForbidden();
+        $this->assertDatabaseCount('samplefiles', 1);
+    }
+
+    public function test_photo_lookup_accepts_legacy_tht_shorthand_and_analysis_barcodes(): void
+    {
+        [, $sample] = $this->sample();
+        $sample->update(['tht_code' => 'THT-26110801']);
+        Gate::define('samples.photos.manage', fn (): bool => true);
+
+        foreach (['THT-26110801', '1', '26110801.2'] as $barcode) {
+            $this->getJson(route('samples.photos.data', ['barcode' => $barcode]))
+                ->assertOk()
+                ->assertJsonPath('data.sample.barcode', '26110801');
+        }
     }
 
     public function test_legacy_instant_visibility_input_uploads_the_new_file_to_the_portal(): void

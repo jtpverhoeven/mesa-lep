@@ -20,8 +20,6 @@ const uploadingTotal = ref(0);
 const dragging = ref(false);
 const mutatingId = ref(null);
 const error = ref('');
-const instantVisible = ref(false);
-const photoMode = ref(false);
 const pendingAction = ref(null);
 let activeRequest = null;
 const confirmationVisible = computed({
@@ -76,8 +74,6 @@ async function uploadFiles(files) {
         for (const file of queuedFiles) {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('photo_mode', photoMode.value ? '1' : '0');
-            formData.append('instant_visible', instantVisible.value ? '1' : '0');
 
             try {
                 const response = await fetch(endpoint(props.endpoints.store), {
@@ -198,16 +194,6 @@ onBeforeUnmount(() => activeRequest?.abort());
         <p v-if="error" class="error-text" role="alert">{{ error }}</p>
 
         <div v-if="canManage" class="grid gap-3">
-            <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
-                <label class="flex items-center gap-2">
-                    <input v-model="photoMode" type="checkbox" :disabled="disabled">
-                    Bestandsnaam baseren op barcode
-                </label>
-                <!-- <label class="flex items-center gap-2">
-                    <input v-model="instantVisible" type="checkbox" :disabled="disabled || projectReadOnly">
-                    Direct zichtbaar voor klant
-                </label> -->
-            </div>
             <label
                 :for="`sample-file-${sampleId}`"
                 class="grid min-h-36 place-items-center rounded-control border-2 border-dashed p-5 text-center transition-colors"
