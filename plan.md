@@ -1,8 +1,23 @@
 # Roadmap
 
-- Monster fotos
-
 - Other calculations
+    Need to check what we need to build.
+        xlegionellaPassthrough.class.php
+        xmaz7218.class.php
+        xmaz7218grens.class.php
+        xmazLegionella2019.class.php
+
+        mazKarkasKiem.class.php
+        mazKarkasEntero.class.php
+        
+        mazLegionella.class.php
+        
+        mazLucht.class.php
+        mazSchelp.class.php
+        mazVrij.class.php
+        mpn.class.php
+        ph.class.php
+        rodac.class.php
 
 - Audit trail
 
@@ -29,6 +44,7 @@ Data mining:
 - Metadata change tracker error. puts from -> to as key->value
 - Check legionella and rodac special cases in the new code for template selection once we get these things up and running
 - Check UX on input of samplelookup, are we focusing properly on first fields
+- Aantal monsters does not work in normal flow
 
 # Ideas - Improvements after code base done
 * Should input in assays be allowed  when sample not yet innoculated?
@@ -40,3 +56,5 @@ Data mining:
 * "Social" like ways of tagging users in basically any section of the application. 
 * Locked projects should not be allowed to generate a report / temp report i think. Make cvar for behaviour?
 * Shoudl show some feedback when authorizing a project that work is underway, and do a little SFX probbably.
+* Aanmelden als shoudl conform to column width and only be half-size when tht selected.
+

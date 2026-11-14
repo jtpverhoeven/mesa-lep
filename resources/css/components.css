@@ -484,4 +484,16 @@
     .panel-tabs [data-pc-section='nextbutton'] {
         @apply hidden;
     }
+
+    .panel-tabs.wrap-tabs [data-pc-name='tablist'] [data-pc-section='tablist'] {
+        @apply flex flex-wrap;
+    }
+
+    .panel-tabs.wrap-tabs [data-pc-name='tab'] {
+        @apply flex-auto whitespace-nowrap;
+    }
+
+    .panel-tabs.wrap-tabs [data-pc-section='activebar'] {
+        @apply hidden;
+    }
 }

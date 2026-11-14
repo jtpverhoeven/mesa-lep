@@ -1,6 +1,12 @@
 <script setup>
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { ArrowLeft, ArrowRight, Barcode, FileClock, Pencil, Search } from '@lucide/vue';
+import { ArrowLeft, ArrowRight, Barcode, FileClock, FileText, FlaskConical, FolderOpen, Package, Pencil, Search } from '@lucide/vue';
+import Badge from 'openvue/badge';
+import Tab from 'openvue/tab';
+import TabList from 'openvue/tablist';
+import TabPanel from 'openvue/tabpanel';
+import TabPanels from 'openvue/tabpanels';
+import Tabs from 'openvue/tabs';
 import { getEcho } from '../echo.js';
 import { sfx } from '../sfx.js';
 import { useSampleLookupStore } from '../stores/sampleLookupStore';
@@ -41,7 +47,6 @@ const sampleChannelSettled = ref(false);
 const sampleChannelFailed = ref(false);
 store.endpoints = props.endpoints;
 confirmationStore.configure(props.endpoints.confirmation);
-const tabs = [{ id: 'general', label: 'Algemeen' }, { id: 'metadata', label: 'Metadata' }, { id: 'product', label: 'Productgroep / THT' }, { id: 'documents', label: 'Documenten' }];
 function expectedDate(value) {
     return Number(value) > 0 ? new Date(Number(value) * 1000).toLocaleDateString('nl-NL') : 'Nog niet bekend';
 }
@@ -184,31 +189,37 @@ onBeforeUnmount(() => {
                 </section>
                 <section class="sample-panel">
                     <h2>Gescand monster<span class="lookup-tools"><button class="icon-button" title="Monsterrevisies" aria-label="Monsterrevisies" :disabled="!store.data" @click="revisionScope = 'sample'"><FileClock :size="15" /></button><button class="icon-button" type="button" title="Monsterdetails wijzigen" aria-label="Monsterdetails wijzigen" :disabled="!store.data || !permissions.updateSample || store.readOnly || store.loading || store.saving || store.detailsBusy" @click="store.openDetails()"><Pencil :size="15" /></button></span></h2>
-                    <div class="sample-panel-body">
-                        <p v-if="!store.data" class="empty-state">Geen monster geselecteerd.</p>
-                        <template v-else>
-
-                            <div class="lookup-schedule" v-if="store.tab === 'general'">
-                                <div class="lookup-schedule-caption"><span>Verwacht gereed</span><strong>{{ expectedDate(store.data.sample.predicted_end) }}</strong></div>
-                                <div class="lookup-progress"><progress :value="store.progress" max="100" :aria-label="`Voortgang ${store.progress}%`"></progress><span>{{ store.progress }}%</span></div>
-                            </div>
-                            
-                            <SampleInfoList v-if="store.tab === 'general'" :data="store.data" />
-                            <SampleMetadataEditor v-else-if="store.tab === 'metadata'" v-model:metadata="store.data.metadata" :sample-id="store.data.sample.id" :endpoint="endpoints.sampleMetadata" :read-only="store.readOnly || !permissions.updateMetadata" />
-                            <SampleProductGroup v-else-if="store.tab === 'product'" :sample="store.data.sample" :product-group="store.data.product_group" :groups-endpoint="endpoints.productGroups" :update-endpoint="endpoints.updateProductGroup" :read-only="store.readOnly || !permissions.updateProductGroup" @updated="store.data.product_group = $event; store.data.sample.portal_product_group_id = $event.portal_id" />
-                            <SampleFiles
-                                v-else
-                                :key="store.data.sample.id"
-                                v-model:files="store.data.sample_files"
-                                :sample-id="store.data.sample.id"
-                                :endpoints="{ store: endpoints.sampleFiles, visibility: endpoints.sampleFileVisibility, destroy: endpoints.sampleFileDelete }"
-                                :can-manage="permissions.manageFiles"
-                                :locked="sampleFilesLocked"
-                                :project-read-only="projectLocked"
-                            />
-                        </template>
-                    </div>
-                    <div class="lookup-tabs" role="tablist" aria-label="Monstergegevens"><button v-for="tab in tabs" :key="tab.id" role="tab" :aria-selected="store.tab === tab.id" @click="store.tab = tab.id">{{ tab.label }}</button></div>
+                    <div v-if="!store.data" class="sample-panel-body"><p class="empty-state">Geen monster geselecteerd.</p></div>
+                    <Tabs v-else v-model:value="store.tab" lazy class="panel-tabs wrap-tabs">
+                        <TabPanels>
+                            <TabPanel value="general">
+                                <div class="lookup-schedule">
+                                    <div class="lookup-schedule-caption"><span>Verwacht gereed</span><strong>{{ expectedDate(store.data.sample.predicted_end) }}</strong></div>
+                                    <div class="lookup-progress"><progress :value="store.progress" max="100" :aria-label="`Voortgang ${store.progress}%`"></progress><span>{{ store.progress }}%</span></div>
+                                </div>
+                                <SampleInfoList :data="store.data" />
+                            </TabPanel>
+                            <TabPanel value="metadata"><SampleMetadataEditor v-model:metadata="store.data.metadata" :sample-id="store.data.sample.id" :endpoint="endpoints.sampleMetadata" :read-only="store.readOnly || !permissions.updateMetadata" /></TabPanel>
+                            <TabPanel value="product"><SampleProductGroup :sample="store.data.sample" :product-group="store.data.product_group" :groups-endpoint="endpoints.productGroups" :update-endpoint="endpoints.updateProductGroup" :read-only="store.readOnly || !permissions.updateProductGroup" @updated="store.data.product_group = $event; store.data.sample.portal_product_group_id = $event.portal_id" /></TabPanel>
+                            <TabPanel value="documents">
+                                <SampleFiles
+                                    :key="store.data.sample.id"
+                                    v-model:files="store.data.sample_files"
+                                    :sample-id="store.data.sample.id"
+                                    :endpoints="{ store: endpoints.sampleFiles, visibility: endpoints.sampleFileVisibility, destroy: endpoints.sampleFileDelete }"
+                                    :can-manage="permissions.manageFiles"
+                                    :locked="sampleFilesLocked"
+                                    :project-read-only="projectLocked"
+                                />
+                            </TabPanel>
+                        </TabPanels>
+                        <TabList>
+                            <Tab value="general"><FlaskConical :size="14" />Algemeen</Tab>
+                            <Tab value="metadata"><FolderOpen :size="14" />Metadata<Badge v-if="store.data.metadata.length" :value="store.data.metadata.length" severity="secondary" size="small" :aria-label="`${store.data.metadata.length} metadata-items`" /></Tab>
+                            <Tab value="product"><Package :size="14" />Productgroep / THT</Tab>
+                            <Tab value="documents"><FileText :size="14" />Documenten<Badge v-if="store.data.sample_files.length" :value="store.data.sample_files.length" severity="secondary" size="small" :aria-label="`${store.data.sample_files.length} documenten`" /></Tab>
+                        </TabList>
+                    </Tabs>
                 </section>
                 <section class="sample-panel">
                     <h2>Project</h2>
@@ -242,9 +253,6 @@ onBeforeUnmount(() => {
 .lookup-barcode-control { position:relative; display:flex; align-items:center; flex:1; min-width:0; }
 .lookup-barcode-control > svg { position:absolute; left:10px; z-index:1; color:var(--muted); pointer-events:none; }
 .lookup-barcode-control input { width:100%; min-width:0; min-height:35px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); padding:8px 10px 8px 34px; font:inherit; }
-.lookup-tabs { display:flex; flex-wrap:wrap; border-top:1px solid var(--line); }
-.lookup-tabs button { flex:1; padding:9px 6px; border:0; background:var(--surface-alt); color:var(--ink); font:inherit; font-size:11px; cursor:pointer; }
-.lookup-tabs button[aria-selected=true] { box-shadow:inset 0 -2px var(--accent); color:var(--accent); background:var(--accent-faint); }
 .lookup-analysis-list h3 { font-size:12px; margin:12px 0 6px; overflow-wrap:anywhere; }
 .lookup-analysis-list section > button { display:flex; justify-content:space-between; gap:10px; width:100%; min-height:54px; padding:8px; border:0; border-bottom:1px solid var(--line); background:var(--surface); text-align:left; color:var(--ink); cursor:pointer; }
 .lookup-analysis-list section > button[aria-pressed=true] { background:var(--accent-faint); box-shadow:inset 3px 0 var(--accent); }
