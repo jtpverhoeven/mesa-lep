@@ -4,7 +4,14 @@ use App\Calculations\DummyResultCalculation;
 use App\Calculations\LegionellaPassthroughCalculation;
 use App\Calculations\Maz7218Calculation;
 use App\Calculations\Maz7218GrensCalculation;
+use App\Calculations\MazKarkasEnteroCalculation;
+use App\Calculations\MazKarkasKiemCalculation;
 use App\Calculations\MazLegionella2019Calculation;
+use App\Calculations\MazLuchtCalculation;
+use App\Calculations\MazSchelpCalculation;
+use App\Calculations\MazVrijCalculation;
+use App\Calculations\MpnCalculation;
+use App\Calculations\PhCalculation;
 use App\Calculations\RodacCalculation;
 
 return [
@@ -34,6 +41,13 @@ return [
     'calculators' => [
         'maz7218' => Maz7218Calculation::class,
         'maz7218grens' => Maz7218GrensCalculation::class,
+        'mazKarkasKiem' => MazKarkasKiemCalculation::class,
+        'mazKarkasEntero' => MazKarkasEnteroCalculation::class,
+        'mazLucht' => MazLuchtCalculation::class,
+        'mazSchelp' => MazSchelpCalculation::class,
+        'mazVrij' => MazVrijCalculation::class,
+        'mpn' => MpnCalculation::class,
+        'ph' => PhCalculation::class,
         'mazLegionella2019' => MazLegionella2019Calculation::class,
         'legionellaPassthrough' => LegionellaPassthroughCalculation::class,
         'rodac' => RodacCalculation::class,

@@ -76,7 +76,7 @@ class Maz7218GrensWorkflowTest extends TestCase
         $calculation = app(CalculateAnalysisResult::class)->handle($analysis);
 
         $this->assertFalse($calculation['isReady']);
-        $this->assertSame(['result' => 'Niet afgerond'], $calculation['output']);
+        $this->assertSame(['kve' => 'Niet afgerond'], $calculation['output']);
     }
 
     public function test_pending_confirmation_keeps_legacy_text_and_positive_messages(): void

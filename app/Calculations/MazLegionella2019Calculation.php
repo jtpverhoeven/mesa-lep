@@ -2,12 +2,17 @@
 
 namespace App\Calculations;
 
+use App\Calculations\Concerns\BuildsKveResult;
 use App\Calculations\Contracts\DeterminesResultCompleteness;
 use App\Calculations\Contracts\HandlesIncompleteResults;
 use App\Calculations\Contracts\ResultCalculation;
 
 class MazLegionella2019Calculation implements DeterminesResultCompleteness, HandlesIncompleteResults, ResultCalculation
 {
+    use BuildsKveResult {
+        incompleteResult as kveIncompleteResult;
+    }
+
     public function calculate(ResultCalculationContext $context): array
     {
         $calculation = $this->incompleteResult($context);
@@ -55,7 +60,7 @@ class MazLegionella2019Calculation implements DeterminesResultCompleteness, Hand
         ];
 
         if ($rawResult <= 0) {
-            $reported = $matrix === 'C' ? '<'.$this->formatValue(1000 / $volume) : '<100';
+            $reported = $matrix === 'C' ? '<'.$this->significantFigures(1000 / $volume) : '<100';
             $calculation['output'] = ['kve' => $reported, 'aanvulling' => 'Geen Legionella spp. aangetoond'];
             $calculation['outputEn'] = ['kve' => $reported, 'aanvulling' => 'Legionella spp. not detected'];
             $calculation['hidden']['detected'] = false;
@@ -68,7 +73,7 @@ class MazLegionella2019Calculation implements DeterminesResultCompleteness, Hand
         $calculation['disposition']['kve'] = '+';
         $calculation['confirmationPendingResult'] = $ratio === null
             ? ['output' => ['kve' => 'Bevestiging wacht'], 'outputEn' => [], 'disposition' => ['kve' => '+']]
-            : ['output' => ['kve' => 'Niet afgerond'], 'outputEn' => ['kve' => 'Not completed'], 'disposition' => []];
+            : $this->notCompleted();
 
         if ($ratio === null) {
             $calculation['askForMetaConfirmation'] = true;
@@ -82,7 +87,7 @@ class MazLegionella2019Calculation implements DeterminesResultCompleteness, Hand
         }
 
         $addendum = $this->addendum($context);
-        $reported = $this->formatValue($rawResult);
+        $reported = $this->significantFigures($rawResult);
         $calculation['output'] = ['kve' => $reported, 'aanvulling' => $addendum];
         $calculation['outputEn'] = $calculation['output'];
         $calculation['isReady'] = true;
@@ -128,33 +133,9 @@ class MazLegionella2019Calculation implements DeterminesResultCompleteness, Hand
         return $hasPlates && ($this->matrixType($context) !== 'A' || $groups[2] !== []);
     }
 
-    public function allowsEmptyResultField(array $data, string $field): bool
-    {
-        return false;
-    }
-
     public function incompleteResult(ResultCalculationContext $context): array
     {
-        $customFields = json_decode($context->assay->custom_fields ?? '{}', true);
-
-        return [
-            'output' => ['kve' => 'Niet afgerond'],
-            'messageBag' => [],
-            'reportIn' => 'kve',
-            'outputEn' => ['kve' => 'Not completed'],
-            'disposition' => [],
-            'isReady' => false,
-            'calculationReady' => false,
-            'resultMask' => ['kve' => ($customFields['resultin'] ?? '') ?: 'kve'],
-            'resultHide' => [],
-            'askForMetaConfirmation' => false,
-            'confirmationTrigger' => [
-                'eligible' => false,
-                'numericValue' => null,
-                'disposition' => null,
-                'targetAnalysisId' => (int) $context->analysis->id,
-            ],
-        ];
+        return [...$this->kveIncompleteResult($context), 'askForMetaConfirmation' => false];
     }
 
     /** @return list<list<mixed>> */
@@ -182,9 +163,7 @@ class MazLegionella2019Calculation implements DeterminesResultCompleteness, Hand
 
     private function matrixType(ResultCalculationContext $context): string
     {
-        return preg_match('/\$matrixType=([^\r\n]*)/', (string) $context->assay->script, $matches) === 1
-            ? trim(explode('=', $matches[1])[0])
-            : '';
+        return $context->scriptVariables()['matrixType'] ?? '';
     }
 
     private function filterVolume(ResultCalculationContext $context): float
@@ -227,13 +206,5 @@ class MazLegionella2019Calculation implements DeterminesResultCompleteness, Hand
             7 => "Legionella pneumophila \u{2013} serotype 1, 2-14 & Legionella spp. (non-pneumophila)",
             default => null,
         };
-    }
-
-    private function formatValue(float $value): string
-    {
-        $significantFigures = $value < 100 ? 1 : 2;
-        $places = (int) floor($significantFigures - log10(abs($value)));
-
-        return number_format(round($value, $places), 0, ',', '.');
     }
 }

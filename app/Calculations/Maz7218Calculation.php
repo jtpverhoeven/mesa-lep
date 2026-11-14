@@ -2,19 +2,21 @@
 
 namespace App\Calculations;
 
+use App\Calculations\Concerns\BuildsKveResult;
+use App\Calculations\Contracts\HandlesIncompleteResults;
 use App\Calculations\Contracts\ResultCalculation;
 use App\Models\SampleAnalysis;
 use App\Support\DilutionCurve;
 
-class Maz7218Calculation implements ResultCalculation
+class Maz7218Calculation implements HandlesIncompleteResults, ResultCalculation
 {
+    use BuildsKveResult;
+
     private const REPORT_FIELD = 'kve';
 
     private const INVALID_CURVE_MESSAGE = 'Onjuiste gegevens in de verdunningscurve.';
 
     private const NON_SEQUENTIAL_CURVE_MESSAGE = 'Onjuiste verdunningscurve: de verdunningen moeten op elkaar aansluiten, bijvoorbeeld -1, -2 en -3.';
-
-    private const P_VALUE_CUTOFF = 0.01;
 
     public function calculate(ResultCalculationContext $context): array
     {
@@ -23,32 +25,32 @@ class Maz7218Calculation implements ResultCalculation
         $counts = $this->countsByDilution($analysis);
 
         if ($counts === null || $counts === []) {
-            return $this->failedResult();
+            return $this->invalidCurveResult($context);
         }
 
         if (! DilutionCurve::isSequential(array_keys($counts))) {
-            return $this->failedResult(self::NON_SEQUENTIAL_CURVE_MESSAGE);
+            return $this->invalidCurveResult($context, self::NON_SEQUENTIAL_CURVE_MESSAGE);
         }
 
         if (! $this->curveIsValid($counts)) {
-            return $this->failedResult();
+            return $this->invalidCurveResult($context);
         }
 
         $minimum = (float) $context->assay->min_count;
         $maximum = (float) $context->assay->max_count;
 
         if ($maximum <= 0 || $minimum < 0 || $minimum > $maximum) {
-            return $this->failedResult();
+            return $this->invalidCurveResult($context);
         }
 
         if ($this->allCountsAre($counts, 0.0)) {
             $lowestDilution = (float) array_key_first($counts);
 
             return $this->successfulResult(
+                $context,
                 '<'.$this->formatResult(1 / $lowestDilution, $lowestDilution),
                 '-',
                 1 / $lowestDilution,
-                (int) $context->analysis->id,
             );
         }
 
@@ -56,10 +58,10 @@ class Maz7218Calculation implements ResultCalculation
             $highestDilution = (float) array_key_last($counts);
 
             return $this->successfulResult(
+                $context,
                 '>'.$this->formatResult($maximum / $highestDilution, $highestDilution),
                 null,
                 $maximum / $highestDilution,
-                (int) $context->analysis->id,
                 [$this->indicativeAddendum()],
             );
         }
@@ -71,7 +73,7 @@ class Maz7218Calculation implements ResultCalculation
         );
 
         if ($calculationCounts === []) {
-            return $this->failedResult();
+            return $this->invalidCurveResult($context);
         }
 
         $firstDilution = (float) array_key_first($calculationCounts);
@@ -94,10 +96,10 @@ class Maz7218Calculation implements ResultCalculation
             : [];
 
         return $this->successfulResult(
+            $context,
             $this->formatResult($result, $firstDilution),
             null,
             (float) $result,
-            (int) $context->analysis->id,
             $addenda,
         );
     }
@@ -149,13 +151,13 @@ class Maz7218Calculation implements ResultCalculation
             $averages[$dilution] = array_sum($replicates) / count($replicates);
         }
 
-        if (! $this->hasPlausibleDirection($averages)) {
+        if (! DilutionCurve::hasPlausibleDirection($averages)) {
             return false;
         }
 
         $numericAverages = array_filter($averages, fn (float|string $value): bool => $value !== '>');
 
-        return $this->dilutionsAreConsistent($numericAverages);
+        return DilutionCurve::countsAreConsistent($numericAverages);
     }
 
     /**
@@ -165,86 +167,9 @@ class Maz7218Calculation implements ResultCalculation
     {
         for ($left = 0; $left < count($replicates); $left++) {
             for ($right = $left + 1; $right < count($replicates); $right++) {
-                $high = max($replicates[$left], $replicates[$right]);
-                $low = min($replicates[$left], $replicates[$right]);
-
-                if ($high === 0.0) {
-                    continue;
-                }
-
-                $mean = ($high + $low) / 2;
-                $chiSquare = 2 * $high * log($high / $mean);
-
-                if ($low > 0) {
-                    $chiSquare += 2 * $low * log($low / $mean);
-                }
-
-                if ($this->chiSquareSurvival($chiSquare) < self::P_VALUE_CUTOFF) {
+                if (! DilutionCurve::replicatePairIsConsistent($replicates[$left], $replicates[$right])) {
                     return false;
                 }
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * @param  array<string, float|string>  $averages
-     */
-    private function hasPlausibleDirection(array $averages): bool
-    {
-        $previous = null;
-
-        foreach ($averages as $value) {
-            if ($previous === null) {
-                $previous = $value;
-
-                continue;
-            }
-
-            if ((is_float($previous) && $value === '>') || ($previous === '>' && $value === 0.0)) {
-                return false;
-            }
-
-            if ($previous !== '>' && $value !== '>' && max($value, $previous) > 0 && $value >= $previous) {
-                return false;
-            }
-
-            $previous = $value;
-        }
-
-        return true;
-    }
-
-    /**
-     * @param  array<string, float>  $averages
-     */
-    private function dilutionsAreConsistent(array $averages): bool
-    {
-        $values = array_values($averages);
-
-        for ($index = 1; $index < count($values); $index++) {
-            $previous = $values[$index - 1];
-            $current = $values[$index];
-
-            if ($previous === 0.0 && $current === 0.0) {
-                break;
-            }
-
-            $total = $previous + $current;
-            $chiSquare = $current === 0.0
-                ? 2 * $previous * log($previous / (10 * $total / 11))
-                : 2 * (
-                    $previous * log($previous / (10 * $total / 11))
-                    + $current * log($current / ($total / 11))
-                );
-
-            if ($this->chiSquareSurvival($chiSquare) < self::P_VALUE_CUTOFF) {
-                return false;
-            }
-
-            if ($current === 0.0) {
-                break;
             }
         }
 
@@ -343,82 +268,32 @@ class Maz7218Calculation implements ResultCalculation
         return ['code' => 'indicative', 'label' => 'indicatieve waarde'];
     }
 
-    private function chiSquareSurvival(float $chiSquare): float
-    {
-        $probability = exp(-0.5 * $chiSquare) * sqrt(2 * $chiSquare / pi());
-        $term = $probability;
-        $degrees = 1;
-
-        while ($term > 1e-15 * $probability) {
-            $degrees += 2;
-            $term *= $chiSquare / $degrees;
-            $probability += $term;
-        }
-
-        return 1 - $probability;
-    }
-
     private function formatResult(float $result, float $firstDilution): string
     {
-        $significantFigures = $firstDilution === 1.0 || $result >= 100 ? 2 : 1;
-        $decimalPlaces = (int) floor($significantFigures - log10(abs($result)));
-        $rounded = round($result, $decimalPlaces);
-
-        return number_format($rounded, 0, ',', '.');
+        return $this->significantFigures($result, $firstDilution !== 1.0);
     }
 
     private function successfulResult(
+        ResultCalculationContext $context,
         string $result,
-        ?string $disposition = null,
-        ?float $numericValue = null,
-        ?int $targetAnalysisId = null,
-        array $addenda = [],
-    ): array {
-        return $this->resultPayload($result, true, $disposition, [], $numericValue, $targetAnalysisId, $addenda);
-    }
-
-    private function failedResult(string $message = self::INVALID_CURVE_MESSAGE): array
-    {
-        return $this->resultPayload(
-            'Fout resultaat gevonden',
-            false,
-            null,
-            [$message],
-        );
-    }
-
-    private function resultPayload(
-        string $result,
-        bool $isReady,
-        ?string $disposition = null,
-        array $messages = [],
-        ?float $numericValue = null,
-        ?int $targetAnalysisId = null,
+        ?string $disposition,
+        float $numericValue,
         array $addenda = [],
     ): array {
         $isBoundedResult = str_starts_with($result, '<') || str_starts_with($result, '>');
 
-        $payload = [
-            'output' => [self::REPORT_FIELD => $result],
-            'messageBag' => $messages,
-            'reportIn' => self::REPORT_FIELD,
-            'outputEn' => [],
-            'disposition' => $disposition === null ? [] : [self::REPORT_FIELD => $disposition],
-            'isReady' => $isReady,
-            'resultMask' => [self::REPORT_FIELD => self::REPORT_FIELD],
-            'resultHide' => [],
-            'confirmationTrigger' => [
-                'eligible' => $isReady && $numericValue !== null && $numericValue > 0 && $disposition !== '-' && ! $isBoundedResult,
-                'numericValue' => $numericValue,
-                'disposition' => $disposition,
-                'targetAnalysisId' => $targetAnalysisId,
-            ],
-        ];
+        return $this->readyResult(
+            $context,
+            [self::REPORT_FIELD => $result],
+            $numericValue,
+            $addenda === [] ? [] : ['addenda' => $addenda],
+            $disposition !== '-' && ! $isBoundedResult,
+            $disposition,
+        );
+    }
 
-        if ($addenda !== []) {
-            $payload['addenda'] = $addenda;
-        }
-
-        return $payload;
+    private function invalidCurveResult(ResultCalculationContext $context, string $message = self::INVALID_CURVE_MESSAGE): array
+    {
+        return $this->failedResult($context, [$message]);
     }
 }

@@ -14,6 +14,8 @@ final class DilutionCurve
 
     public const NOT_SEQUENTIAL_MESSAGE = 'Verdunningen moeten op elkaar aansluiten, bijvoorbeeld -1, -2 en -3.';
 
+    public const P_VALUE_CUTOFF = 0.01;
+
     /** The legacy text form of a dilution factor, without scientific notation. */
     public static function format(float $dilution): string
     {
@@ -67,6 +69,111 @@ final class DilutionCurve
         }
 
         return self::isSequential($dilutions) ? null : self::NOT_SEQUENTIAL_MESSAGE;
+    }
+
+    /**
+     * Whether colony counts, ordered from the lowest to the highest dilution, fall as the
+     * dilution rises. `>` may only be followed by `>` or a count, and never by a zero.
+     *
+     * @param  array<array-key, float|string>  $counts
+     */
+    public static function hasPlausibleDirection(array $counts): bool
+    {
+        $previous = null;
+
+        foreach ($counts as $value) {
+            if ($previous === null) {
+                $previous = $value;
+
+                continue;
+            }
+
+            if ((is_float($previous) && $value === '>') || ($previous === '>' && $value === 0.0)) {
+                return false;
+            }
+
+            if ($previous !== '>' && $value !== '>' && max($value, $previous) > 0 && $value >= $previous) {
+                return false;
+            }
+
+            $previous = $value;
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether consecutive numeric counts (ordered from the lowest to the highest dilution)
+     * match the expected tenfold drop, using the legacy chi-square test with p < 0.01.
+     *
+     * @param  array<array-key, float>  $counts
+     */
+    public static function countsAreConsistent(array $counts): bool
+    {
+        $values = array_values($counts);
+
+        for ($index = 1; $index < count($values); $index++) {
+            $previous = $values[$index - 1];
+            $current = $values[$index];
+
+            if ($previous === 0.0 && $current === 0.0) {
+                break;
+            }
+
+            $total = $previous + $current;
+            $chiSquare = $current === 0.0
+                ? 2 * $previous * log($previous / (10 * $total / 11))
+                : 2 * (
+                    $previous * log($previous / (10 * $total / 11))
+                    + $current * log($current / ($total / 11))
+                );
+
+            if (self::chiSquareSurvival($chiSquare) < self::P_VALUE_CUTOFF) {
+                return false;
+            }
+
+            if ($current === 0.0) {
+                break;
+            }
+        }
+
+        return true;
+    }
+
+    /** Whether two replicate counts of one dilution agree, using the legacy chi-square test with p < 0.01. */
+    public static function replicatePairIsConsistent(float $first, float $second): bool
+    {
+        $high = max($first, $second);
+        $low = min($first, $second);
+
+        if ($high === 0.0) {
+            return true;
+        }
+
+        $mean = ($high + $low) / 2;
+        $chiSquare = 2 * $high * log($high / $mean);
+
+        if ($low > 0) {
+            $chiSquare += 2 * $low * log($low / $mean);
+        }
+
+        return self::chiSquareSurvival($chiSquare) >= self::P_VALUE_CUTOFF;
+    }
+
+    /** The upper-tail probability of a chi-square value with one degree of freedom. */
+    public static function chiSquareSurvival(float $chiSquare): float
+    {
+        $probability = exp(-0.5 * $chiSquare) * sqrt(2 * $chiSquare / pi());
+        $term = $probability;
+        $degrees = 1;
+
+        while ($term > 1e-15 * $probability) {
+            $degrees += 2;
+            $term *= $chiSquare / $degrees;
+            $probability += $term;
+        }
+
+        return 1 - $probability;
     }
 
     /** The legacy `-1=0.1` line for a dilution factor. */

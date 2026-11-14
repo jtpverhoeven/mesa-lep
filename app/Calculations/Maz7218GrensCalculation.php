@@ -2,19 +2,22 @@
 
 namespace App\Calculations;
 
+use App\Calculations\Concerns\BuildsKveResult;
 use App\Calculations\Contracts\HandlesIncompleteResults;
 use App\Calculations\Contracts\ResultCalculation;
 use App\Models\Result;
 
 class Maz7218GrensCalculation implements HandlesIncompleteResults, ResultCalculation
 {
+    use BuildsKveResult;
+
     private const POSITIVE_VALUES = ['+', '1', '>', 'J', 'Y'];
 
     private const NEGATIVE_VALUES = ['-', '0', 'N'];
 
     public function calculate(ResultCalculationContext $context): array
     {
-        $variables = $this->externalVariables((string) $context->assay->script);
+        $variables = $context->scriptVariables();
         $calculation = $this->incompleteResult($context);
         $reportLabel = $calculation['resultMask']['kve'];
 
@@ -80,11 +83,7 @@ class Maz7218GrensCalculation implements HandlesIncompleteResults, ResultCalcula
             $calculation['messageBag'][] = $variables['toonMeldingIndienPositief'];
         }
 
-        $calculation['confirmationPendingResult'] = $border === 0 ? [] : [
-            'output' => ['kve' => 'Niet afgerond'],
-            'outputEn' => ['kve' => 'Not completed'],
-            'disposition' => ['kve' => ''],
-        ];
+        $calculation['confirmationPendingResult'] = $border === 0 ? [] : $this->notCompleted(['kve' => '']);
 
         if ($border !== 0 && (int) $context->analysis->conf_requested === 1 && ! $context->confirmation?->isComplete()) {
             return array_replace($calculation, $calculation['confirmationPendingResult']);
@@ -144,46 +143,6 @@ class Maz7218GrensCalculation implements HandlesIncompleteResults, ResultCalcula
     public function allowsEmptyResultField(array $data, string $field): bool
     {
         return $field === 'Ctwaarde' && in_array((string) ($data['kve'] ?? ''), ['-', '0']);
-    }
-
-    public function incompleteResult(ResultCalculationContext $context): array
-    {
-        $customFields = json_decode($context->assay->custom_fields ?? '{}', true);
-
-        return [
-            'output' => ['kve' => 'Niet afgerond'],
-            'outputEn' => ['kve' => 'Not completed'],
-            'messageBag' => [],
-            'reportIn' => 'kve',
-            'disposition' => [],
-            'isReady' => false,
-            'calculationReady' => false,
-            'resultMask' => ['kve' => ($customFields['resultin'] ?? '') ?: 'kve'],
-            'resultHide' => [],
-            'confirmationTrigger' => [
-                'eligible' => false,
-                'numericValue' => null,
-                'disposition' => null,
-                'targetAnalysisId' => (int) $context->analysis->id,
-            ],
-        ];
-    }
-
-    /** @return array<string, string> */
-    private function externalVariables(string $script): array
-    {
-        preg_match_all('/\$(.*)/', $script, $matches);
-        $variables = [];
-
-        foreach ($matches[1] as $declaration) {
-            $parts = explode('=', $declaration);
-
-            if (count($parts) >= 2) {
-                $variables[$parts[0]] = trim($parts[1]);
-            }
-        }
-
-        return $variables;
     }
 
     /** @param array<string, string> $variables */

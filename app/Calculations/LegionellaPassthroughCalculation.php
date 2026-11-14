@@ -3,11 +3,14 @@
 namespace App\Calculations;
 
 use App\Actions\Results\CalculateAnalysisResult;
+use App\Calculations\Concerns\BuildsKveResult;
 use App\Calculations\Contracts\HandlesIncompleteResults;
 use App\Calculations\Contracts\ResultCalculation;
 
 class LegionellaPassthroughCalculation implements HandlesIncompleteResults, ResultCalculation
 {
+    use BuildsKveResult;
+
     public function __construct(private CalculateAnalysisResult $calculateParent) {}
 
     public function calculate(ResultCalculationContext $context): array
@@ -44,24 +47,14 @@ class LegionellaPassthroughCalculation implements HandlesIncompleteResults, Resu
         return $calculation;
     }
 
-    public function allowsEmptyResultField(array $data, string $field): bool
-    {
-        return false;
-    }
-
+    /**
+     * The analysis only points at its meta-analysis parent and has no reportable result of its own.
+     */
     public function incompleteResult(ResultCalculationContext $context): array
     {
-        return [
-            'output' => [],
-            'outputEn' => [],
-            'messageBag' => [],
-            'reportIn' => 'kve',
+        return $this->resultPayload($context, [
             'reportable' => false,
-            'disposition' => [],
-            'isReady' => false,
-            'calculationReady' => false,
             'resultMask' => ['kve' => 'dummy'],
-            'resultHide' => [],
             'askForMetaParentConfirmation' => false,
             'confirmationTrigger' => [
                 'eligible' => false,
@@ -69,6 +62,6 @@ class LegionellaPassthroughCalculation implements HandlesIncompleteResults, Resu
                 'disposition' => null,
                 'targetAnalysisId' => $context->metaParent?->id ?? (int) $context->analysis->id,
             ],
-        ];
+        ]);
     }
 }

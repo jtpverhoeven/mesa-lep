@@ -6,18 +6,20 @@
         xmaz7218.class.php
         xmaz7218grens.class.php
         xmazLegionella2019.class.php
+        xmazKarkasKiem.class.php
+        xmazKarkasEntero.class.php
+        xmazLucht.class.php
+        xrodac.class.php
+        xmazVrij.class.php                
+        xph.class.php
+        
+        xmazSchelp.class.php
+        
+        xmpn.class.php
+        
 
-        mazKarkasKiem.class.php
-        mazKarkasEntero.class.php
+        ?mazLegionella.class.php               
         
-        mazLegionella.class.php
-        
-        mazLucht.class.php
-        mazSchelp.class.php
-        mazVrij.class.php
-        mpn.class.php
-        ph.class.php
-        rodac.class.php
 
 - Audit trail
 
@@ -65,3 +67,7 @@ Data mining:
 # Mesa-Retro
 
 * 
+
+# Result-Insight
+
+Have a peek page, where every step of the calculation is actually shown and explained (including file locations and functions called with parametesr?). Not so much a small peek, but a true insight into how the calculation scripts work. woudl be extremely usefull to find edge cases etc. 
