@@ -39,8 +39,15 @@
         <div class="workspace">
             @auth
                 @unless(request()->routeIs('account.*'))
+                <mobile-navigation>
                 <aside class="sidebar">
                     {{-- <div class="sidebar-heading"><span class="eyebrow">Werkruimte</span><strong>{{ request()->is('admin*') ? 'Beheer' : 'LIMS' }}</strong></div> --}}
+                    <div class="mobile-workspace-links">
+                        <a href="{{ route('dashboard') }}" @class(['selected' => request()->routeIs('dashboard') || request()->is('laboratory*')])>LIMS</a>
+                        @if(auth()->user()->can('viewAny', \App\Models\Assay::class) || auth()->user()->can('research-profiles.manage'))
+                            <a href="{{ route('beheer.dashboard') }}" @class(['selected' => request()->is('admin*')])>Beheer</a>
+                        @endif
+                    </div>
                     <nav aria-label="Werkruimtenavigatie">
                         @if(request()->is('admin*'))
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>Client Portal</span>
@@ -115,6 +122,7 @@
                     </nav>
                     <div class="sidebar-footer">MESA <span>{{ app()->environment() }}</span></div>
                 </aside>
+                </mobile-navigation>
                 @endunless
             @endauth
             <main id="content" class="main-content">

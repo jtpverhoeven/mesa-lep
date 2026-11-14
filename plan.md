@@ -58,3 +58,10 @@ Data mining:
 * Shoudl show some feedback when authorizing a project that work is underway, and do a little SFX probbably.
 * Aanmelden als shoudl conform to column width and only be half-size when tht selected.
 
+# Phoenix verification script
+
+* Use project,sample,result,confirmation data to simulate new entry from authorized projects, confirm with storedResult if the two systems are on-par. report failures
+
+# Mesa-Retro
+
+* 
