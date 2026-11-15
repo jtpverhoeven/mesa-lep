@@ -1,12 +1,10 @@
 # Roadmap
 
-- Lopende bevestigingen
+- Fix THT accept button on voorportaal, plus fix weird layout. 
 
 - Facturatie
 
 - Audit trail
-
-- Fix THT accept button on voorportaal
 
 Data mining:
 

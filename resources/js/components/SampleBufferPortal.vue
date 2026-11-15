@@ -1,11 +1,12 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { ArchiveRestore, Beaker, CalendarClock, CheckCheck, Droplets, FlaskConical, LoaderCircle, Pencil, Play, Save, Search, SquareStack, X } from '@lucide/vue';
+import { ArchiveRestore, Beaker, CalendarClock, CheckCheck, Cloud, Droplets, File as FileIcon, FlaskConical, Keyboard, LoaderCircle, Pencil, Play, Save, Search, SquareStack, X } from '@lucide/vue';
 import ConfirmDialog from 'openvue/confirmdialog';
 import Toast from 'openvue/toast';
 import { useConfirm } from 'openvue/useconfirm';
 import { useToast } from 'openvue/usetoast';
 import AppDialog from './AppDialog.vue';
+import AnalysisLabel from './AnalysisLabel.vue';
 import SampleBufferActionDialog from './SampleBufferActionDialog.vue';
 import { useSampleBufferStore } from '../stores/sampleBufferStore';
 import { createAppDialogPassThrough } from '../dialogPassThrough';
@@ -33,11 +34,18 @@ const actions = computed(() => {
     if (store.tab === 'staged_tht') return [
         ['commit', 'Aanmelden'], ['delete', 'Verwijderen'], ['tht_date', 'Inzetdatum THT wijzigen'], ['storage', 'Bewaartemperatuur wijzigen'], ['receive', 'Ontvangstdatum/tijd wijzigen'],
     ];
-    const common = [['commit', 'Goedkeuren & aanmelden'], ['sampling_date', 'Bemonsterdatum wijzigen'], ['sampling_method', 'Bemonsteringsprocedure wijzigen'], ['delete', 'Verwijderen']];
+    const commitLabel = store.tab === 'tht' ? 'Goedkeuren & naar THT-lijst verplaatsen' : 'Goedkeuren & aanmelden';
+    const common = [['commit', commitLabel], ['sampling_date', 'Bemonsterdatum wijzigen'], ['sampling_method', 'Bemonsteringsprocedure wijzigen'], ['delete', 'Verwijderen']];
     if (store.tab === 'normal') common.splice(3, 0, ['move_to_tht', 'Verplaatsen naar THT-lijst']);
     if (store.tab === 'tht') common.splice(3, 0, ['tht_date', 'Inzetdatum THT wijzigen']);
     return common;
 });
+const sources = {
+    1: { label: 'CSV import', icon: FileIcon },
+    2: { label: 'LIMS', icon: Keyboard },
+    3: { label: 'Portal', icon: Cloud },
+};
+const hasMetadata = (row) => Object.keys(row.meta ?? {}).length > 0;
 const showTht = computed(() => ['tht', 'staged_tht'].includes(store.tab));
 const title = computed(() => store.tab === 'staged_tht' ? 'THT onderzoeken' : 'Voorportaal');
 const tableColumnCount = computed(() => {
@@ -134,31 +142,31 @@ onMounted(() => store.load());
             <div class="table-scroll buffer-table-wrap">
                 <table class="data-table buffer-table">
                     <thead><tr><th><button class="text-button" type="button" @click="store.selectAll">[Project]</button></th><th>Bron</th><th v-if="store.tab === 'staged_tht'">THT-code</th><th>Klant</th><th>Project</th><th>Projectnaam</th><th>Volgnummer</th><th>Bemonsterdatum</th><th>Bemonsteringsprocedure</th><th>Omschrijving</th><th v-if="store.tab === 'rodac'">Ruimte</th><th v-if="store.tab === 'legionella'">Watertype / matrix</th><th>Monsterdetails</th><th v-if="store.tab === 'staged_tht'">Ontvangst datum [tijd]</th><th v-if="showTht">Inzetdatum</th><th>Metadata</th></tr></thead>
-                    <tbody>
-                        <tr v-if="store.loading"><td :colspan="15" class="empty-state"><LoaderCircle class="spin" :size="18" /> Laden</td></tr>
-                        <tr v-else-if="!store.rows.length"><td :colspan="15" class="empty-state">Geen bufferregels gevonden.</td></tr>
-                        <template v-for="row in store.rows" v-else :key="row.id">
-                            <tr :class="{ 'selected-row': store.selected.includes(row.id) }">
-                                <td><input type="checkbox" :checked="store.selected.includes(row.id)" :aria-label="`${row.project} selecteren`" @change="store.toggle(row.id)"></td><td><span class="source-badge" :title="({ 1: 'CSV import', 2: 'LIMS', 3: 'Portal' })[row.source]">{{ ({ 1: 'CSV', 2: 'LIMS', 3: 'Portal' })[row.source] ?? row.source }}</span></td><td v-if="store.tab === 'staged_tht'"><strong>{{ row.tht_code }}</strong></td><td>{{ row.client_name }}</td><td>{{ row.project }}</td><td>{{ row.project_name || '-' }}</td><td>{{ row.portal_follow_no || '-' }}</td><td>{{ row.sampling_date }}</td><td>{{ row.sampling_method_name }}</td><td>{{ row.sample_name }}</td><td v-if="store.tab === 'rodac'">{{ row.room || '-' }}</td><td v-if="store.tab === 'legionella'">{{ [row.water_type, row.matrix_type].filter(Boolean).join(' / ') || '-' }}</td><td>{{ row.sample_details || '-' }}</td><td v-if="store.tab === 'staged_tht'">{{ row.receive_date || '-' }}<br><small>{{ row.receive_time || '-' }}</small></td><td v-if="showTht" :class="`tht-${row.tht_day_type || 'weekday'}`">{{ row.tht_date || '-' }}</td><td><button class="icon-button" type="button" title="Metadata bekijken en wijzigen" @click="editMetadata(row)"><FlaskConical :size="15" /></button></td>
-                            </tr>
-                            <tr class="buffer-detail-row" :class="{ 'selected-row': store.selected.includes(row.id) }">
-                                <td :colspan="tableColumnCount">
-                                    <div class="buffer-detail-grid">
-                                        <div class="buffer-detail-block">
-                                            <strong>Analyses</strong>
-                                            <div class="analysis-list">
-                                                <span v-if="!row.analysis_summary?.length" class="buffer-detail-empty">Geen opgegeven</span>
-                                                <span v-for="(analysis, index) in row.analysis_summary" v-else :key="`${analysis.kind}-${analysis.label}-${index}`" class="analysis-label" :class="`analysis-${analysis.kind}`"><span v-if="analysis.kind === 'added'" aria-hidden="true">+</span><span v-else-if="analysis.kind === 'removed'" aria-hidden="true">&minus;</span>{{ analysis.label }}</span>
-                                            </div>
-                                        </div>
-                                        <div class="buffer-detail-block">
-                                            <strong>Overige informatie</strong>
-                                            <span class="buffer-directions">{{ row.misc_directions || 'Geen opgegeven' }}</span>
+                    <tbody v-if="store.loading || !store.rows.length">
+                        <tr v-if="store.loading"><td :colspan="tableColumnCount" class="empty-state"><LoaderCircle class="spin" :size="18" /> Laden</td></tr>
+                        <tr v-else><td :colspan="tableColumnCount" class="empty-state">Geen bufferregels gevonden.</td></tr>
+                    </tbody>
+                    <tbody v-for="row in store.rows" v-else :key="row.id" class="buffer-record" :class="{ 'selected-row': store.selected.includes(row.id) }">
+                        <tr>
+                            <td><input type="checkbox" :checked="store.selected.includes(row.id)" :aria-label="`${row.project} selecteren`" @change="store.toggle(row.id)"></td><td><span class="source-badge" :title="sources[row.source]?.label ?? `Bron ${row.source}`" :aria-label="sources[row.source]?.label ?? `Bron ${row.source}`" role="img"><component :is="sources[row.source].icon" v-if="sources[row.source]" :size="13" aria-hidden="true" /><template v-else>{{ row.source }}</template></span></td><td v-if="store.tab === 'staged_tht'"><strong>{{ row.tht_code }}</strong></td><td>{{ row.client_name }}</td><td>{{ row.project }}</td><td>{{ row.project_name || '-' }}</td><td>{{ row.portal_follow_no || '-' }}</td><td>{{ row.sampling_date }}</td><td>{{ row.sampling_method_name }}</td><td>{{ row.sample_name }}</td><td v-if="store.tab === 'rodac'">{{ row.room || '-' }}</td><td v-if="store.tab === 'legionella'">{{ [row.water_type, row.matrix_type].filter(Boolean).join(' / ') || '-' }}</td><td>{{ row.sample_details || '-' }}</td><td v-if="store.tab === 'staged_tht'">{{ row.receive_date || '-' }}<br><small>{{ row.receive_time || '-' }}</small></td><td v-if="showTht" :class="`tht-${row.tht_day_type || 'weekday'}`">{{ row.tht_date || '-' }}</td><td><button class="button metadata-button" :class="{ 'has-metadata': hasMetadata(row) }" type="button" :title="hasMetadata(row) ? 'Metadata bekijken en wijzigen' : 'Geen metadata, bekijken en wijzigen'" @click="editMetadata(row)"><FlaskConical :size="14" aria-hidden="true" />{{ hasMetadata(row) ? 'Ja' : 'Nee' }}</button></td>
+                        </tr>
+                        <tr class="buffer-detail-row">
+                            <td :colspan="tableColumnCount">
+                                <div class="buffer-detail-grid">
+                                    <div class="buffer-detail-block">
+                                        <strong>Analyses</strong>
+                                        <div class="analysis-list">
+                                            <span v-if="!row.analysis_summary?.length" class="buffer-detail-empty">Geen opgegeven</span>
+                                            <AnalysisLabel v-for="(analysis, index) in row.analysis_summary" v-else :key="`${analysis.kind}-${analysis.label}-${index}`" :kind="analysis.kind" :label="analysis.label" />
                                         </div>
                                     </div>
-                                </td>
-                            </tr>
-                        </template>
+                                    <div class="buffer-detail-block">
+                                        <strong>Overige informatie</strong>
+                                        <span class="buffer-directions">{{ row.misc_directions || 'Geen opgegeven' }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -207,18 +215,18 @@ onMounted(() => store.load());
 .buffer-table-wrap { max-height:calc(100vh - 270px); min-height:330px; border:0; }
 .buffer-table { min-width:1280px; }
 .buffer-table th,.buffer-table td { padding:8px 9px; vertical-align:top; }
-.buffer-table tbody tr.selected-row { background:var(--accent-faint); }
-.source-badge { display:inline-block; padding:2px 5px; border:1px solid var(--line); background:var(--surface-alt); font-size:10px; }
-.buffer-detail-row td { padding:0 9px 9px; border-top:0; }
-.buffer-detail-row + tr:not(.buffer-detail-row) td { border-top:2px solid var(--line); }
-.buffer-detail-grid { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(240px,1fr); gap:18px; padding:8px 10px; border-left:3px solid #9eabb2; background:var(--surface-alt); }
+.buffer-record > tr:first-child > td { border-bottom:0; }
+.buffer-record > .buffer-detail-row { background:var(--surface-alt); }
+.buffer-record:hover > tr { background:var(--surface-alt); }
+.buffer-record.selected-row > tr { background:var(--accent-faint); }
+.source-badge { display:inline-grid; place-items:center; width:22px; height:22px; border:1px solid var(--line); background:var(--surface-alt); color:var(--muted); font-size:10px; }
+.metadata-button { min-height:26px; min-width:58px; justify-content:flex-start; gap:5px; padding:2px 7px; color:var(--muted); font-size:11px; font-weight:400; }
+.metadata-button.has-metadata { border-color:color-mix(in srgb, var(--status-success) 55%, var(--surface)); background:color-mix(in srgb, var(--status-success) 18%, var(--surface)); color:var(--success); font-weight:700; }
+.buffer-detail-row > td { padding:0; }
+.buffer-detail-grid { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(240px,1fr); gap:18px; padding:7px 9px 8px; border-top:1px dashed var(--line); }
 .buffer-detail-block { display:flex; align-items:flex-start; gap:9px; min-width:0; }
 .buffer-detail-block > strong { flex:0 0 auto; padding-top:2px; font-size:10px; text-transform:uppercase; color:var(--muted); }
 .analysis-list { display:flex; flex-wrap:wrap; gap:5px; min-width:0; }
-.analysis-label { display:inline-flex; align-items:center; gap:4px; padding:2px 6px; border:1px solid #aab7bd; border-radius:2px; background:var(--surface); color:var(--ink); font-size:10px; overflow-wrap:anywhere; }
-.analysis-profile { border-color:#d09a3d; background:#fff3d8; color:#5a3b08; }
-.analysis-added { border-color:#70a882; background:#e5f4e9; color:#245c35; }
-.analysis-removed { border-color:#c5954c; background:#fff0d7; color:#6b4308; }
 .buffer-detail-empty { color:var(--muted); font-size:11px; font-style:italic; }
 .buffer-directions { min-width:0; color:var(--ink); font-size:11px; white-space:pre-wrap; overflow-wrap:anywhere; }
 .tht-saturday { background:#f4b95f; color:#422b05; font-weight:700; }.tht-sunday { background:#b84b41; color:white; font-weight:700; }

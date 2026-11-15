@@ -391,13 +391,11 @@ button.selected-research-title { cursor:pointer; }
 .sample-assignment-table td:nth-child(n+6) { white-space:nowrap; }
 .sample-assignment-table tbody tr.is-striped td { background:var(--surface-alt); }
 .sample-assignment-table tbody tr.is-selected td { background:var(--accent-faint); }
-.sample-assignment-table .assignment-import-row td { padding:8px 12px; }
-.assignment-import-content { display:flex; align-items:center; flex-wrap:wrap; gap:5px 8px; white-space:normal; }
-.assignment-imported-assays { display:inline-flex; flex-wrap:wrap; gap:4px; }
-.assignment-imported-assay { display:inline-block; padding:2px 5px; border:1px solid #a8c9d3; background:var(--accent-faint); color:#0f586f; font-size:10px; }
-.assignment-imported-assay.is-profile { border-color:#d5a452; background:#fff0cf; color:#714d00; }
-.assignment-imported-assay.is-addition { border-color:#9dc8aa; background:#edf6ef; color:#24573d; }
-.assignment-imported-assay.is-subtraction { border-color:#d8b88c; background:#fff3df; color:#76531b; }
+.sample-assignment-table tbody tr:has(+ .assignment-import-row) td { border-bottom:0; }
+.sample-assignment-table .assignment-import-row td { padding:7px 8px 8px; border-top:1px dashed var(--line); }
+.assignment-import-content { display:flex; align-items:center; flex-wrap:wrap; gap:5px 9px; white-space:normal; }
+.assignment-import-content > strong { font-size:10px; text-transform:uppercase; color:var(--muted); }
+.assignment-imported-assays { display:inline-flex; flex-wrap:wrap; gap:5px; margin-right:9px; }
 .sample-assignment-pagination { display:flex; justify-content:center; padding-top:10px; }
 .sample-assignment-research { display:grid; gap:12px; }
 .sample-assignment-research > .panel-hint { overflow-wrap:anywhere; }

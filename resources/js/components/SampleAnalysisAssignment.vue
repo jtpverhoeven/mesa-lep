@@ -6,7 +6,9 @@ import { useToast } from 'openvue/usetoast';
 import { useSampleResearchStore } from '../stores/sampleResearchStore';
 import SampleResearchSelector from './SampleResearchSelector.vue';
 import SelectedSampleResearch from './SelectedSampleResearch.vue';
+import AnalysisLabel from './AnalysisLabel.vue';
 
+const importedAnalysisKinds = { plain: 'requested', profile: 'profile', addition: 'added', subtraction: 'removed' };
 const props = defineProps({ endpoints: { type: Object, required: true } });
 const research = useSampleResearchStore();
 const toast = useToast();
@@ -140,7 +142,9 @@ onMounted(() => {
         <p v-if="assignmentError" class="notice error" role="alert">{{ assignmentError }}</p>
         <div class="sample-assignment-grid">
             <section class="sample-panel">
-                <h2><Barcode :size="16" aria-hidden="true" />Monsters zonder analyses<span class="assignment-loaded-count">{{ samples.length }} geladen</span></h2>
+                <h2><Barcode :size="16" aria-hidden="true" />Monsters zonder analyses
+                    <!-- <span class="assignment-loaded-count">{{ samples.length }} geladen</span> -->
+                </h2>
                 <div class="sample-panel-body">
                     <div class="directory-toolbar sample-assignment-toolbar">
                         <form class="directory-search" role="search" @submit.prevent="loadPage(true)">
@@ -153,8 +157,8 @@ onMounted(() => {
                         <button class="icon-button" type="button" title="Lijst vernieuwen" :disabled="loading || assigning" @click="loadPage(true)"><RefreshCw :size="15" /></button>
                     </div>
 
-                    <p v-if="selectedClient" class="panel-hint" aria-live="polite">{{ selectedIds.length }} geselecteerd · {{ selectedClient.name }}</p>
-                    <p v-else class="panel-hint" aria-live="polite">{{ samples.length }} monsters geladen.</p>
+                    <!-- <p v-if="selectedClient" class="panel-hint" aria-live="polite">{{ selectedIds.length }} geselecteerd · {{ selectedClient.name }}</p>
+                    <p v-else class="panel-hint" aria-live="polite">{{ samples.length }} monsters geladen.</p> -->
                     <p v-if="listError" class="error-text" role="alert">{{ listError }}</p>
 
                     <div v-if="loading && !samples.length" class="sample-loading" role="status"><LoaderCircle class="spin" :size="18" />Monsters laden...</div>
@@ -190,7 +194,7 @@ onMounted(() => {
                                     <td colspan="8">
                                         <div class="assignment-import-content">
                                             <strong>Analyses:</strong>
-                                            <span class="assignment-imported-assays"><span v-for="(analysis, analysisIndex) in sample.import_requested_analysis" :key="`${analysis.kind}-${analysisIndex}`" class="assignment-imported-assay" :class="`is-${analysis.kind}`">{{ analysis.text }}</span></span>
+                                            <span class="assignment-imported-assays"><AnalysisLabel v-for="(analysis, analysisIndex) in sample.import_requested_analysis" :key="`${analysis.kind}-${analysisIndex}`" :kind="importedAnalysisKinds[analysis.kind] ?? 'requested'" :label="analysis.text" /></span>
                                             <strong>Overige analyses/opmerkingen:</strong>
                                             <span>{{ sample.import_other_directions }}</span>
                                         </div>

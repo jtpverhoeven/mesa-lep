@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { ArrowDown, ArrowUp, Beaker, ClipboardCopy, Info, LoaderCircle, Pencil, Plus, Save, Search, Trash2 } from '@lucide/vue';
+import { ArrowDown, ArrowUp, Beaker, CircleAlert, ClipboardCopy, Info, LoaderCircle, Pencil, Plus, Save, Search, Trash2 } from '@lucide/vue';
 import Button from 'openvue/button';
 import InputNumber from 'openvue/inputnumber';
 import InputText from 'openvue/inputtext';
@@ -135,7 +135,7 @@ onMounted(async () => { store.configure(props.endpoints); await Promise.all([sto
                                 <div v-for="field in referenceFields(assay)" :key="field.key"><dt class="text-xs text-muted">Referentie · {{ field.label }}</dt><dd class="m-0 wrap-anywhere">{{ assay.reference[field.key] || 'Niet ingesteld' }}</dd></div>
                                 <div><dt class="text-xs text-muted">Referentiebron</dt><dd class="m-0 wrap-anywhere">{{ sourceName(assay) }}</dd></div>
                             </dl>
-                            <p v-if="!readOnly && referenceProblem(assay)" class="m-0 text-danger" role="alert">{{ referenceProblem(assay) }} Kies Bewerken om dit te herstellen.</p>
+                            <p v-if="!readOnly && referenceProblem(assay)" class="inline-alert" role="alert"><CircleAlert :size="15" aria-hidden="true" /><span>{{ referenceProblem(assay) }} Kies Bewerken om dit te herstellen.</span></p>
                         </li>
                     </ol>
                     <p v-if="!form.assays.length" class="empty-state">Nog geen analyses geselecteerd. Kies links een analyse om deze in te stellen.</p>
