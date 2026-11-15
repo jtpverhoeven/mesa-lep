@@ -523,7 +523,7 @@ class LabelPrintingTest extends TestCase
             $this->mock(LabelPrinterTransport::class, fn (MockInterface $mock) => $mock->shouldReceive('send')->once()->andThrow(new RuntimeException('Offline')));
             app(SendLabelPrintPlan::class)->handle(app(BuildLabelPrintPlan::class)->handle(1, []));
 
-            $this->artisan('queue:work', ['connection' => 'database', '--queue' => 'printing', '--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+            $this->artisan('queue:work', ['connection' => 'database', '--queue' => 'printing', '--stop-when-empty' => true, '--sleep' => 0, '--memory' => 1024])->assertSuccessful();
 
             $this->assertStringContainsString('Label spool failed.', $this->printingLog());
             $this->assertStringContainsString('Sample label', $this->printingLog());
@@ -808,7 +808,7 @@ class LabelPrintingTest extends TestCase
 
         $this->artisan('queue:work', [
             'connection' => 'database', '--queue' => 'printing', '--stop-when-empty' => true,
-            '--sleep' => 0, '--tries' => 5,
+            '--sleep' => 0, '--tries' => 5, '--memory' => 1024,
         ])->assertSuccessful();
 
         $this->assertDatabaseCount('jobs', 0);

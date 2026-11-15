@@ -10,10 +10,10 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guest_can_view_the_landing_and_login_pages(): void
+    public function test_guest_is_sent_from_the_landing_page_to_login(): void
     {
-        $this->get('/')->assertOk()->assertSee('A quieter place to get things done.');
-        $this->get('/login')->assertOk()->assertSee('Welcome back to Mesa.');
+        $this->get('/')->assertRedirect('/dashboard');
+        $this->get('/login')->assertOk()->assertSee('MESA | Inloggen');
     }
 
     public function test_dashboard_requires_authentication(): void
@@ -26,11 +26,11 @@ class AuthenticationTest extends TestCase
         $this->seed();
 
         $this->post('/login', [
-            'email' => 'admin@example.com',
-            'password' => 'password',
+            'login' => 'admin',
+            'password' => 'check',
         ])->assertRedirect('/dashboard');
 
-        $this->assertAuthenticatedAs(User::where('email', 'admin@example.com')->first());
+        $this->assertAuthenticatedAs(User::where('alias', 'admin')->first());
         $this->assertTrue(auth()->user()->hasRole('administrator'));
     }
 }

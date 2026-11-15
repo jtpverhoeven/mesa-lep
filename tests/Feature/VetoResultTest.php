@@ -115,7 +115,7 @@ class VetoResultTest extends TestCase
     {
         $this->operator();
         $analysis = $this->analysis();
-        config(['cache.default' => 'database']);
+        config(['cache.default' => 'database', 'cache.stores.database.lock_connection' => null]);
         Queue::fake([CalculateAnalysisResultJob::class]);
 
         DB::transaction(function () use ($analysis): void {

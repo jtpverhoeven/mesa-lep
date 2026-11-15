@@ -4,6 +4,7 @@ namespace Tests\Unit\Confirmations;
 
 use App\Confirmations\ConfirmationRacetrackEvaluator;
 use App\Confirmations\PendingConfirmationAssuranceFields;
+use App\Models\SampleAnalysis;
 use Tests\TestCase;
 
 class ConfirmationRacetrackEvaluatorTest extends TestCase
@@ -11,6 +12,7 @@ class ConfirmationRacetrackEvaluatorTest extends TestCase
     public function test_required_mismatch_finishes_unconfirmed_and_nulls_downstream_steps(): void
     {
         $result = $this->evaluator()->evaluate(
+            new SampleAnalysis,
             [
                 ['mediaId' => 5, 'chainId' => 1, 'disposition' => '+'],
                 ['mediaId' => 12, 'chainId' => 2, 'disposition' => '+'],
@@ -45,8 +47,8 @@ class ConfirmationRacetrackEvaluatorTest extends TestCase
             '1' => ['12_inzet' => '12-09-2026', '12_aflees' => '13-09-2026'],
         ];
 
-        $pending = $this->evaluator()->evaluate($steps, [['+', '']], $metadata, []);
-        $complete = $this->evaluator()->evaluate($steps, [['+', '-']], $metadata, []);
+        $pending = $this->evaluator()->evaluate(new SampleAnalysis, $steps, [['+', '']], $metadata, []);
+        $complete = $this->evaluator()->evaluate(new SampleAnalysis, $steps, [['+', '-']], $metadata, []);
 
         $this->assertFalse($pending['summary']['scope_ready']);
         $this->assertSame([0, 1], $pending['contenders'][0]['visible_steps']);
@@ -58,6 +60,7 @@ class ConfirmationRacetrackEvaluatorTest extends TestCase
     public function test_assurance_placeholder_is_returned_without_blocking_readiness(): void
     {
         $result = $this->evaluator()->evaluate(
+            new SampleAnalysis,
             [['mediaId' => 5, 'chainId' => 1, 'disposition' => '+']],
             [['+']],
             ['0' => ['5_inzet' => '12-09-2026', '5_aflees' => '13-09-2026']],
