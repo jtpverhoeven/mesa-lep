@@ -506,6 +506,36 @@
     }
 
     /* Requested analysis labels, colour-coded after the legacy portal labels. */
+    .billing-table .billing-number {
+        @apply text-right tabular-nums;
+    }
+
+    .billing-table .billing-center {
+        @apply text-center;
+    }
+
+    .billing-table .billing-number [data-pc-section='columnheadercontent'],
+    .billing-table .billing-center [data-pc-section='columnheadercontent'] {
+        @apply justify-end;
+    }
+
+    .billing-table .billing-center [data-pc-section='columnheadercontent'] {
+        @apply justify-center;
+    }
+
+    /* Legacy highlighted weekend/holiday surcharges with a solid yellow cell. */
+    .billing-status-toggle {
+        @apply cursor-pointer border-0 font-sans;
+    }
+
+    .billing-status-toggle:focus-visible {
+        @apply outline-2 outline-offset-1 outline-accent;
+    }
+
+    .billing-surcharge {
+        @apply inline-block min-w-8 px-1.5 bg-yellow-300 font-bold text-black;
+    }
+
     .analysis-label {
         --analysis-tone: var(--control-border);
         @apply inline-flex items-center gap-1 rounded-control px-1.5 py-0.5 text-[10px] text-ink;

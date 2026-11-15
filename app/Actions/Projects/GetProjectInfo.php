@@ -8,6 +8,7 @@ use App\Models\ProjectField;
 use App\Models\SampleProcedure;
 use App\Models\User;
 use App\Support\AccountImages;
+use App\Support\ProjectInoculation;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Support\Carbon;
@@ -32,17 +33,10 @@ class GetProjectInfo
         $values = json_decode($project->custom_fields ?: '{}', true);
         $values = is_array($values) ? $values : [];
         $definitions = ProjectField::query()->orderBy('position')->get(['name', 'alias']);
-        $inoculations = $project->samples()
+        $inoculation = ProjectInoculation::fromValues($project->samples()
             ->whereNotNull('sample_innoculated')
             ->where('sample_innoculated', '!=', '')
-            ->pluck('sample_innoculated')
-            ->filter(fn (string $value): bool => is_numeric($value) && (int) $value > 0)
-            ->map(fn (string $value): int => (int) $value);
-        $first = $inoculations->min();
-        $last = $inoculations->max();
-        $firstDate = $first ? Carbon::createFromTimestamp($first, 'Europe/Amsterdam') : null;
-        $lastDate = $last ? Carbon::createFromTimestamp($last, 'Europe/Amsterdam') : null;
-        $twoDays = $firstDate && $lastDate && ! $firstDate->isSameDay($lastDate);
+            ->pluck('sample_innoculated'));
 
         $avatarPath = $project->authorizedBy?->profile?->avatar_path;
         $blockedBy = $project->isAuthorizationBlocked() ? $project->blockedBy : null;
@@ -77,11 +71,9 @@ class GetProjectInfo
                     'label' => $field->alias ?: $field->name,
                     'value' => $values[$field->name] ?? '',
                 ])->values()->all(),
-            'inoculation_date' => $twoDays
-                ? $firstDate->format('d-m-Y H:i')."\n".$lastDate->format('d-m-Y H:i')
-                : ($firstDate?->format('d-m-Y') ?? 'Nog niet ingezet'),
-            'inoculation_time' => $twoDays ? 'Tweeledig' : ($firstDate?->format('H:i') ?? ''),
-            'sampling_to_analysis' => $this->samplingToAnalysis($first, $values['project_monster'] ?? null, $values['project_bemonster_tijd'] ?? null),
+            'inoculation_date' => $inoculation->date(),
+            'inoculation_time' => $inoculation->time(),
+            'sampling_to_analysis' => $this->samplingToAnalysis($inoculation->first, $values['project_monster'] ?? null, $values['project_bemonster_tijd'] ?? null),
             'expected_date' => (int) $project->predicted_end > 0
                 ? Carbon::createFromTimestamp((int) $project->predicted_end, 'Europe/Amsterdam')->format('d-m-Y')
                 : 'Nog niet bekend',

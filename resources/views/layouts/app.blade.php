@@ -112,6 +112,7 @@
                                 @foreach(\App\Actions\Projects\GetProjectOverview::STATUSES as $status => $label)
                                     <a href="{{ route('projects.overview.'.$status) }}" @class(['selected' => request()->routeIs('projects.overview.'.$status)])>{{ $label }}<sidebar-badge counter="{{ $status }}" severity="{{ $status === 'blocked' ? 'warn' : 'info' }}" label="projecten"></sidebar-badge></a>
                                 @endforeach
+                                <a href="{{ route('billing.index') }}" @class(['selected' => request()->routeIs('billing.*')])>Facturatie</a>
                             @endcan
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"></path></svg>Borging</span>
                             @can('assurance-form.view')<a href="{{ route('assurance-forms.index') }}" @class(['selected' => request()->is('laboratory/assurance-forms*')])>Borgingsformulier<sidebar-badge counter="assurance" severity="warn" label="formulieren met ontbrekende gegevens"></sidebar-badge></a>@endcan

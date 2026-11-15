@@ -6,6 +6,7 @@ use App\Http\Controllers\AssayController;
 use App\Http\Controllers\AssayFieldController;
 use App\Http\Controllers\AssayTypeController;
 use App\Http\Controllers\AssuranceFormController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BulkSampleController;
 use App\Http\Controllers\ChangeRevisionController;
 use App\Http\Controllers\ClientCategoryController;
@@ -245,6 +246,15 @@ Route::middleware(['auth', 'can:projects.view', 'can:reports.generate'])->group(
     Route::post('laboratory/projects/{project}/send-files', [FileSenderController::class, 'mail'])->whereNumber('project')->middleware('throttle:15,1')->name('projects.send-files.mail');
     Route::get('laboratory/send/templates/{emailTemplate}/{lang?}', [ReportSenderController::class, 'template'])->whereNumber('emailTemplate')->where('lang', 'nl|en')->name('send.template');
     Route::get('laboratory/sample-files/{sampleFile}/history', [ReportSenderController::class, 'history'])->whereNumber('sampleFile')->name('sample-files.history');
+});
+
+Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/billing')->group(function () {
+    Route::get('/', [BillingController::class, 'index'])->name('billing.index');
+    Route::post('/overview', [BillingController::class, 'overview'])->name('billing.overview');
+    Route::get('/export', [BillingController::class, 'export'])->name('billing.export');
+    Route::get('/clients', [BillingController::class, 'clients'])->name('billing.clients');
+    Route::post('/projects/billed', [BillingController::class, 'markBilled'])->name('billing.projects.mark-billed');
+    Route::patch('/projects/billed', [BillingController::class, 'setBilled'])->name('billing.projects.set-billed');
 });
 
 Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects')->group(function () {

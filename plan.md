@@ -1,6 +1,5 @@
 # Roadmap
 
-- Fix THT accept button on voorportaal, plus fix weird layout. 
 
 - Facturatie
 
@@ -15,7 +14,6 @@ Data mining:
     - Deauthorisatie
     
     - User printers
-
 
 
 # To verify

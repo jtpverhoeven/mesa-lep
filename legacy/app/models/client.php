@@ -1,15 +1,13 @@
-<?PHP
+<?php
 
-class Client extends Model{
-    
-    function getAllFirsts(){
-                        
-    }
+class Client extends Model
+{
+    public function getAllFirsts() {}
 
-    function getAllActive()
+    public function getAllActive()
     {
         $this->where('active', 1);
-        return $this->search();   
+
+        return $this->search();
     }
-    
 }

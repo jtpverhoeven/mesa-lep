@@ -1,1136 +1,1139 @@
-<?PHP
+<?php
 
-class portalController extends controller{
+class portalController extends controller
+{
+    private $accepts = '';
 
-  private $accepts = '';
-  private $authorization = '';
-  private $apiRoute = '';
-  private $log;
+    private $authorization = '';
 
-  private $linkActive = True;
+    private $apiRoute = '';
 
-    function beforeAction($queryString) {
+    private $log;
+
+    private $linkActive = true;
+
+    public function beforeAction($queryString)
+    {
         $this->_template->set('MESA_LIMS_ACTIVE', '');
         $this->_template->set('MESA_SOCIAL_ACTIVE', '');
         $this->_template->set('MESA_ADMIN_ACTIVE', 'active');
-        $logLocation =  ROOT . DS . 'app' . DS . 'private' .DS . 'apiLog.txt';
-        $this->log = fopen($logLocation,"a+");
+        $logLocation = ROOT.DS.'app'.DS.'private'.DS.'apiLog.txt';
+        $this->log = fopen($logLocation, 'a+');
 
-        //are we in EXP mode? 
-        if($_SESSION['DEVELOPMENT'] == True)
-        {          
-          $this->linkActive = False;           
+        // are we in EXP mode?
+        if ($_SESSION['DEVELOPMENT'] == true) {
+            $this->linkActive = false;
         }
 
     }
 
-    public function log($logStr){
-      $date = date('d-m-Y H:i:s');
-      fwrite($this->log, $date . "\t" . $logStr . "\t" . PHP_EOL);
-      return;
-    }
-
-    public function connection(){
-      $portalSettings = $this->Portal->search();
-      $settingsArr = array();
-
-      foreach($portalSettings as $setting){
-        $settingsArr[$setting['pk']] = $setting['pv'];
-      }
-
-      $this->_template->set('portalUrl', checkKeyOrFalse($settingsArr, 'portalUrl'));
-      $this->_template->set('acceptType', checkKeyOrFalse($settingsArr, 'acceptType'));
-      $this->_template->set('bearer', checkKeyOrFalse($settingsArr, 'bearer'));
-    }
-
-    public function email(){
-      $portalSettings = $this->Portal->search();
-      $settingsArr = array();
-
-      foreach($portalSettings as $setting){
-        $settingsArr[$setting['pk']] = $setting['pv'];
-      }
-
-      $this->_template->set('portalBCC', checkKeyOrFalse($settingsArr, 'portalBCC'));
-      $this->_template->set('portalMessage', checkKeyOrFalse($settingsArr, 'portalMessage'));
-    }
-
-    public function saveEmailSettings(){
-
-      $this->Portal->where('pk', 'portalBCC');
-      $result = $this->Portal->search();
-      $id = (empty($result)) ? False : $result[0]['id'];              
-      $this->Portal->id = $id;
-      $this->Portal->pk = 'portalBCC';
-      $this->Portal->pv = checkKeyOrFalse($_POST, 'portalBCC');
-      $this->Portal->save();
-
-      $this->Portal->deepFreed();
-
-      $this->Portal->where('pk', 'portalMessage');
-      $result = $this->Portal->search();
-      $id = (empty($result)) ? False : $result[0]['id'];              
-      $this->Portal->id = $id;
-      $this->Portal->pk = 'portalMessage';
-      $this->Portal->pv = checkKeyOrFalse($_POST, 'portalMessage');
-      $this->Portal->save();
-      $this->Portal->deepFreed();
-
-      $this->reRoute('portal/email', True);
-    }
-
-    public function getEmailSettings(){
-
-      $portalSettings = $this->Portal->search();
-      $settingsArr = array();
-
-      foreach($portalSettings as $setting){
-        $settingsArr[$setting['pk']] = $setting['pv'];
-      }
-
-
-      return ['bcc' => checkKeyOrFalse($settingsArr, 'portalBCC'), 
-              'message' => checkKeyOrFalse($settingsArr, 'portalMessage')];
+    public function log($logStr)
+    {
+        $date = date('d-m-Y H:i:s');
+        fwrite($this->log, $date."\t".$logStr."\t".PHP_EOL);
 
     }
 
-    public function saveConnectionSettings(){
+    public function connection()
+    {
+        $portalSettings = $this->Portal->search();
+        $settingsArr = [];
 
-      $this->Portal->where('pk', 'portalUrl');
-      $result = $this->Portal->search();
-      $id = (empty($result)) ? False : $result[0]['id'];              
-      $this->Portal->id = $id;
-      $this->Portal->pk = 'portalUrl';
-      $this->Portal->pv = checkKeyOrFalse($_POST, 'portalUrl');
-      $this->Portal->save();
+        foreach ($portalSettings as $setting) {
+            $settingsArr[$setting['pk']] = $setting['pv'];
+        }
 
-      $this->Portal->deepFreed();
-
-      $this->Portal->where('pk', 'acceptType');
-      $result = $this->Portal->search();
-      $id = (empty($result)) ? False : $result[0]['id'];              
-      $this->Portal->id = $id;
-      $this->Portal->pk = 'acceptType';
-      $this->Portal->pv = checkKeyOrFalse($_POST, 'acceptType');
-      $this->Portal->save();
-      $this->Portal->deepFreed();
-
-      $this->Portal->where('pk', 'bearer');
-      $result = $this->Portal->search();
-      $id = (empty($result)) ? False : $result[0]['id'];              
-      $this->Portal->id = $id;
-      $this->Portal->pk = 'bearer';
-      $this->Portal->pv = checkKeyOrFalse($_POST, 'bearer');
-      $this->Portal->save();
-      $this->reRoute('portal/connection', True);
+        $this->_template->set('portalUrl', checkKeyOrFalse($settingsArr, 'portalUrl'));
+        $this->_template->set('acceptType', checkKeyOrFalse($settingsArr, 'acceptType'));
+        $this->_template->set('bearer', checkKeyOrFalse($settingsArr, 'bearer'));
     }
 
-    public function loadSettings(){
-      $portalSettings = $this->Portal->search();
-      $settingsArr = array();
+    public function email()
+    {
+        $portalSettings = $this->Portal->search();
+        $settingsArr = [];
 
-      foreach($portalSettings as $setting){
-        $settingsArr[$setting['pk']] = $setting['pv'];
-      }
+        foreach ($portalSettings as $setting) {
+            $settingsArr[$setting['pk']] = $setting['pv'];
+        }
 
-      $this->apiRoute = checkKeyOrFalse($settingsArr, 'portalUrl');
-      $this->authorization = checkKeyOrFalse($settingsArr, 'bearer');
-      $this->accepts = checkKeyOrFalse($settingsArr, 'acceptType');
-
+        $this->_template->set('portalBCC', checkKeyOrFalse($settingsArr, 'portalBCC'));
+        $this->_template->set('portalMessage', checkKeyOrFalse($settingsArr, 'portalMessage'));
     }
 
-    public function connectionTest($code = False){
+    public function saveEmailSettings()
+    {
 
-      
+        $this->Portal->where('pk', 'portalBCC');
+        $result = $this->Portal->search();
+        $id = (empty($result)) ? false : $result[0]['id'];
+        $this->Portal->id = $id;
+        $this->Portal->pk = 'portalBCC';
+        $this->Portal->pv = checkKeyOrFalse($_POST, 'portalBCC');
+        $this->Portal->save();
 
+        $this->Portal->deepFreed();
 
-      $this->render = False;
-      $this->loadSettings();
-      $route = $this->apiRoute . 'connectionTest';
+        $this->Portal->where('pk', 'portalMessage');
+        $result = $this->Portal->search();
+        $id = (empty($result)) ? false : $result[0]['id'];
+        $this->Portal->id = $id;
+        $this->Portal->pk = 'portalMessage';
+        $this->Portal->pv = checkKeyOrFalse($_POST, 'portalMessage');
+        $this->Portal->save();
+        $this->Portal->deepFreed();
 
-      if($this->linkActive === False){
-        print(json_encode(array('message' => 'Link is not active')));
-        return; 
-      }
-
-      $ch = curl_init();
-
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 0);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization
-      ));
-
-      $return = curl_exec ($ch);
-
-      $info = curl_getinfo($ch);
-
-      curl_close ($ch);
-
-      if($code === True)
-      { 
-                
-        return $info['http_code'];
-      }
-
-      else
-      {
-        print $return;
-      }
-      
+        $this->reRoute('portal/email', true);
     }
 
-    public function dropTht($portalSampleId){
+    public function getEmailSettings()
+    {
 
-      if($this->linkActive === False){
-        return;
-      }
+        $portalSettings = $this->Portal->search();
+        $settingsArr = [];
 
-      
-      $this->render = False;
-      $this->loadSettings();
+        foreach ($portalSettings as $setting) {
+            $settingsArr[$setting['pk']] = $setting['pv'];
+        }
 
-      $route = $this->apiRoute . 'drop-tht-from-sample';
-
-      $ch = curl_init();
-
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, array( 
-          'sample_id' => $portalSampleId, 
-       ));
-
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization,
-      ));
-
-      $return = curl_exec ($ch);
-      $this->log($return);
-      curl_close ($ch);
-
+        return ['bcc' => checkKeyOrFalse($settingsArr, 'portalBCC'),
+            'message' => checkKeyOrFalse($settingsArr, 'portalMessage')];
 
     }
 
-    public function changeToTHT($portalSampleId, $date, $storage){
+    public function saveConnectionSettings()
+    {
 
-      if($this->linkActive === False){
-        return;
-      }
+        $this->Portal->where('pk', 'portalUrl');
+        $result = $this->Portal->search();
+        $id = (empty($result)) ? false : $result[0]['id'];
+        $this->Portal->id = $id;
+        $this->Portal->pk = 'portalUrl';
+        $this->Portal->pv = checkKeyOrFalse($_POST, 'portalUrl');
+        $this->Portal->save();
 
-      $this->render = False;
-      $this->loadSettings();
+        $this->Portal->deepFreed();
 
-      $route = $this->apiRoute . 'changeSampleToTHT';
-    
-      $ch = curl_init();
+        $this->Portal->where('pk', 'acceptType');
+        $result = $this->Portal->search();
+        $id = (empty($result)) ? false : $result[0]['id'];
+        $this->Portal->id = $id;
+        $this->Portal->pk = 'acceptType';
+        $this->Portal->pv = checkKeyOrFalse($_POST, 'acceptType');
+        $this->Portal->save();
+        $this->Portal->deepFreed();
 
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, array( 
-          'sample_id' => $portalSampleId, 
-          'tht_start_date' => $date,  
-          'tht_storage' => $storage));
+        $this->Portal->where('pk', 'bearer');
+        $result = $this->Portal->search();
+        $id = (empty($result)) ? false : $result[0]['id'];
+        $this->Portal->id = $id;
+        $this->Portal->pk = 'bearer';
+        $this->Portal->pv = checkKeyOrFalse($_POST, 'bearer');
+        $this->Portal->save();
+        $this->reRoute('portal/connection', true);
+    }
 
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization,
-      ));
+    public function loadSettings()
+    {
+        $portalSettings = $this->Portal->search();
+        $settingsArr = [];
 
-      $return = curl_exec ($ch);
-      $this->log($return);
-      curl_close ($ch);
+        foreach ($portalSettings as $setting) {
+            $settingsArr[$setting['pk']] = $setting['pv'];
+        }
+
+        $this->apiRoute = checkKeyOrFalse($settingsArr, 'portalUrl');
+        $this->authorization = checkKeyOrFalse($settingsArr, 'bearer');
+        $this->accepts = checkKeyOrFalse($settingsArr, 'acceptType');
 
     }
 
-    public function acceptSamples($samples){
+    public function connectionTest($code = false)
+    {
 
-      if($this->linkActive === False){
-        return;
-      }
+        if ($this->linkActive === false) {
+            return;
+        }
 
-      $this->render = False;
-      $this->loadSettings();
+        $this->render = false;
+        $this->loadSettings();
+        $route = $this->apiRoute.'connectionTest';
 
-      $route = $this->apiRoute . 'acceptSamples';
-      $ch = curl_init();
-      $data = json_encode($samples);
+        $ch = curl_init();
 
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, array('samples' => $data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization,
-      ));
+        $return = curl_exec($ch);
 
-      $return = curl_exec ($ch);
-      $this->log($return);
-      curl_close ($ch);
-    }
+        $info = curl_getinfo($ch);
 
-    public function projectAuthorized($projectId, $quiet){
+        curl_close($ch);
 
-      $this->log('PA');
-
-      if($this->linkActive === False){
-        $this->log('Link aborted');
-        return;
-      }
-    
-
-      $this->render = False;
-      $this->loadSettings();
-
-      $route = $this->apiRoute . 'projectAuthorized/' . $projectId;
-      $ch = curl_init();
-
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, array('quiet' => $quiet));
-
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization,
-      ));
-
-      $return = curl_exec ($ch);
-      
-      $this->log($return);
-
-      $this->log($return);
-      curl_close ($ch);
-    }
-
-    public function projectDeauthorized($projectId, $previewFlag ){
-
-      $this->log('DA');
-
-      if($this->linkActive === False){
-        $this->log('Link aborted');
-        return;
-      }
-
-      $this->render = False;
-      $this->loadSettings();
-
-      $route = $this->apiRoute . 'projectDeauthorized';
-      $ch = curl_init();
-
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, array('project_id' => $projectId, 'preview' => $previewFlag ? "True" : "False"));
-
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization,
-      ));
-
-      $return = curl_exec ($ch);
-      
-      $this->log($return);
-      
-      curl_close ($ch);
-    }
-
-    public function sampleStart($portalSampleId, $innocDate, $estimatedEnd){
-
-      if($this->linkActive === False){
-        return;
-      }
-
-      $this->render = False;
-      $this->loadSettings();
-
-      $route = $this->apiRoute . 'sampleInnoc';
-      $ch = curl_init();
-
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, array('sample_id' => $portalSampleId, 'innoc_time' => $innocDate,  'estimated_end' => $estimatedEnd));
-
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization,
-      ));
-
-      $return = curl_exec ($ch);
-      $this->log($return);
-      curl_close ($ch);
-    }
-
-    public function destroySample($portalSampleIds){
-
-      if($this->linkActive === False){
-        return;
-      }
-
-      $portalSampleIds =  is_array($portalSampleIds) ? $portalSampleIds : array($portalSampleIds);
-      $this->loadSettings();
-
-      $route = $this->apiRoute . 'destroySample';
-      $ch = curl_init();
-
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, ['sample_ids' => json_encode($portalSampleIds)]);
-
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization,
-      ));
-
-      $return = curl_exec ($ch);
-      $this->log($return);
-      curl_close ($ch);
+        if ($code === true) {
+            return $info['http_code'];
+        } else {
+            echo $return;
+        }
 
     }
 
-    public function setTHTflag($portalSampleIds){
+    public function dropTht($portalSampleId)
+    {
 
-      if($this->linkActive === False){
-        return;
-      }
+        if ($this->linkActive === false) {
+            return;
+        }
 
-      $portalSampleIds =  is_array($portalSampleIds) ? $portalSampleIds : array($portalSampleIds);
-      $this->loadSettings();
+        $this->render = false;
+        $this->loadSettings();
 
-      $route = $this->apiRoute . 'accept-tht';
-      $ch = curl_init();
+        $route = $this->apiRoute.'drop-tht-from-sample';
 
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, ['sample_ids' => json_encode($portalSampleIds)]);
+        $ch = curl_init();
 
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization,
-      ));
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, [
+            'sample_id' => $portalSampleId,
+        ]);
 
-      $return = curl_exec ($ch);
-      $this->log($return);
-      curl_close ($ch);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $return = curl_exec($ch);
+        $this->log($return);
+        curl_close($ch);
+
+    }
+
+    public function changeToTHT($portalSampleId, $date, $storage)
+    {
+
+        if ($this->linkActive === false) {
+            return;
+        }
+
+        $this->render = false;
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'changeSampleToTHT';
+
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, [
+            'sample_id' => $portalSampleId,
+            'tht_start_date' => $date,
+            'tht_storage' => $storage]);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $return = curl_exec($ch);
+        $this->log($return);
+        curl_close($ch);
+
+    }
+
+    public function acceptSamples($samples)
+    {
+
+        if ($this->linkActive === false) {
+            return;
+        }
+
+        $this->render = false;
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'acceptSamples';
+        $ch = curl_init();
+        $data = json_encode($samples);
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['samples' => $data]);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $return = curl_exec($ch);
+        $this->log($return);
+        curl_close($ch);
+    }
+
+    public function projectAuthorized($projectId, $quiet)
+    {
+
+        $this->log('PA');
+
+        if ($this->linkActive === false) {
+            $this->log('Link aborted');
+
+            return;
+        }
+
+        $this->render = false;
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'projectAuthorized/'.$projectId;
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['quiet' => $quiet]);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $return = curl_exec($ch);
+
+        $this->log($return);
+
+        $this->log($return);
+        curl_close($ch);
+    }
+
+    public function projectDeauthorized($projectId, $previewFlag)
+    {
+
+        $this->log('DA');
+
+        if ($this->linkActive === false) {
+            $this->log('Link aborted');
+
+            return;
+        }
+
+        $this->render = false;
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'projectDeauthorized';
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['project_id' => $projectId, 'preview' => $previewFlag ? 'True' : 'False']);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $return = curl_exec($ch);
+
+        $this->log($return);
+
+        curl_close($ch);
+    }
+
+    public function sampleStart($portalSampleId, $innocDate, $estimatedEnd)
+    {
+
+        if ($this->linkActive === false) {
+            return;
+        }
+
+        $this->render = false;
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'sampleInnoc';
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['sample_id' => $portalSampleId, 'innoc_time' => $innocDate,  'estimated_end' => $estimatedEnd]);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $return = curl_exec($ch);
+        $this->log($return);
+        curl_close($ch);
+    }
+
+    public function destroySample($portalSampleIds)
+    {
+
+        if ($this->linkActive === false) {
+            return;
+        }
+
+        $portalSampleIds = is_array($portalSampleIds) ? $portalSampleIds : [$portalSampleIds];
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'destroySample';
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['sample_ids' => json_encode($portalSampleIds)]);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $return = curl_exec($ch);
+        $this->log($return);
+        curl_close($ch);
+
+    }
+
+    public function setTHTflag($portalSampleIds)
+    {
+
+        if ($this->linkActive === false) {
+            return;
+        }
+
+        $portalSampleIds = is_array($portalSampleIds) ? $portalSampleIds : [$portalSampleIds];
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'accept-tht';
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['sample_ids' => json_encode($portalSampleIds)]);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $return = curl_exec($ch);
+        $this->log($return);
+        curl_close($ch);
 
     }
 
     public function documentMailer($receivers, $extraMail, $cc, $bcc, $message, $client, $sample, $project, $hashes)
     {
-      
-      if($this->linkActive === False){
-        return;
-      }      
 
-           
-      $this->render = False;
-      $this->loadSettings();
+        if ($this->linkActive === false) {
+            return;
+        }
 
-      $route = $this->apiRoute . 'mail-document';
-      $ch = curl_init();
+        $this->render = false;
+        $this->loadSettings();
 
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $route = $this->apiRoute.'mail-document';
+        $ch = curl_init();
 
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization,
-      ));
-      
-      curl_setopt($ch, CURLOPT_POSTFIELDS, array( 
-            'emails' => json_encode($receivers), 
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, [
+            'emails' => json_encode($receivers),
             'extraMail' => $extraMail,
-            'cc' => $cc, 
-            'bcc' => $bcc, 
-            'message' => $message,             
-            'client' => $client,             
+            'cc' => $cc,
+            'bcc' => $bcc,
+            'message' => $message,
+            'client' => $client,
             'sample' => $sample,
             'project' => $project,
-            'sampleFileHashes' => json_encode($hashes)
-      )); 
+            'sampleFileHashes' => json_encode($hashes),
+        ]);
 
+        $return = curl_exec($ch);
 
-      $return = curl_exec ($ch);
-      
-      $this->log($return);
-      
-      curl_close ($ch); 
+        $this->log($return);
 
-      return $return;
+        curl_close($ch);
+
+        return $return;
 
     }
-    
-    public function reportMailer($receivers, $extraMail, $cc, $bcc, $message, $data, $md5, $client, $hash,  $project, $projectName, $projectDate, $revision, $printVersion, $trueReference, $temporary, $trueFileName, $includeSampleFiles)
-    {      
-      
-      if($this->linkActive === False){
-        return;
-      }      
-           
-      $this->render = False;
-      $this->loadSettings();
 
-      $route = $this->apiRoute . 'mail-report';
-      $ch = curl_init();
+    public function reportMailer($receivers, $extraMail, $cc, $bcc, $message, $data, $md5, $client, $hash, $project, $projectName, $projectDate, $revision, $printVersion, $trueReference, $temporary, $trueFileName, $includeSampleFiles)
+    {
 
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        if ($this->linkActive === false) {
+            return;
+        }
 
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization,
-      ));
-      
-      curl_setopt($ch, CURLOPT_POSTFIELDS, array( 
-            'emails' => json_encode($receivers), 
+        $this->render = false;
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'mail-report';
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, [
+            'emails' => json_encode($receivers),
             'extraMail' => $extraMail,
-            'cc' => $cc, 
-            'bcc' => $bcc, 
-            'message' => $message, 
-            'data' => $data, 
-            'md5' => $md5,  
-            'client' => $client,             
+            'cc' => $cc,
+            'bcc' => $bcc,
+            'message' => $message,
+            'data' => $data,
+            'md5' => $md5,
+            'client' => $client,
             'hash' => $hash,
             'project' => $project,
             'project_name' => $projectName,
             'project_date' => $projectDate,
-            'revision' => $revision, 
+            'revision' => $revision,
             'print_version' => $printVersion,
             'true_reference' => $trueReference,
             'temporary' => $temporary,
             'true_file_name' => $trueFileName,
-            'includeSampleFiles' => json_encode($includeSampleFiles)
-      ));
+            'includeSampleFiles' => json_encode($includeSampleFiles),
+        ]);
 
+        $return = curl_exec($ch);
+        $this->log($return);
+        curl_close($ch);
 
-      $return = curl_exec ($ch);
-      $this->log($return);
-      curl_close ($ch); 
-
-      return $return;
+        return $return;
 
     }
 
-    public function reportMailerNotificationDispatch($hashes, $client){
-      
-      if($this->linkActive === False){
-        return;
-      }
-           
-      $this->render = False;
-      $this->loadSettings();
+    public function reportMailerNotificationDispatch($hashes, $client)
+    {
 
-      $route = $this->apiRoute . 'notify-reports';
-      $ch = curl_init();
+        if ($this->linkActive === false) {
+            return;
+        }
 
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $this->render = false;
+        $this->loadSettings();
 
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Accept: ' . $this->accepts,
-        'Authorization: ' . $this->authorization,
-      ));
-      
-      curl_setopt($ch, CURLOPT_POSTFIELDS, array( 
+        $route = $this->apiRoute.'notify-reports';
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, [
             'hashes' => json_encode($hashes),
-            'client' => $client
-      ));
+            'client' => $client,
+        ]);
 
+        $return = curl_exec($ch);
+        $this->log($return);
+        curl_close($ch);
 
-      $return = curl_exec ($ch);
-      $this->log($return);
-      curl_close ($ch); 
-
-      return $return;
+        return $return;
 
     }
 
+    public function updateclient($clientId)
+    {
 
-    public function updateclient($clientId){
+        if ($this->linkActive === false) {
+            return;
+        }
 
-   
-      if($this->linkActive === False){
-        return;
-      }   
-      
-      $this->render = False;
-      $this->loadSettings();
+        $this->render = false;
+        $this->loadSettings();
 
-      $route = $this->apiRoute . 'client-updated';
-      $ch = curl_init();
+        $route = $this->apiRoute.'client-updated';
+        $ch = curl_init();
 
-      curl_setopt($ch, CURLOPT_URL, $route );
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, array( 'mesa_client_id' => $clientId));
-    
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['mesa_client_id' => $clientId]);
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization,
-    ));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-    $return = curl_exec ($ch);
-    $this->log($return);
-    curl_close ($ch); 
-  }
-
-  public function getContactLists($id){
-
-
-    $this->render = False;
-    $this->loadSettings();
-    $route = $this->apiRoute . 'contact-lists/' . $id;
-
-    $ch = curl_init();
-
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 0);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization
-    ));
-
-    $return = curl_exec ($ch);
-    curl_close ($ch);
-    return $return;
-  }
-
-  public function destroyContactList($id){
-
-    if($this->linkActive === False){
-      return;
+        $return = curl_exec($ch);
+        $this->log($return);
+        curl_close($ch);
     }
 
+    public function getContactLists($id)
+    {
 
-    $this->render = False;
-    $this->loadSettings();
-    $route = $this->apiRoute . 'contact-lists/destroy/' . $id;
+        $this->render = false;
+        $this->loadSettings();
+        $route = $this->apiRoute.'contact-lists/'.$id;
 
-    $ch = curl_init();
+        $ch = curl_init();
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 0);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization
-    ));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-    $return = curl_exec ($ch);
-    curl_close ($ch);
-    return $return;
-  }  
+        $return = curl_exec($ch);
+        curl_close($ch);
 
-  public function createContactLists($clientId, $groupName){
-
-    if($this->linkActive === False){
-      return;
+        return $return;
     }
 
+    public function destroyContactList($id)
+    {
 
-    $this->render = False;
-    $this->loadSettings();
-    $route = $this->apiRoute . 'contact-lists' ;
+        if ($this->linkActive === false) {
+            return;
+        }
 
-    $ch = curl_init();
+        $this->render = false;
+        $this->loadSettings();
+        $route = $this->apiRoute.'contact-lists/destroy/'.$id;
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, array( 
-        'cliend_id' => $clientId,
-        'group_name' => $groupName
-      ));
+        $ch = curl_init();
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization
-    ));
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-    $return = curl_exec ($ch);
-    curl_close ($ch);
-    return $return;
-  }  
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-  public function updateContactLists($clientId, $groupName, $listId){
+        $return = curl_exec($ch);
+        curl_close($ch);
 
-    if($this->linkActive === False){
-      return;
+        return $return;
     }
 
+    public function createContactLists($clientId, $groupName)
+    {
 
-    $this->render = False;
-    $this->loadSettings();
-    $route = $this->apiRoute . 'contact-lists/update' ;
+        if ($this->linkActive === false) {
+            return;
+        }
 
-    $ch = curl_init();
+        $this->render = false;
+        $this->loadSettings();
+        $route = $this->apiRoute.'contact-lists';
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, array( 
-        'list_id' => $listId,
-        'cliend_id' => $clientId,
-        'group_name' => $groupName
-      ));
+        $ch = curl_init();
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization
-    ));
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, [
+            'cliend_id' => $clientId,
+            'group_name' => $groupName,
+        ]);
 
-    $return = curl_exec ($ch);
-    curl_close ($ch);
-    return $return;
-  }  
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-  public function showList($contactList){
-    $this->render = False;
-    $this->loadSettings();
-    $route = $this->apiRoute . 'contact-lists/show/' . $contactList;
+        $return = curl_exec($ch);
+        curl_close($ch);
 
-    $ch = curl_init();
-
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 0);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization
-    ));
-
-    $return = curl_exec ($ch);
-    curl_close ($ch);
-    return $return;
-  }
-
-  public function checkClientIsPortalUser($clientId){
-
-
-    $this->render = False;
-
-    if($this->linkActive === False){
-      print(json_encode(array('users' => [] )));
+        return $return;
     }
 
-    $this->loadSettings();
-    $route = $this->apiRoute . 'client-user-of-portal' ;
+    public function updateContactLists($clientId, $groupName, $listId)
+    {
 
-    $ch = curl_init();
+        if ($this->linkActive === false) {
+            return;
+        }
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, array(         
-        'client' => $clientId,        
-      ));
+        $this->render = false;
+        $this->loadSettings();
+        $route = $this->apiRoute.'contact-lists/update';
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization
-    ));
+        $ch = curl_init();
 
-    $return = curl_exec ($ch);
-    curl_close ($ch);
-    print $return;
-  }
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, [
+            'list_id' => $listId,
+            'cliend_id' => $clientId,
+            'group_name' => $groupName,
+        ]);
 
-  public function dropContact($contactId){
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-    if($this->linkActive === False){
-      return;
+        $return = curl_exec($ch);
+        curl_close($ch);
+
+        return $return;
     }
 
+    public function showList($contactList)
+    {
+        $this->render = false;
+        $this->loadSettings();
+        $route = $this->apiRoute.'contact-lists/show/'.$contactList;
 
-    $this->render = False;
-    $this->loadSettings();
-    $route = $this->apiRoute . 'contact-lists/delete-member/' . $contactId;
+        $ch = curl_init();
 
-    $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 0);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization
-    ));
+        $return = curl_exec($ch);
+        curl_close($ch);
 
-    $return = curl_exec ($ch);
-    curl_close ($ch);
-    return $return;
-  }
-
-  public function addContact($name, $email, $listId){
-
-    if($this->linkActive === False){
-      return;
-    }
-    
-    $this->render = False;
-    $this->loadSettings();
-    $route = $this->apiRoute . 'contact-lists/add-member' ;
-
-    $ch = curl_init();
-
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, array(         
-        'name' => $name,
-        'email' => $email,
-        'list_id' => $listId
-      ));
-
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization
-    ));
-
-    $return = curl_exec ($ch);
-    curl_close ($ch);
-    return $return;
-  }  
-
-  public function flushProject($projectId){
-
-    if($this->linkActive === False){
-      return;
+        return $return;
     }
 
-    $this->render = False;
-    $this->loadSettings();
+    public function checkClientIsPortalUser($clientId)
+    {
+        $this->render = false;
+        $this->loadSettings();
+        $route = $this->apiRoute.'client-user-of-portal';
 
-    $route = $this->apiRoute . 'flush-project/' . $projectId;
-    $ch = curl_init();
+        $ch = curl_init();
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 0);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, [
+            'client' => $clientId,
+        ]);
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization,
-    ));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-    $return = curl_exec ($ch);
-    $this->log($return);
-    curl_close ($ch);    
+        $return = curl_exec($ch);
+        curl_close($ch);
 
-    print $return;
-
-  }
-
-  public function forceSync($projectId){
-
-    if($this->linkActive === False){
-      return;
+        echo $return;
     }
 
-    $this->render = False;
-    $this->loadSettings();
+    public function dropContact($contactId)
+    {
 
-    $route = $this->apiRoute . 'force-project/' . $projectId;
-    $ch = curl_init();
+        if ($this->linkActive === false) {
+            return;
+        }
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 0);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $this->render = false;
+        $this->loadSettings();
+        $route = $this->apiRoute.'contact-lists/delete-member/'.$contactId;
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization,
-    ));
+        $ch = curl_init();
 
-    $return = curl_exec ($ch);
-    $this->log($return);
-    curl_close ($ch);
-    print $return;
-  
-  }
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-  public function getAllContactLists()  
-  {
-    $this->render = False;
-    $this->loadSettings();
-    $route = $this->apiRoute . 'contact-lists/all';
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-    $ch = curl_init();
+        $return = curl_exec($ch);
+        curl_close($ch);
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 0);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization
-    ));
-
-    $return = curl_exec ($ch);
-    curl_close ($ch);
-    return $return;
-  }
-  
-
-  public function getAllContactListsByLine()  
-  {
-    $this->render = False;
-    $this->loadSettings();
-    $route = $this->apiRoute . 'contact-lists/all-by-line';
-
-    $ch = curl_init();
-
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 0);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization
-    ));
-
-    $return = curl_exec ($ch);
-    curl_close ($ch);
-    return $return;
-  }  
-
-  public function getOrderForm($portalProjectId){
-
-    if($this->linkActive === False){
-      return;
+        return $return;
     }
-    
-    $this->loadSettings();
 
-    $route = $this->apiRoute . 'project-order-form';
-    $ch = curl_init();
+    public function addContact($name, $email, $listId)
+    {
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, ['portal_project_id' => $portalProjectId]);
+        if ($this->linkActive === false) {
+            return;
+        }
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization,
-    ));
+        $this->render = false;
+        $this->loadSettings();
+        $route = $this->apiRoute.'contact-lists/add-member';
 
-    $returnData = curl_exec ($ch);
-    
-    return $returnData;
+        $ch = curl_init();
 
-  }
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, [
+            'name' => $name,
+            'email' => $email,
+            'list_id' => $listId,
+        ]);
 
-  public function updateProductGroup($sampleId, $productGroupId){
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-    if($this->linkActive === False){
-      return;
+        $return = curl_exec($ch);
+        curl_close($ch);
+
+        return $return;
     }
-    
-    $this->loadSettings();
 
-    $route = $this->apiRoute . 'update-sample-product-group';
-    $ch = curl_init();
+    public function flushProject($projectId)
+    {
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, ['portal_sample_id' => $sampleId, 'product_group_id' => $productGroupId]);
+        if ($this->linkActive === false) {
+            return;
+        }
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization,
-    ));
+        $this->render = false;
+        $this->loadSettings();
 
-    $returnData = curl_exec ($ch);
-    
-    return $returnData;
+        $route = $this->apiRoute.'flush-project/'.$projectId;
+        $ch = curl_init();
 
-  }
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-  public function swapProjectClient($portalProjectId, $mesaProjects)
-  {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-   
-    if($this->linkActive === False){
-      return;
+        $return = curl_exec($ch);
+        $this->log($return);
+        curl_close($ch);
+
+        echo $return;
+
     }
-    
-    $this->loadSettings();
 
-    $route = $this->apiRoute . 'swap-project-client';
-    $ch = curl_init();
+    public function forceSync($projectId)
+    {
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, ['portal_project_id' => $portalProjectId, 'mesa_project_ids' => implode(',' , $mesaProjects)]);
+        if ($this->linkActive === false) {
+            return;
+        }
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization,
-    ));
+        $this->render = false;
+        $this->loadSettings();
 
-    $returnData = curl_exec ($ch);
-    
-    return $returnData;    
+        $route = $this->apiRoute.'force-project/'.$projectId;
+        $ch = curl_init();
 
-  }
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-  public function dropSampleFile($sampleId, $mesaHash)
-  {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-    if($this->linkActive === False){
-      return;
+        $return = curl_exec($ch);
+        $this->log($return);
+        curl_close($ch);
+        echo $return;
+
     }
-    
-    $this->loadSettings();
 
-    $route = $this->apiRoute . 'drop-sample-file';
-    $ch = curl_init();
+    public function getAllContactLists()
+    {
+        $this->render = false;
+        $this->loadSettings();
+        $route = $this->apiRoute.'contact-lists/all';
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, ['mesaHash' => $mesaHash, 'sampleId' => $sampleId]);
+        $ch = curl_init();
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization,
-    ));
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-    $returnData = curl_exec ($ch);
-    
-    return $returnData;    
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-  }
+        $return = curl_exec($ch);
+        curl_close($ch);
 
-  public function storeSampleFileInPortal($fileData, $mesaHash, $dataHash, $clientId, $sampleId, $originalFileName)
-  {
-
-    if($this->linkActive === False){
-      return;
+        return $return;
     }
-    
-    $this->loadSettings();
 
-    $route = $this->apiRoute . 'accept-sample-file';
-    $ch = curl_init();
+    public function getAllContactListsByLine()
+    {
+        $this->render = false;
+        $this->loadSettings();
+        $route = $this->apiRoute.'contact-lists/all-by-line';
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $ch = curl_init();
 
-    $data = array(
-      'fileData' => $fileData,
-      'mesaHash' => $mesaHash,
-      'dataHash' => $dataHash,
-      'clientId' => $clientId,
-      'sampleId' => $sampleId,
-      'originalFileName' => $originalFileName
-    );
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-  
-  
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization,
-    ));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
-    $returnData = curl_exec ($ch);
-    
-    return $returnData;
-  
-  }
+        $return = curl_exec($ch);
+        curl_close($ch);
 
-
-  public function getReportingPreferenceForProject($portalProjectId)
-  {
-
-    if($this->linkActive === False){
-      return;
+        return $return;
     }
-    
-    $this->loadSettings();
 
-    $route = $this->apiRoute . 'report-preferences';
-    $ch = curl_init();
+    public function getOrderForm($portalProjectId)
+    {
 
-    curl_setopt($ch, CURLOPT_URL, $route );
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        if ($this->linkActive === false) {
+            return;
+        }
 
-    $data = array(
-      'id' => $portalProjectId
-    );
+        $this->loadSettings();
 
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-  
-  
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-      'Accept: ' . $this->accepts,
-      'Authorization: ' . $this->authorization,
-    ));
+        $route = $this->apiRoute.'project-order-form';
+        $ch = curl_init();
 
-    $returnData = curl_exec ($ch);
-    
-    return $returnData;
-  
-  }
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['portal_project_id' => $portalProjectId]);
 
-  
- 
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
 
+        $returnData = curl_exec($ch);
+
+        return $returnData;
+
+    }
+
+    public function updateProductGroup($sampleId, $productGroupId)
+    {
+
+        if ($this->linkActive === false) {
+            return;
+        }
+
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'update-sample-product-group';
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['portal_sample_id' => $sampleId, 'product_group_id' => $productGroupId]);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $returnData = curl_exec($ch);
+
+        return $returnData;
+
+    }
+
+    public function swapProjectClient($portalProjectId, $mesaProjects)
+    {
+
+        if ($this->linkActive === false) {
+            return;
+        }
+
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'swap-project-client';
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['portal_project_id' => $portalProjectId, 'mesa_project_ids' => implode(',', $mesaProjects)]);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $returnData = curl_exec($ch);
+
+        return $returnData;
+
+    }
+
+    public function dropSampleFile($sampleId, $mesaHash)
+    {
+
+        if ($this->linkActive === false) {
+            return;
+        }
+
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'drop-sample-file';
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['mesaHash' => $mesaHash, 'sampleId' => $sampleId]);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $returnData = curl_exec($ch);
+
+        return $returnData;
+
+    }
+
+    public function storeSampleFileInPortal($fileData, $mesaHash, $dataHash, $clientId, $sampleId, $originalFileName)
+    {
+
+        if ($this->linkActive === false) {
+            return;
+        }
+
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'accept-sample-file';
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $data = [
+            'fileData' => $fileData,
+            'mesaHash' => $mesaHash,
+            'dataHash' => $dataHash,
+            'clientId' => $clientId,
+            'sampleId' => $sampleId,
+            'originalFileName' => $originalFileName,
+        ];
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $returnData = curl_exec($ch);
+
+        return $returnData;
+
+    }
+
+    public function getReportingPreferenceForProject($portalProjectId)
+    {
+
+        if ($this->linkActive === false) {
+            return;
+        }
+
+        $this->loadSettings();
+
+        $route = $this->apiRoute.'report-preferences';
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $route);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $data = [
+            'id' => $portalProjectId,
+        ];
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: '.$this->accepts,
+            'Authorization: '.$this->authorization,
+        ]);
+
+        $returnData = curl_exec($ch);
+
+        return $returnData;
+
+    }
 }

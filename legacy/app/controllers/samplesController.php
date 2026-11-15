@@ -1,13 +1,13 @@
-<?PHP
+<?php
 
-//use function PHPSTORM_META\map;
-//use Project; 
+// use function PHPSTORM_META\map;
+// use Project;
 
 class samplesController extends Controller
 {
+    private $projectInfo = false;
 
-    private $projectInfo = False;
-    private $newSampleId = False; 
+    private $newSampleId = false;
 
     private function auditTrailIsNotApplicable($value)
     {
@@ -16,18 +16,19 @@ class samplesController extends Controller
 
     private function auditTrailDateIsOutOfSpec($value, $formDate)
     {
-        if(empty($value) || $this->auditTrailIsNotApplicable($value)){
-            return False;
+        if (empty($value) || $this->auditTrailIsNotApplicable($value)) {
+            return false;
         }
 
         $date = DateTime::createFromFormat('d-m-Y', $value);
         $errors = DateTime::getLastErrors();
 
-        if($date === False || ($errors !== False && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))){
-            return False;
+        if ($date === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            return false;
         }
 
         $date->setTime(0, 0, 0);
+
         return $date->getTimestamp() < $formDate;
     }
 
@@ -36,36 +37,46 @@ class samplesController extends Controller
         $value = trim($value);
         $range = trim($range);
 
-        if($value === '' || $range === '' || $this->auditTrailIsNotApplicable($value)){
-            return False;
+        if ($value === '' || $range === '' || $this->auditTrailIsNotApplicable($value)) {
+            return false;
         }
 
         $numericValue = str_replace(',', '.', $value);
-        if(!is_numeric($numericValue)){
-            return True;
+        if (! is_numeric($numericValue)) {
+            return true;
         }
 
         $pattern = '/(<=|>=|<|>|=)\s*(-?\d+(?:[.,]\d+)?)/';
         $remaining = preg_replace($pattern, '', $range);
-        if(trim($remaining) !== ''){
-            return False;
+        if (trim($remaining) !== '') {
+            return false;
         }
 
         preg_match_all($pattern, $range, $matches, PREG_SET_ORDER);
-        $acceptable = True;
+        $acceptable = true;
 
-        foreach($matches as $match){
+        foreach ($matches as $match) {
             $bound = (float) str_replace(',', '.', $match[2]);
             $number = (float) $numericValue;
 
-            if($match[1] == '<' && !($number < $bound)){ $acceptable = False; }
-            if($match[1] == '<=' && !($number <= $bound)){ $acceptable = False; }
-            if($match[1] == '>' && !($number > $bound)){ $acceptable = False; }
-            if($match[1] == '>=' && !($number >= $bound)){ $acceptable = False; }
-            if($match[1] == '=' && $number != $bound){ $acceptable = False; }
+            if ($match[1] == '<' && ! ($number < $bound)) {
+                $acceptable = false;
+            }
+            if ($match[1] == '<=' && ! ($number <= $bound)) {
+                $acceptable = false;
+            }
+            if ($match[1] == '>' && ! ($number > $bound)) {
+                $acceptable = false;
+            }
+            if ($match[1] == '>=' && ! ($number >= $bound)) {
+                $acceptable = false;
+            }
+            if ($match[1] == '=' && $number != $bound) {
+                $acceptable = false;
+            }
         }
 
-        return !empty($matches) && !$acceptable;
+        return ! empty($matches) && ! $acceptable;
     }
 
     private function auditTrailWasOutOfDateHere($data, $mediaId, $sampleId)
@@ -76,11 +87,11 @@ class samplesController extends Controller
     private function auditTrailFieldNote($data, $fieldId, $isOutOfSpec)
     {
         $note = checkKeyOrFalse($data, 4, $fieldId);
-        if(!$isOutOfSpec || $note === False || trim($note) === ''){
+        if (! $isOutOfSpec || $note === false || trim($note) === '') {
             return '';
         }
 
-        return '<br /><em>Uitleg: ' . htmlspecialchars($note, ENT_QUOTES, 'UTF-8') . '</em>';
+        return '<br /><em>Uitleg: '.htmlspecialchars($note, ENT_QUOTES, 'UTF-8').'</em>';
     }
 
     private function auditTrailOutOfSpecStyle($isOutOfSpec)
@@ -88,176 +99,143 @@ class samplesController extends Controller
         return $isOutOfSpec ? 'color: red;' : '';
     }
 
-
-
     /* Orphan function for searching both tests and packets */
 
+    public function scanAndSnap() {}
 
-    function scanAndSnap()
+    public function uploadPicture() {}
+
+    public function drop_tht_flag($sample_id)
     {
 
-    }
-
-    function uploadPicture()
-    {
-    
-    }
-
-    
-    function drop_tht_flag($sample_id)
-    {
-
-    
         $this->Sample->where('id', $sample_id);
 
-        $this->Sample->limit('1');            
-        
-        $result = $this->Sample->first();
-        
+        $this->Sample->limit('1');
 
-        if($result)
-        {
+        $result = $this->Sample->first();
+
+        if ($result) {
 
             $this->Sample->arrayToModel($result);
             $this->Sample->tht_code = '%null%';
             $this->Sample->save();
 
             $event = 'THT code verwijderd.';
-            upa('changeTracker', 'changed', array(2, $this->Sample->project, $this->Sample->id, False, $event, False, False), False);
+            upa('changeTracker', 'changed', [2, $this->Sample->project, $this->Sample->id, false, $event, false, false], false);
 
-            if(!empty($result['portal_sample_id']))
-            {
-                upa('portal', 'dropTht', array($result['portal_sample_id']), False);
+            if (! empty($result['portal_sample_id'])) {
+                upa('portal', 'dropTht', [$result['portal_sample_id']], false);
             }
 
-            
-            
-            
-        }                
+        }
     }
 
-
-    function developer_change()
+    public function developer_change()
     {
-        $this->render = False; 
+        $this->render = false;
 
         $user = getUserId();
 
         $field = $_POST['field'];
         $value = $_POST['value'];
 
-        if($user == '1' || $user == '9' )
-        {
-         
-                $this->Sample->id = $_POST['id'];
-                $this->Sample->$field = $value; 
-                $this->Sample->save();
+        if ($user == '1' || $user == '9') {
+
+            $this->Sample->id = $_POST['id'];
+            $this->Sample->$field = $value;
+            $this->Sample->save();
         }
 
     }
 
-    function developer($sampleId)
+    public function developer($sampleId)
     {
         $user = getUserId();
-        
 
-        if($user == '1' || $user == '9' )
-        {            
+        if ($user == '1' || $user == '9') {
 
-        $sample = new Sample();
-        $sample->where('id', $sampleId);
-        $sample = $sample->first();
+            $sample = new Sample;
+            $sample->where('id', $sampleId);
+            $sample = $sample->first();
 
-        if(!$sample)
-        {
-            print('did not find sample');
-            return;
-        }
+            if (! $sample) {
+                echo 'did not find sample';
 
-        $this->_template->set('id', $sampleId);             
-
-        $devForm = new formFactory($this->_controller);
-        $devForm->setId('devform');
-        $devForm->action('');
-        $devForm->method('');
-        
-        $devForm->addClass('form-horizontal');       
-        $devForm->setTemplate('generic');
-
-
-        foreach($sample as $field => $value)
-        {
-
-            $jsonCheck = json_decode($value, JSON_FORCE_OBJECT);
-
-
-            if(is_array($jsonCheck))
-            {                               
-                $devForm->addTextArea($field, $field, 'text', 'input-block-level', $value, False);                
+                return;
             }
 
-            else
-            {
-                $devForm->addInputField($field, $field, 'text', 'input-block-level', $value, '', False);              
+            $this->_template->set('id', $sampleId);
+
+            $devForm = new formFactory($this->_controller);
+            $devForm->setId('devform');
+            $devForm->action('');
+            $devForm->method('');
+
+            $devForm->addClass('form-horizontal');
+            $devForm->setTemplate('generic');
+
+            foreach ($sample as $field => $value) {
+
+                $jsonCheck = json_decode($value, JSON_FORCE_OBJECT);
+
+                if (is_array($jsonCheck)) {
+                    $devForm->addTextArea($field, $field, 'text', 'input-block-level', $value, false);
+                } else {
+                    $devForm->addInputField($field, $field, 'text', 'input-block-level', $value, '', false);
+                }
+
             }
-                
 
+            $this->_template->set('dev_form', $devForm->render());
+
+            $change = new ChangeTracker;
+
+            $change->where('sample', $sampleId);
+
+            $changes = $change->search();
+
+            $changeForm = '';
+
+            // $changeForm = new formFactory('changeTrackerController');
+            // $changeForm->setId('changeform');
+            // $changeForm->action('');
+            // $changeForm->method('');
+
+            // $changeForm->addClass('form-horizontal');
+            // $changeForm->setTemplate('generic');
+
+            foreach ($changes as $change) {
+
+                $changeForm .= generateHTML('samples/advanced', $change);
+            }
+
+            $this->_template->set('chg_form', $changeForm);
+
+        } else {
+            $this->render = false;
+
+            exit();
         }
 
-        $this->_template->set('dev_form', $devForm->render());             
-
-        $change = new ChangeTracker(); 
-
-        $change->where('sample', $sampleId);
-        
-        $changes = $change->search(); 
-
-        $changeForm = '';
-
-        // $changeForm = new formFactory('changeTrackerController');
-        // $changeForm->setId('changeform');
-        // $changeForm->action('');
-        // $changeForm->method('');
-        
-        // $changeForm->addClass('form-horizontal');       
-        // $changeForm->setTemplate('generic');
-
-        foreach($changes as $change)
-        {
-     
-            $changeForm .= generateHTML('samples/advanced', $change);
-        }
-        
-         $this->_template->set('chg_form', $changeForm);         
-        
-        }
-
-        else
-        {
-            $this->render = False;
-
-            die();
-        }
-     
     }
 
-    function listOpenSamples()
+    public function listOpenSamples()
     {
-        $this->doNotRenderHeader = True;
-                
-        //create a new date object
-        $cutoff = new DateTime();
+        $this->doNotRenderHeader = true;
 
-        //set the date to yesterday
+        // create a new date object
+        $cutoff = new DateTime;
+
+        // set the date to yesterday
         $cutoff->modify('-1 day');
 
-        //set the time to the beginning of the day
+        // set the time to the beginning of the day
         $cutoff->setTime(0, 0, 0);
 
-        //get the unixtimestamp
+        // get the unixtimestamp
         $cutoff = $cutoff->getTimestamp();
 
-        $sql =  'SELECT 
+        $sql = 'SELECT 
                     samples.id, barcode,date_registered, description, sample_innoculated, 
                     clients.name AS client_name
                 FROM  
@@ -268,67 +246,65 @@ class samplesController extends Controller
                     samples.client = clients.id
                 
                 WHERE  date_registered < :date_registered AND ( sample_innoculated IS NULL OR  sample_innoculated = "" OR sample_innoculated = 0) ';
-        
-        $results = $this->Sample->customQuery($sql, array('date_registered' => $cutoff ));              
 
-        $table = new tableFactory();   
+        $results = $this->Sample->customQuery($sql, ['date_registered' => $cutoff]);
+
+        $table = new tableFactory;
         $table->setTableId('nonInnocedSamplesTable');
         $table->loadTemplate('nonInnocSamples');
-               
-        foreach($results as $idx=>$result)
-        {
-            //convert the date_registered to a human readable format
+
+        foreach ($results as $idx => $result) {
+            // convert the date_registered to a human readable format
             $results[$idx]['date_registered'] = date('d-m-Y', $result['date_registered']);
             $results[$idx]['client'] = '';
         }
 
-        if(empty($results)){ 
+        if (empty($results)) {
             $results = 'Geen monsters gevonden';
         }
-     
-        
+
         $table->loadValues($results);
-        
+
         $this->_template->set('table', $table->renderTable());
-        
+
     }
 
-    function countOpenSamples()
+    public function countOpenSamples()
     {
-        $this->render = False; 
-                
-        //create a new date object
-        $cutoff = new DateTime();
+        $this->render = false;
 
-        //set the date to yesterday
+        // create a new date object
+        $cutoff = new DateTime;
+
+        // set the date to yesterday
         $cutoff->modify('-1 day');
 
-        //set the time to the beginning of the day
+        // set the time to the beginning of the day
         $cutoff->setTime(0, 0, 0);
 
-        //get the unixtimestamp
+        // get the unixtimestamp
         $cutoff = $cutoff->getTimestamp();
 
-        //$sql =  'SELECT id, sample_innoculated, CAST(date_registered as UNSIGNED ) as date_unsigned  FROM  samples  WHERE  date_registered < :date_registered AND ( sample_innoculated IS NULL OR  sample_innoculated = "" OR sample_innoculated = 0) LIMIT 10';
+        // $sql =  'SELECT id, sample_innoculated, CAST(date_registered as UNSIGNED ) as date_unsigned  FROM  samples  WHERE  date_registered < :date_registered AND ( sample_innoculated IS NULL OR  sample_innoculated = "" OR sample_innoculated = 0) LIMIT 10';
 
-        $sql =  'SELECT  COUNT(id) AS NumberOfOpenSamples FROM  samples  WHERE  date_registered < :date_registered AND ( sample_innoculated IS NULL OR  sample_innoculated = "" OR sample_innoculated = 0)';
+        $sql = 'SELECT  COUNT(id) AS NumberOfOpenSamples FROM  samples  WHERE  date_registered < :date_registered AND ( sample_innoculated IS NULL OR  sample_innoculated = "" OR sample_innoculated = 0)';
 
-        $results = $this->Sample->customQuery($sql, array('date_registered' => $cutoff ));                             
+        $results = $this->Sample->customQuery($sql, ['date_registered' => $cutoff]);
 
         return $results[0]['NumberOfOpenSamples'];
     }
 
-    function analysisSearch()
+    public function analysisSearch()
     {
 
         $this->render = 0;
         $searchTerm = $_POST['search'];
 
-        //find
-        $packetResults = upa('packets', 'findByTags', array($searchTerm));
-        $analysisResults = upa('flows', 'findByTags', array($searchTerm));
+        // find
+        $packetResults = upa('packets', 'findByTags', [$searchTerm]);
+        $analysisResults = upa('flows', 'findByTags', [$searchTerm]);
 
-        //generate html
+        // generate html
         $searchResult = '';
 
         foreach ($packetResults as $packet) {
@@ -342,11 +318,10 @@ class samplesController extends Controller
             $analysis['icon'] = 'icon-code-fork';
             $searchResult .= generateHTML('searchLine', $analysis);
         }
-        print $searchResult;
+        echo $searchResult;
     }
 
-
-    function searchAvailResearch($excludeProfiles = False)
+    public function searchAvailResearch($excludeProfiles = false)
     {
 
         $this->render = 0;
@@ -355,24 +330,23 @@ class samplesController extends Controller
         $searchTerm = $_POST['search'];
         $customerId = $_POST['customer_id'];
 
-        if(isset($_POST['searchTermQ'])){
-          $searchTermQ = $_POST['searchTermQ'];
-        } else{
-          $searchTermQ = '';
+        if (isset($_POST['searchTermQ'])) {
+            $searchTermQ = $_POST['searchTermQ'];
+        } else {
+            $searchTermQ = '';
         }
 
         $searchResult = '';
-        
-        //search loose assays
-        $assays = upa('assays', 'searchAssays', array($searchTerm));
 
-        //generate list
-        if(!$excludeProfiles)
-        {
-            //search researchProfiles ($searchTerm, $customerId)
-            //contains key private and global
-            $profiles = upa('researchProfiles', 'searchResearchProfiles', array($searchTerm, $customerId));
-        
+        // search loose assays
+        $assays = upa('assays', 'searchAssays', [$searchTerm]);
+
+        // generate list
+        if (! $excludeProfiles) {
+            // search researchProfiles ($searchTerm, $customerId)
+            // contains key private and global
+            $profiles = upa('researchProfiles', 'searchResearchProfiles', [$searchTerm, $customerId]);
+
             foreach ($profiles['private'] as $pRes) {
                 $pRes['research_type'] = 'profile';
                 $pRes['research_id'] = $pRes['id'];
@@ -393,14 +367,14 @@ class samplesController extends Controller
 
         foreach ($assays as $assay) {
 
-            $q = peekIntoJSON($assay['custom_fields'], "accred");
+            $q = peekIntoJSON($assay['custom_fields'], 'accred');
 
-            if($searchTermQ == 'q' && strtolower($q) <> 'q'){
-              continue;
+            if ($searchTermQ == 'q' && strtolower($q) != 'q') {
+                continue;
             }
 
-            if($searchTermQ == 'nq' && strtolower($q) == 'q'){
-              continue;
+            if ($searchTermQ == 'nq' && strtolower($q) == 'q') {
+                continue;
             }
 
             $assay['research_type'] = 'assay';
@@ -410,15 +384,13 @@ class samplesController extends Controller
             $searchResult .= generateHTML('searchLine', $assay);
         }
 
-
-        print $searchResult;
+        echo $searchResult;
     }
 
+    // end of orphan function
+    // **********************
 
-    //end of orphan function
-    //**********************
-
-    function beforeAction($queryString)
+    public function beforeAction($queryString)
     {
         $this->_template->set('MESA_LIMS_ACTIVE', 'active');
         $this->_template->set('MESA_SOCIAL_ACTIVE', '');
@@ -427,225 +399,186 @@ class samplesController extends Controller
 
     public function peek($sampleId)
     {
-        $this->render = False;
+        $this->render = false;
         $this->Sample->where('id', $sampleId);
         $results = $this->Sample->search();
         parray($results);
     }
 
-
-    function barcodeToId($barcode, $returnSampleAsObject = False)
+    public function barcodeToId($barcode, $returnSampleAsObject = false)
     {
         $barExp = explode('.', $barcode);
         $sampleBar = $barExp[0];
 
         $shortHand = $this->isShortHand($sampleBar);
 
-        if($shortHand === False){
-            $this->Sample->where('barcode', $sampleBar);   
-                 
-        } else{
-            $this->Sample->where('follow_no', $shortHand['follow_no']);                
-            $this->Sample->where('sample_type', $shortHand['sample_type']); 
-            $this->Sample->where('leg_type', $shortHand['matrix_type']);                    
+        if ($shortHand === false) {
+            $this->Sample->where('barcode', $sampleBar);
+
+        } else {
+            $this->Sample->where('follow_no', $shortHand['follow_no']);
+            $this->Sample->where('sample_type', $shortHand['sample_type']);
+            $this->Sample->where('leg_type', $shortHand['matrix_type']);
         }
 
-        $this->Sample->order('id', 'desc');   
-        $this->Sample->limit('1');            
+        $this->Sample->order('id', 'desc');
+        $this->Sample->limit('1');
         $result = $this->Sample->search();
 
-        if (!empty($result)) {
+        if (! empty($result)) {
 
-            if($returnSampleAsObject){
+            if ($returnSampleAsObject) {
                 return $result[0];
-            } 
-
-            else
-            {
+            } else {
                 return $result[0]['id'];
             }
 
         } else {
-            return False;
+            return false;
         }
 
     }
 
-    function thttest()
+    public function thttest()
     {
-        $this->render = False; 
-        print($this->generateBarCode(False, 'THT'));
+        $this->render = false;
+        echo $this->generateBarCode(false, 'THT');
 
     }
 
-    function generateBarCode($inParts = False, $prefixer = False, $offset = 0, $matrix = False)
+    public function generateBarCode($inParts = false, $prefixer = false, $offset = 0, $matrix = false)
     {
 
-        $parts = array();
+        $parts = [];
         $currentTime = time();
         $day = date('d', $currentTime);
         $month = date('m', $currentTime);
         $year = date('y', $currentTime);
 
+        if ($prefixer == 'L') {   // legionella
 
-
-        if($prefixer == 'L'){   //legionella
-
-            if($matrix == 'A'){
+            if ($matrix == 'A') {
                 $cQuery = 'SELECT `id`, `date_registered`, `follow_no` FROM `samples` WHERE `sample_type` = \'L\' AND `leg_type` = \'A\' ORDER BY `id` DESC LIMIT 1';
-                $results = $this->Sample->customQuery($cQuery, array(), False);
-            }
-
-            elseif($matrix == 'B'){
+                $results = $this->Sample->customQuery($cQuery, [], false);
+            } elseif ($matrix == 'B') {
                 $cQuery = 'SELECT `id`, `date_registered`, `follow_no` FROM `samples` WHERE `sample_type` = \'L\' AND `leg_type` = \'B\' ORDER BY `id` DESC LIMIT 1';
-                $results = $this->Sample->customQuery($cQuery, array(), False);
-            }
-
-            elseif($matrix == 'C'){
+                $results = $this->Sample->customQuery($cQuery, [], false);
+            } elseif ($matrix == 'C') {
                 $cQuery = 'SELECT `id`, `date_registered`, `follow_no` FROM `samples` WHERE `sample_type` = \'L\' AND `leg_type` = \'C\' ORDER BY `id` DESC LIMIT 1';
-                $results = $this->Sample->customQuery($cQuery, array(), False);
+                $results = $this->Sample->customQuery($cQuery, [], false);
+            } else {
+                $cQuery = 'SELECT `id`, `date_registered`, `follow_no` FROM `samples` WHERE `sample_type` = \'L\' ORDER BY `id` DESC LIMIT 1';
+                $results = $this->Sample->customQuery($cQuery, [], false);
             }
 
-            else{
-                $cQuery = 'SELECT `id`, `date_registered`, `follow_no` FROM `samples` WHERE `sample_type` = \'L\' ORDER BY `id` DESC LIMIT 1';
-                $results = $this->Sample->customQuery($cQuery, array(), False);
-            }
-            
-        } 
-        
-        elseif($prefixer == 'THT'){
-            
-            $boy = strtotime('first day of January '.date('Y') );
+        } elseif ($prefixer == 'THT') {
+
+            $boy = strtotime('first day of January '.date('Y'));
             $cQuery = 'SELECT `id`, `tht_code`, `date_registered` FROM `samples` WHERE `tht_code` IS NOT NULL AND `date_registered` > :boy ORDER BY `id` DESC LIMIT 100';
 
-            $results = $this->Sample->customQuery($cQuery, ['boy' => $boy], False);            
+            $results = $this->Sample->customQuery($cQuery, ['boy' => $boy], false);
 
-     
-       
             $cQuery = 'SELECT `id`, `tht_code`, `date_registered` FROM `samplebuffers` WHERE `tht` =\'1\' AND `tht_code` IS NOT NULL ORDER BY `id` DESC ';
-            $results2 = $this->Sample->customQuery($cQuery, array(), False);
-            
-          
-        
-            if(!empty($results2))
-            {
-                $results2 = array_map(function ($a) { 
-                    $a['tht_code'] = substr( $a['tht_code'], 3);   
-                    return $a; 
+            $results2 = $this->Sample->customQuery($cQuery, [], false);
+
+            if (! empty($results2)) {
+                $results2 = array_map(function ($a) {
+                    $a['tht_code'] = substr($a['tht_code'], 3);
+
+                    return $a;
                 }, $results2);
 
-                 usort($results2, function($a, $b) {
-                     return $b['tht_code'] - $a['tht_code'];
+                usort($results2, function ($a, $b) {
+                    return $b['tht_code'] - $a['tht_code'];
                 });
-            
+
             }
 
-        
+            if (! empty($results)) {
 
-            if(!empty($results))
-            {
-                
-                $results = array_map(function ($a) { 
-                    $a['tht_code'] = (int)substr( $a['tht_code'], 3);   
-                    return $a; 
+                $results = array_map(function ($a) {
+                    $a['tht_code'] = (int) substr($a['tht_code'], 3);
+
+                    return $a;
                 }, $results);
 
-                usort($results, function($a, $b) {
-                     return $b['tht_code'] - $a['tht_code'];
+                usort($results, function ($a, $b) {
+                    return $b['tht_code'] - $a['tht_code'];
                 });
             }
 
-        
-            //This is a bit hacky, but we need to consolidate both samplebuffers + samples barcodes
-            //to generate a new one. Since some may be commited already as sample, while other remain in the buffer
-            //but we also have to generate the date pre-amble etc. 
+            // This is a bit hacky, but we need to consolidate both samplebuffers + samples barcodes
+            // to generate a new one. Since some may be commited already as sample, while other remain in the buffer
+            // but we also have to generate the date pre-amble etc.
             $numberBuffer = 0;
-            $numberSamples = 0; 
+            $numberSamples = 0;
             $stampSamples = 0;
             $stampBuffer = 0;
-        
-            //sample table
-            if(!empty($results))
-            {
+
+            // sample table
+            if (! empty($results)) {
                 $numberSamples = $results[0]['tht_code'];
                 $stampSamples = $results[0]['date_registered'];
 
             }
 
-            //buffer table 
-            if(!empty($results2))
-            {                
+            // buffer table
+            if (! empty($results2)) {
                 $numberBuffer = $results2[0]['tht_code'];
-                $stampBuffer = $results2[0]['date_registered']; 
-            }
-         
-
-            if($numberBuffer > $numberSamples )
-            {                
-                $maxSample = (int)substr($numberBuffer, 4); 
-                $maxStamp = $stampBuffer;                
+                $stampBuffer = $results2[0]['date_registered'];
             }
 
-            else
-            {             
-                $maxSample = (int)substr($numberSamples, 4); 
+            if ($numberBuffer > $numberSamples) {
+                $maxSample = (int) substr($numberBuffer, 4);
+                $maxStamp = $stampBuffer;
+            } else {
+                $maxSample = (int) substr($numberSamples, 4);
                 $maxStamp = $stampSamples;
             }
 
-
-                                  
-            $faux = array();
+            $faux = [];
             $faux[0]['follow_no'] = $maxSample;
-            $faux[0]['date_registered'] = $maxStamp;        
-                        
+            $faux[0]['date_registered'] = $maxStamp;
 
-            if(empty($results) && empty($results2))
-            {
-                $results = array();
-            }
-
-            else
-            {
+            if (empty($results) && empty($results2)) {
+                $results = [];
+            } else {
                 $results = $faux;
             }
-            
-        }        
-        
-        else{
+
+        } else {
             $cQuery = 'SELECT `id`, `date_registered`, `follow_no` FROM `samples` WHERE `sample_type` !=\'L\' ORDER BY `id` DESC LIMIT 1';
-            $results = $this->Sample->customQuery($cQuery, array(), False);
+            $results = $this->Sample->customQuery($cQuery, [], false);
         }
 
-        
-
-        //base sample
-        $barCode = '';        
+        // base sample
+        $barCode = '';
         $prefix = $prefixer;
 
-        if($matrix !== False){
-            $prefix = $prefix . $matrix;
+        if ($matrix !== false) {
+            $prefix = $prefix.$matrix;
         }
 
-        //check prefix
+        // check prefix
         if (MESA_BAR_PREFIX == 'MMYY') {
-            $prefix .= $month . $year;
+            $prefix .= $month.$year;
         }
 
         if (MESA_BAR_PREFIX == 'YYMM') {
-            $prefix .= $year . $month;
+            $prefix .= $year.$month;
         }
 
         $barCode .= $prefix;
 
-        //check if it is a new year / day / month since
-        //last insertion and reset the counter if nessecairy, else one up
-        if (!empty($results)) {
+        // check if it is a new year / day / month since
+        // last insertion and reset the counter if nessecairy, else one up
+        if (! empty($results)) {
 
-            //valid? 
-            if(empty($results[0]['follow_no'])){
-                
+            // valid?
+            if (empty($results[0]['follow_no'])) {
+
             }
-            
+
             $sampleNumber = $results[0]['follow_no'] + 1;
 
             if (MESA_BAR_RESET == 'Y') {
@@ -665,7 +598,7 @@ class samplesController extends Controller
                 }
             }
 
-            //setup offset
+            // setup offset
             $sampleNumber = $sampleNumber + $offset;
 
         } else {
@@ -678,17 +611,17 @@ class samplesController extends Controller
         $parts['bar_type'] = '';
         $parts['bar_prefix'] = $prefix;
         $parts['bar_follow'] = $sampleNumber;
-        $parts['bar_full'] = $barCode;        
+        $parts['bar_full'] = $barCode;
 
-        if ($inParts === True) {
+        if ($inParts === true) {
             return $parts;
-        } else {                      
-            //print $barCode;
+        } else {
+            // print $barCode;
             return $barCode;
         }
     }
 
-    function renderEditForm($sampleId)
+    public function renderEditForm($sampleId)
     {
 
         $this->doNotRenderHeader = 1;
@@ -698,13 +631,13 @@ class samplesController extends Controller
 
         if (empty($results)) {
             writeLog('Sample id was empty', ALPC_ERROR);
+
             return;
         }
 
         $this->Sample->arrayToModel($results['0']);
-        $sampMethodOp = upa('sampleProcedures', 'getProceduresArr', array());
-        $customFields = upa('sampleFields', 'renderCustomFields', array($this->Sample->custom_fields));
-
+        $sampMethodOp = upa('sampleProcedures', 'getProceduresArr', []);
+        $customFields = upa('sampleFields', 'renderCustomFields', [$this->Sample->custom_fields]);
 
         $sForm = new formFactory($this->_controller);
         $sForm->setId('sampleForm');
@@ -713,155 +646,150 @@ class samplesController extends Controller
         $sForm->addClass('');
         $sForm->setTemplate('generic');
 
-        $sForm->addInputField('description', False, 'text', 'input-block-level', $this->Sample->description, '{MESA_SAD_SAMPLEDESCRIPTION}', False, '{MESA_SAD_SAMPLEDESCRIPTION}');
-        $sForm->addDropdownField('sampling_method', False, 'input-block-level', $this->Sample->sampling_method, $sampMethodOp, False, '{MESA_SAD_SAMPLEMETHOD}');
+        $sForm->addInputField('description', false, 'text', 'input-block-level', $this->Sample->description, '{MESA_SAD_SAMPLEDESCRIPTION}', false, '{MESA_SAD_SAMPLEDESCRIPTION}');
+        $sForm->addDropdownField('sampling_method', false, 'input-block-level', $this->Sample->sampling_method, $sampMethodOp, false, '{MESA_SAD_SAMPLEMETHOD}');
 
-
-        if(!empty($this->Sample->sample_extra)){
+        if (! empty($this->Sample->sample_extra)) {
             $extraFields = json_decode($this->Sample->sample_extra, JSON_FORCE_OBJECT);
-            if(is_array($extraFields)){
-                foreach($extraFields as $exFieldKey => $exFieldValue){
+            if (is_array($extraFields)) {
+                foreach ($extraFields as $exFieldKey => $exFieldValue) {
 
                     $intFilter = '';
 
-                    if($exFieldKey == 'follow'){
+                    if ($exFieldKey == 'follow') {
                         continue;
                         $fieldDescription = 'Volgnummer';
                     }
 
-                    if($exFieldKey == 'type'){
+                    if ($exFieldKey == 'type') {
                         $fieldDescription = 'Type';
                     }
 
-                    if($exFieldKey == 'temperature'){
+                    if ($exFieldKey == 'temperature') {
                         $fieldDescription = 'Temperatuur';
                     }
 
-                    if($exFieldKey == 'location'){
+                    if ($exFieldKey == 'location') {
                         $fieldDescription = 'Ruimte';
                     }
 
-                    if($exFieldKey == 'filter_volume'){
+                    if ($exFieldKey == 'filter_volume') {
                         $fieldDescription = 'Onderzocht volume in ml.';
                         $intFilter = ' int-filter';
                     }
 
-                    $sForm->addInputField($exFieldKey, False, 'text', 'input-block-level sample-extra-field' . $intFilter, $exFieldValue, $fieldDescription, False, $fieldDescription);
+                    $sForm->addInputField($exFieldKey, false, 'text', 'input-block-level sample-extra-field'.$intFilter, $exFieldValue, $fieldDescription, false, $fieldDescription);
 
                 }
             }
         }
-
-     
 
         $this->_template->set('form', $sForm->render());
         $this->_template->set('custom', $customFields);
 
     }
 
-    function saveRodac($faker = False){
+    public function saveRodac($faker = false)
+    {
 
         $this->render = 0;
         $client = $_POST['client'];
-        //$legProfile = upa('researchProfiles', 'fetchTip', array(RODAC_BASE_PROFILE), False);
-        $printSAids = array();
-        $printSampleIds = array();
+        // $legProfile = upa('researchProfiles', 'fetchTip', array(RODAC_BASE_PROFILE), False);
+        $printSAids = [];
+        $printSampleIds = [];
 
-        if(!isset($_POST['samplePackage'])){
-            $nextBar = $this->generateBarCode(True, False);
-            $jsonObj = array();
+        if (! isset($_POST['samplePackage'])) {
+            $nextBar = $this->generateBarCode(true, false);
+            $jsonObj = [];
             $jsonObj['nextBar'] = $nextBar['bar_full'];
-            $jsonObj['project'] = False;
-            print json_encode($jsonObj, JSON_FORCE_OBJECT);
+            $jsonObj['project'] = false;
+            echo json_encode($jsonObj, JSON_FORCE_OBJECT);
+
             return;
         }
 
-        $defaultPG = upa('productGroups', 'getClientDefaultGroup', array($client), False);        
+        $defaultPG = upa('productGroups', 'getClientDefaultGroup', [$client], false);
 
-        //$lockSQL = 'LOCK TABLE samples WRITE;';
-        //$this->Sample->raw($lockSQL); 
-       
+        // $lockSQL = 'LOCK TABLE samples WRITE;';
+        // $this->Sample->raw($lockSQL);
 
-        foreach($_POST['samplePackage'] as $sampleSubmit)
-        {
-                            
+        foreach ($_POST['samplePackage'] as $sampleSubmit) {
+
             unset($this->Sample->id);
-            
+
             $this->Sample->lock();
 
-            $barParts = $this->generateBarCode(True, False);
-            
+            $barParts = $this->generateBarCode(true, false);
+
             $this->Sample->barcode = $barParts['bar_full'];
             $this->Sample->follow_no = $barParts['bar_follow'];
-            $this->Sample->date_registered = time();       
+            $this->Sample->date_registered = time();
             $this->Sample->sample_type = 'R';
 
-            $this->Sample->save(); 
+            $this->Sample->save();
 
-            $this->Sample->unlock(); 
+            $this->Sample->unlock();
 
-            $this->Sample->id = $this->Sample->lastInsertId; 
-
+            $this->Sample->id = $this->Sample->lastInsertId;
 
             if ($_POST['createProject'] == 'True') {
-                
-                $projectName =  $barParts['bar_full']; 
 
-                if(!empty($_POST['customProjectName']))
-                {
+                $projectName = $barParts['bar_full'];
+
+                if (! empty($_POST['customProjectName'])) {
                     $projectName = $_POST['customProjectName'];
                 }
-                
-                //removed: 'client_reference' => $_POST['clientReference'],
-                $projectExtra = json_encode(array('sample_method' => $_POST['samplingMethod'],  'number_of_blanks' => $_POST['number_of_blanks']), JSON_FORCE_OBJECT);
-                
-                $otfProjectId = upa('projects', 'createProject', array($client, 0, $projectName, time(), $_POST['projectPreload'], $projectExtra, 2), 0);
-                
+
+                // removed: 'client_reference' => $_POST['clientReference'],
+                $projectExtra = json_encode(['sample_method' => $_POST['samplingMethod'],  'number_of_blanks' => $_POST['number_of_blanks']], JSON_FORCE_OBJECT);
+
+                $otfProjectId = upa('projects', 'createProject', [$client, 0, $projectName, time(), $_POST['projectPreload'], $projectExtra, 2], 0);
+
                 $this->Sample->project = $otfProjectId;
-                
+
                 $_POST['selected_project_id'] = $otfProjectId;
                 $_POST['createProject'] = 'False';
-                upa('projects', 'projectEdited', array($this->Sample->project), False);
-            } else{
-                if(isset($_POST['selected_project_id']) && !empty($_POST['selected_project_id'])){
+                upa('projects', 'projectEdited', [$this->Sample->project], false);
+            } else {
+                if (isset($_POST['selected_project_id']) && ! empty($_POST['selected_project_id'])) {
                     $this->Sample->project = $_POST['selected_project_id'];
-                    upa('projects', 'updateProjectExtraField' , array($_POST['selected_project_id'], 'number_of_blanks', $_POST['number_of_blanks']), False);
-                } else{
+                    upa('projects', 'updateProjectExtraField', [$_POST['selected_project_id'], 'number_of_blanks', $_POST['number_of_blanks']], false);
+                } else {
                     writeLog('Selected project id not found, could not continue when createProject == FALSE', ALPC_ERROR);
-                    die();
+                    exit();
                 }
             }
 
-            #$this->Sample->barcode = $barParts['bar_full'];
-            #$this->Sample->follow_no = $barParts['bar_follow'];
-            #$this->Sample->date_registered = time();            
+            // $this->Sample->barcode = $barParts['bar_full'];
+            // $this->Sample->follow_no = $barParts['bar_follow'];
+            // $this->Sample->date_registered = time();
             $this->Sample->description = RODAC_STD_DESCRIPTION;
-            //$this->Sample->client_description = RODAC_STD_DESCRIPTION;
+            // $this->Sample->client_description = RODAC_STD_DESCRIPTION;
             $this->Sample->client_description = 'Geen omschrijving beschikbaar';
-            $this->Sample->portal_product_group_id =  ($defaultPG) ? $defaultPG['portal_id'] : null;
+            $this->Sample->portal_product_group_id = ($defaultPG) ? $defaultPG['portal_id'] : null;
 
-            $custoArr = array();
-            $custArr['details']  = $sampleSubmit['thisDescription'];
+            $custoArr = [];
+            $custArr['details'] = $sampleSubmit['thisDescription'];
             $this->Sample->custom_fields = json_encode($custArr, JSON_FORCE_OBJECT);
 
             $this->Sample->registered_by = getUserId();
             $this->Sample->client = $client;
             $this->Sample->sampling_method = $_POST['samplingMethod'];
             $this->Sample->sample_note = $_POST['sample_note'];
-            //$this->Sample->sample_note = $_POST['sampleNotes'];
-            #$this->Sample->sample_type = 'R';
+            // $this->Sample->sample_note = $_POST['sampleNotes'];
+            // $this->Sample->sample_type = 'R';
 
-            //$extraArray = array('follow'=> $sampleSubmit['thisFollow'], 'type'=> $sampleSubmit['thisType'], 'temperature' => $sampleSubmit['thisTemp']);
-            $extraArray = array('follow'=> $sampleSubmit['thisFollow'], 'location'=> $sampleSubmit['thisLocation']);
+            // $extraArray = array('follow'=> $sampleSubmit['thisFollow'], 'type'=> $sampleSubmit['thisType'], 'temperature' => $sampleSubmit['thisTemp']);
+            $extraArray = ['follow' => $sampleSubmit['thisFollow'], 'location' => $sampleSubmit['thisLocation']];
             $this->Sample->sample_extra = json_encode($extraArray);
 
-            if(!empty($_POST['innocDate'])){
+            if (! empty($_POST['innocDate'])) {
                 $date = new DateTime($_POST['innocDate']);
 
-                if(!empty($_POST['innocTime'])){
+                if (! empty($_POST['innocTime'])) {
                     $time = new DateTime($_POST['innocTime']);
-                    $merge = new DateTime($date->format('d-m-Y') .' ' .$time->format('H:i:s'));
-                } else{
+                    $merge = new DateTime($date->format('d-m-Y').' '.$time->format('H:i:s'));
+                } else {
                     $merge = new DateTime($date->format('d-m-Y'));
                 }
 
@@ -871,52 +799,50 @@ class samplesController extends Controller
 
             $this->Sample->save();
 
-
-            $projReference = upa('projects', 'updateProjReference', array($this->Sample->project));
+            $projReference = upa('projects', 'updateProjReference', [$this->Sample->project]);
             $assignedProject = $this->Sample->project;
             $sampleId = $this->Sample->id;
-            
-            $this->newSampleId = $sampleId; 
 
-            $event = 'Monster ' . $this->Sample->barcode . ' toegevoegd aan project';
-            upa('changeTracker', 'changed', array(2, $this->Sample->project, $sampleId, False, $event, False, False), False);
+            $this->newSampleId = $sampleId;
+
+            $event = 'Monster '.$this->Sample->barcode.' toegevoegd aan project';
+            upa('changeTracker', 'changed', [2, $this->Sample->project, $sampleId, false, $event, false, false], false);
 
             array_push($printSampleIds, $sampleId);
 
             $orderNumber = 0;
-           
 
-            //auto trigger innoc if set to yes
-            if(RODAC_AUTO_REGISTER_INNOCULATION == '1'){
-                upa('samples', 'registerInnoculation', array($this->Sample->barcode,True), False);
+            // auto trigger innoc if set to yes
+            if (RODAC_AUTO_REGISTER_INNOCULATION == '1') {
+                upa('samples', 'registerInnoculation', [$this->Sample->barcode, true], false);
             }
 
         }
 
-        //$lockSQL = 'UNLOCK TABLES;';
-        //$this->Sample->raw($lockSQL); 
+        // $lockSQL = 'UNLOCK TABLES;';
+        // $this->Sample->raw($lockSQL);
 
-        upa('printing', 'batchProcess', array($printSampleIds, $printSAids, False), False);
+        upa('printing', 'batchProcess', [$printSampleIds, $printSAids, false], false);
 
-        $nextBar = $this->generateBarCode(True);
-        $jsonObj = array();
+        $nextBar = $this->generateBarCode(true);
+        $jsonObj = [];
         $jsonObj['nextBar'] = $nextBar['bar_full'];
         $jsonObj['project'] = $assignedProject;
 
-        if($faker == False)
-        {
-            print json_encode($jsonObj, JSON_FORCE_OBJECT);
+        if ($faker == false) {
+            echo json_encode($jsonObj, JSON_FORCE_OBJECT);
         }
 
     }
 
-    function addRodac(){
+    public function addRodac()
+    {
         $nextUp = $this->generateBarCode();
         $customFields = upa('sampleFields', 'renderCustomFields');
         $this->_template->set('custom_fields', $customFields);
 
-        $projectFields = upa('projectFields', 'renderProjectFields', array());
-        $projectPreloadFields = upa('projectFields', 'renderProjectFields', array(False, True));
+        $projectFields = upa('projectFields', 'renderProjectFields', []);
+        $projectPreloadFields = upa('projectFields', 'renderProjectFields', [false, true]);
 
         $this->_template->set('project_fields', $projectFields);
         $this->_template->set('project_preload_fields', $projectPreloadFields);
@@ -929,37 +855,37 @@ class samplesController extends Controller
         $sForm->setTemplate('generic');
         $sForm->returnAsFieldArray();
 
-        $sForm->addInputField('client_name', False, 'text', 'select2-input select2-default input-block-level', False, False,
-            array('autocomplete' => 'off', 'autocorrect' => 'off', 'autocapitalize' => 'off', 'spellcheck' => 'false', 'aria-activedescendant' => 'select2-result-label-351'));
+        $sForm->addInputField('client_name', false, 'text', 'select2-input select2-default input-block-level', false, false,
+            ['autocomplete' => 'off', 'autocorrect' => 'off', 'autocapitalize' => 'off', 'spellcheck' => 'false', 'aria-activedescendant' => 'select2-result-label-351']);
 
-        $sForm->addInputField('client', False, 'hidden', 'hidden', False, 'NULL', '');
-        $sForm->addInputField('subclient', False, 'hidden', 'hidden', False, 'NULL', '');
+        $sForm->addInputField('client', false, 'hidden', 'hidden', false, 'NULL', '');
+        $sForm->addInputField('subclient', false, 'hidden', 'hidden', false, 'NULL', '');
 
-        $sForm->addInputField('number_of_samples', False, 'text', 'input-block-level', '0', '', '', 'Aantal monsters');
-        //$sForm->addInputField('number_of_blanks', False, 'text', 'input-block-level', '1', '', '', 'Blancos');
+        $sForm->addInputField('number_of_samples', false, 'text', 'input-block-level', '0', '', '', 'Aantal monsters');
+        // $sForm->addInputField('number_of_blanks', False, 'text', 'input-block-level', '1', '', '', 'Blancos');
 
-        $blankOpts = array();
+        $blankOpts = [];
         $blankOpts['1'] = 'Ja';
         $blankOpts['0'] = 'Nee';
-        $sForm->addDropdownField('number_of_blanks', False, 'input-block-level', '1', $blankOpts, '', 'Incl. blanco?');
+        $sForm->addDropdownField('number_of_blanks', false, 'input-block-level', '1', $blankOpts, '', 'Incl. blanco?');
 
-        $sForm->addInputField('client_reference', False, 'text', 'input-block-level', '', '', 'disabled="disabled"', 'Monster / referentienummer');
+        $sForm->addInputField('client_reference', false, 'text', 'input-block-level', '', '', 'disabled="disabled"', 'Monster / referentienummer');
 
-        //$sForm->addDropdownField('subclient', False, 'input-block-level', '', array('NULL' => 'Select Subclient'), False);
-        //$sForm->addValidation('subclient', 'NOT_NULL');
+        // $sForm->addDropdownField('subclient', False, 'input-block-level', '', array('NULL' => 'Select Subclient'), False);
+        // $sForm->addValidation('subclient', 'NOT_NULL');
 
         $newProjButton = '<i id="newProjButton" class="icon-folder-open-alt"></i>';
-        $sForm->addDropdownField('project', False, 'input-block-level', '', array('NULL' => '{MESA_SAD_SAMPLEPROJECTSELECT}'), '', $newProjButton);
+        $sForm->addDropdownField('project', false, 'input-block-level', '', ['NULL' => '{MESA_SAD_SAMPLEPROJECTSELECT}'], '', $newProjButton);
         $sForm->addValidation('project', 'NOT_NULL');
 
-        $noteField = generateHTML('customFields/notes', array());
+        $noteField = generateHTML('customFields/notes', []);
         $this->_template->set('sample_note', $noteField);
 
-        $sampMethodOp = pa('sampleProcedures', 'getProceduresArr', array('SMPL_METHOD_AVAIL_RODAC'));
+        $sampMethodOp = pa('sampleProcedures', 'getProceduresArr', ['SMPL_METHOD_AVAIL_RODAC']);
 
-        //$sForm->addDropdownField('sampling_method', False, 'input-block-level', MESA_STD_SMPL_METHOD, $sampMethodOp, False, '{MESA_SAD_SAMPLEMETHOD}');
+        // $sForm->addDropdownField('sampling_method', False, 'input-block-level', MESA_STD_SMPL_METHOD, $sampMethodOp, False, '{MESA_SAD_SAMPLEMETHOD}');
 
-        $sForm->addDropdownField('sampling_method', False, 'input-block-level', MESA_STD_RODACSMPL_METHOD, $sampMethodOp, False, '{MESA_SAD_SAMPLEMETHOD}');
+        $sForm->addDropdownField('sampling_method', false, 'input-block-level', MESA_STD_RODACSMPL_METHOD, $sampMethodOp, false, '{MESA_SAD_SAMPLEMETHOD}');
         $sForm->submitTrough('saveSampleButton', 'saveSample');
 
         $formFields = $sForm->render();
@@ -967,62 +893,59 @@ class samplesController extends Controller
         $this->_template->set('sampling_method_standard', MESA_STD_RODACSMPL_METHOD);
     }
 
-    function renderAddRodacSamples($numberOfSamples, $project = 'CREATE'){
+    public function renderAddRodacSamples($numberOfSamples, $project = 'CREATE')
+    {
 
-        $this->doNotRenderHeader = True;
+        $this->doNotRenderHeader = true;
 
-        //$template = generateHTML('legionella/sampleAddRow', array());
-        //$nextUp = $th is->generateBarCode(False, True);
-        //$nextUp = $nextUp -1 ;
+        // $template = generateHTML('legionella/sampleAddRow', array());
+        // $nextUp = $th is->generateBarCode(False, True);
+        // $nextUp = $nextUp -1 ;
 
-        
-        //$assaysAvail = upa('assays', 'fetchAssaysList', array(True));
-        
+        // $assaysAvail = upa('assays', 'fetchAssaysList', array(True));
 
         $volgNummerI = 1;
-        if($project != 'CREATE'){
-            $numberOfSamplesInProjectAlready = upa('projects', 'countSamplesInProject', array($project));
+        if ($project != 'CREATE') {
+            $numberOfSamplesInProjectAlready = upa('projects', 'countSamplesInProject', [$project]);
             $volgNummerI = $volgNummerI + $numberOfSamplesInProjectAlready;
         }
-
 
         $table = '';
         $firstUp = '';
 
+        for ($i = 0; $i < $numberOfSamples; $i++) {
 
-        for($i = 0; $i <$numberOfSamples; $i++){
-
-            if($i == 0){
-                $firstUp =  $this->generateBarCode(False, False);
-                $nextUp  = $firstUp;
-            } else{
+            if ($i == 0) {
+                $firstUp = $this->generateBarCode(false, false);
+                $nextUp = $firstUp;
+            } else {
                 $offset = $i;
-                $nextUp  = $this->generateBarCode(False, False, $offset);
+                $nextUp = $this->generateBarCode(false, false, $offset);
             }
 
-            $arr = array();
+            $arr = [];
             $arr['i'] = $i;
-            $arr['barcode'] =$nextUp;
-            $arr['follow_number'] = $volgNummerI;        
-            $table .=  generateHTML('rodac/sampleAddRow', $arr);
+            $arr['barcode'] = $nextUp;
+            $arr['follow_number'] = $volgNummerI;
+            $table .= generateHTML('rodac/sampleAddRow', $arr);
             $volgNummerI = $volgNummerI + 1;
         }
 
-
-        print json_encode(array('table'=> $table, 'first_up' => $firstUp ));
-        //print $table;
+        echo json_encode(['table' => $table, 'first_up' => $firstUp]);
+        // print $table;
     }
 
-    function addLeg2019(){
-                
-        $nextUp = $this->generateBarCode(False, 'L');
+    public function addLeg2019()
+    {
+
+        $nextUp = $this->generateBarCode(false, 'L');
         $customFields = upa('sampleFields', 'renderCustomFields');
         $this->_template->set('custom_fields', $customFields);
 
-        $projectFields = upa('projectFields', 'renderProjectFields', array());
-        $projectPreloadFields = upa('projectFields', 'renderProjectFields', array(False, True));
-                
-        $this->_template->set('matrix_content', upa('matrix', 'matrixDropdown', array(json_decode(LEGIONELLA_ALLOWED_MATRICES), LEGIONELLA_STD_MATRIX ), False));
+        $projectFields = upa('projectFields', 'renderProjectFields', []);
+        $projectPreloadFields = upa('projectFields', 'renderProjectFields', [false, true]);
+
+        $this->_template->set('matrix_content', upa('matrix', 'matrixDropdown', [json_decode(LEGIONELLA_ALLOWED_MATRICES), LEGIONELLA_STD_MATRIX], false));
 
         $this->_template->set('MAX_LABEL_PRINT', MAX_LABEL_PRINT);
         $this->_template->set('project_fields', $projectFields);
@@ -1036,84 +959,81 @@ class samplesController extends Controller
         $sForm->setTemplate('generic');
         $sForm->returnAsFieldArray();
 
-        //client & project
-        //$sForm->addInputField('client_name', False, 'text', 'ajax-typeahead input-block-level', False, 'Start typing client name', array('autocomplete' => 'off'));
-        $sForm->addInputField('client_name', False, 'text', 'select2-input select2-default input-block-level', False, False,
-            array('autocomplete' => 'off', 'autocorrect' => 'off', 'autocapitalize' => 'off', 'spellcheck' => 'false', 'aria-activedescendant' => 'select2-result-label-351'));
+        // client & project
+        // $sForm->addInputField('client_name', False, 'text', 'ajax-typeahead input-block-level', False, 'Start typing client name', array('autocomplete' => 'off'));
+        $sForm->addInputField('client_name', false, 'text', 'select2-input select2-default input-block-level', false, false,
+            ['autocomplete' => 'off', 'autocorrect' => 'off', 'autocapitalize' => 'off', 'spellcheck' => 'false', 'aria-activedescendant' => 'select2-result-label-351']);
 
-        $sForm->addInputField('client', False, 'hidden', 'hidden', False, 'NULL', '');
-        $sForm->addInputField('subclient', False, 'hidden', 'hidden', False, 'NULL', '');
+        $sForm->addInputField('client', false, 'hidden', 'hidden', false, 'NULL', '');
+        $sForm->addInputField('subclient', false, 'hidden', 'hidden', false, 'NULL', '');
 
-        //$sForm->addDropdownField('subclient', False, 'input-block-level', '', array('NULL' => 'Select Subclient'), False);
-        //$sForm->addValidation('subclient', 'NOT_NULL');
+        // $sForm->addDropdownField('subclient', False, 'input-block-level', '', array('NULL' => 'Select Subclient'), False);
+        // $sForm->addValidation('subclient', 'NOT_NULL');
 
         $newProjButton = '<i id="newProjButton" class="icon-folder-open-alt"></i>';
-        $sForm->addDropdownField('project', False, 'input-block-level', '', array('NULL' => '{MESA_SAD_SAMPLEPROJECTSELECT}'), '', $newProjButton);
+        $sForm->addDropdownField('project', false, 'input-block-level', '', ['NULL' => '{MESA_SAD_SAMPLEPROJECTSELECT}'], '', $newProjButton);
         $sForm->addValidation('project', 'NOT_NULL');
 
-        //sample
-        $sForm->addInputField('barcode', False, 'text', 'input-block-level', $nextUp, '', 'disabled', '<i class="icon-barcode"></i> ');
-        $sForm->addInputField('samplen', False, 'text', 'input-block-level', '1', '', '', 'n=');
-        $sForm->addInputField('description', False, 'text', 'hidden input-block-level', LEGIONELLA_STD_DESCRIPTION, False, False, False);
+        // sample
+        $sForm->addInputField('barcode', false, 'text', 'input-block-level', $nextUp, '', 'disabled', '<i class="icon-barcode"></i> ');
+        $sForm->addInputField('samplen', false, 'text', 'input-block-level', '1', '', '', 'n=');
+        $sForm->addInputField('description', false, 'text', 'hidden input-block-level', LEGIONELLA_STD_DESCRIPTION, false, false, false);
         $sForm->addValidation('description', 'NOT_EMPTY');
 
-        //$sForm->addTextArea('sample_note', False, 'text', 'input-block-level', False, 'Monster notities', False, 'Notities');
-        //$sForm->addTextArea('sample_note', 'Notities', 'textarea', 'input-block-level', False, 'Monster notities');
+        // $sForm->addTextArea('sample_note', False, 'text', 'input-block-level', False, 'Monster notities', False, 'Notities');
+        // $sForm->addTextArea('sample_note', 'Notities', 'textarea', 'input-block-level', False, 'Monster notities');
 
-        //buffer, tht or both?
-        $registerMethods = array();
+        // buffer, tht or both?
+        $registerMethods = [];
         $registerMethods['standard'] = 'Normaal monster';
         $registerMethods['tht'] = 'THT monster';
         $registerMethods['buffer'] = 'Aanmelden in buffer';
 
-        $sForm->addDropdownField('register_as', False, 'hidden input-block-level', 'standard', $registerMethods, False, False);
-        $sForm->addInputField('tht_trigger_date', False, 'text', 'input-block-level', False, 'Inzet datum voor THT', False, 'Inzet datum voor THT');
+        $sForm->addDropdownField('register_as', false, 'hidden input-block-level', 'standard', $registerMethods, false, false);
+        $sForm->addInputField('tht_trigger_date', false, 'text', 'input-block-level', false, 'Inzet datum voor THT', false, 'Inzet datum voor THT');
 
+        // sampling method
+        $sampMethodOp = pa('sampleProcedures', 'getProceduresArr', ['SMPL_METHOD_AVAIL_NORMAL']);
 
-        //sampling method
-        $sampMethodOp = pa('sampleProcedures', 'getProceduresArr', array('SMPL_METHOD_AVAIL_NORMAL'));
-
-        $sForm->addDropdownField('sampling_method', False, 'input-block-level', MESA_STD_SMPL_METHOD, $sampMethodOp, False, '{MESA_SAD_SAMPLEMETHOD}');
-        //$renderedHtml .= generateHTML('customFields/customFieldTextArea', $field);
-        $noteField = generateHTML('customFields/notes', array());
+        $sForm->addDropdownField('sampling_method', false, 'input-block-level', MESA_STD_SMPL_METHOD, $sampMethodOp, false, '{MESA_SAD_SAMPLEMETHOD}');
+        // $renderedHtml .= generateHTML('customFields/customFieldTextArea', $field);
+        $noteField = generateHTML('customFields/notes', []);
         $this->_template->set('sample_note', $noteField);
 
-
-        //submit
-        //$sForm->addButton('saveSampleButton', 'icon-save', '', 'btn btn-primary', 'Hoi', '');
+        // submit
+        // $sForm->addButton('saveSampleButton', 'icon-save', '', 'btn btn-primary', 'Hoi', '');
         $sForm->submitTrough('saveSampleButton', 'saveSample');
 
-        $sForm->addInputField('pj_project_extra_client_reference', False, 'text', 'input-block-level project_extra_field', '', '', ['project_field_name' => 'client_reference'], 'Referentie klant');
-        $sForm->addInputField('client_reference', False, 'text', 'input-block-level project_extra_field', '', '', '', 'Referentie klant');
+        $sForm->addInputField('pj_project_extra_client_reference', false, 'text', 'input-block-level project_extra_field', '', '', ['project_field_name' => 'client_reference'], 'Referentie klant');
+        $sForm->addInputField('client_reference', false, 'text', 'input-block-level project_extra_field', '', '', '', 'Referentie klant');
 
         $formFields = $sForm->render();
         $this->_template->setByArray($formFields);
 
-        $profilesAvail = upa('researchProfiles', 'fetchLegionellaProfiles', array(False, True));
-        //$assaysAvail = upa('assays', 'fetchAssaysList', array(True));
+        $profilesAvail = upa('researchProfiles', 'fetchLegionellaProfiles', [false, true]);
+        // $assaysAvail = upa('assays', 'fetchAssaysList', array(True));
 
-        $this->_template->set('global_profile_list', $profilesAvail['html']);        
+        $this->_template->set('global_profile_list', $profilesAvail['html']);
         $this->_template->set('global_profile_drop_list', $profilesAvail['options']);
 
-        //$this->_template->set('assay_list', $assaysAvail['html']);
+        // $this->_template->set('assay_list', $assaysAvail['html']);
         $this->_template->set('assay_list', '');
 
-        
-
-        //$this->_template->set('assay_drop_list', $assaysAvail['options']);
-        $this->_template->set('cust_profile_list', '');        
+        // $this->_template->set('assay_drop_list', $assaysAvail['options']);
+        $this->_template->set('cust_profile_list', '');
 
     }
 
-    function addleg(){
-      
+    public function addleg()
+    {
+
         $nextUp = $this->generateBarCode();
         $customFields = upa('sampleFields', 'renderCustomFields');
         $this->_template->set('custom_fields', $customFields);
 
-        $projectFields = upa('projectFields', 'renderProjectFields', array());
-        $projectPreloadFields = upa('projectFields', 'renderProjectFields', array(False, True));
-        
+        $projectFields = upa('projectFields', 'renderProjectFields', []);
+        $projectPreloadFields = upa('projectFields', 'renderProjectFields', [false, true]);
+
         $this->_template->set('project_fields', $projectFields);
         $this->_template->set('project_preload_fields', $projectPreloadFields);
 
@@ -1125,24 +1045,24 @@ class samplesController extends Controller
         $sForm->setTemplate('generic');
         $sForm->returnAsFieldArray();
 
-        $sForm->addInputField('client_name', False, 'text', 'select2-input select2-default input-block-level', False, False,
-            array('autocomplete' => 'off', 'autocorrect' => 'off', 'autocapitalize' => 'off', 'spellcheck' => 'false', 'aria-activedescendant' => 'select2-result-label-351'));
+        $sForm->addInputField('client_name', false, 'text', 'select2-input select2-default input-block-level', false, false,
+            ['autocomplete' => 'off', 'autocorrect' => 'off', 'autocapitalize' => 'off', 'spellcheck' => 'false', 'aria-activedescendant' => 'select2-result-label-351']);
 
-        $sForm->addInputField('client', False, 'hidden', 'hidden', False, 'NULL', '');
-        $sForm->addInputField('subclient', False, 'hidden', 'hidden', False, 'NULL', '');
+        $sForm->addInputField('client', false, 'hidden', 'hidden', false, 'NULL', '');
+        $sForm->addInputField('subclient', false, 'hidden', 'hidden', false, 'NULL', '');
 
-        $sForm->addInputField('number_of_samples', False, 'text', 'input-block-level', '0', '', '', 'Aantal monsters');
+        $sForm->addInputField('number_of_samples', false, 'text', 'input-block-level', '0', '', '', 'Aantal monsters');
 
         $newProjButton = '<i id="newProjButton" class="icon-folder-open-alt"></i>';
-        $sForm->addDropdownField('project', False, 'input-block-level', '', array('NULL' => '{MESA_SAD_SAMPLEPROJECTSELECT}'), '', $newProjButton);
+        $sForm->addDropdownField('project', false, 'input-block-level', '', ['NULL' => '{MESA_SAD_SAMPLEPROJECTSELECT}'], '', $newProjButton);
         $sForm->addValidation('project', 'NOT_NULL');
 
-        $noteField = generateHTML('customFields/notes', array());
+        $noteField = generateHTML('customFields/notes', []);
         $this->_template->set('sample_note', $noteField);
 
-        $sampMethodOp = pa('sampleProcedures', 'getProceduresArr', array('SMPL_METHOD_AVAIL_LEGIONELLA'));
+        $sampMethodOp = pa('sampleProcedures', 'getProceduresArr', ['SMPL_METHOD_AVAIL_LEGIONELLA']);
 
-        $sForm->addDropdownField('sampling_method', False, 'input-block-level hidden', MESA_STD_LEGSMPL_METHOD, $sampMethodOp, False, '');
+        $sForm->addDropdownField('sampling_method', false, 'input-block-level hidden', MESA_STD_LEGSMPL_METHOD, $sampMethodOp, false, '');
 
         $sForm->submitTrough('saveSampleButton', 'saveSample');
 
@@ -1151,102 +1071,100 @@ class samplesController extends Controller
         $this->_template->set('sampling_method_standard', MESA_STD_LEGSMPL_METHOD);
     }
 
-    function renderAddLegSamples($numberOfSamples, $project = 'CREATE'){
+    public function renderAddLegSamples($numberOfSamples, $project = 'CREATE')
+    {
 
-        $this->doNotRenderHeader = True;
+        $this->doNotRenderHeader = true;
 
-        //also check how many samples are here already!
-        $profilesAvail = upa('researchProfiles', 'fetchLegionellaProfiles', array(False, True));
-        $sampMethodOp = upa('sampleProcedures', 'getProcedureDropDown', array(MESA_STD_LEGSMPL_METHOD, 'SMPL_METHOD_AVAIL_LEGIONELLA',False));        
+        // also check how many samples are here already!
+        $profilesAvail = upa('researchProfiles', 'fetchLegionellaProfiles', [false, true]);
+        $sampMethodOp = upa('sampleProcedures', 'getProcedureDropDown', [MESA_STD_LEGSMPL_METHOD, 'SMPL_METHOD_AVAIL_LEGIONELLA', false]);
 
         $volgNummerI = 1;
-        if($project != 'CREATE'){
-            $numberOfSamplesInProjectAlready = upa('projects', 'countSamplesInProject', array($project));
+        if ($project != 'CREATE') {
+            $numberOfSamplesInProjectAlready = upa('projects', 'countSamplesInProject', [$project]);
             $volgNummerI = $volgNummerI + $numberOfSamplesInProjectAlready;
-        }        
+        }
 
-
-        //$template = generateHTML('legionella/sampleAddRow', array());
-        //$nextUp = $this->generateBarCode(False, True);
-        //$nextUp = $nextUp -1 ;
+        // $template = generateHTML('legionella/sampleAddRow', array());
+        // $nextUp = $this->generateBarCode(False, True);
+        // $nextUp = $nextUp -1 ;
         $table = '';
 
-        for($i = 0; $i <$numberOfSamples; $i++){
+        for ($i = 0; $i < $numberOfSamples; $i++) {
 
-            if($i == 0){
-                $nextUp  = $this->generateBarCode(False, 'L', False, $profilesAvail['firstType']);
-            } else{
+            if ($i == 0) {
+                $nextUp = $this->generateBarCode(false, 'L', false, $profilesAvail['firstType']);
+            } else {
                 $offset = $i;
-                $nextUp  = $this->generateBarCode(False, 'L', $offset, $profilesAvail['firstType']);
+                $nextUp = $this->generateBarCode(false, 'L', $offset, $profilesAvail['firstType']);
             }
 
-            $arr = array();
+            $arr = [];
             $arr['i'] = $i;
             $arr['barcode'] = $nextUp;
-            //$arr['follow_number'] = $i + 1;
+            // $arr['follow_number'] = $i + 1;
             $arr['follow_number'] = $volgNummerI;
             $arr['global_profile_drop_list'] = $profilesAvail['options'];
             $arr['sample_methods'] = $sampMethodOp;
 
-            $table .=  generateHTML('legionella/sampleAddRow', $arr);
+            $table .= generateHTML('legionella/sampleAddRow', $arr);
             $volgNummerI = $volgNummerI + 1;
         }
 
-        print $table;
+        echo $table;
 
     }
 
-    function redrawLegBarcodes(){
-        $this->render = False;         
+    public function redrawLegBarcodes()
+    {
+        $this->render = false;
         $aCounter = 0;
         $bCounter = 0;
         $cCounter = 0;
 
-        $predicted = array();
+        $predicted = [];
 
-        foreach($_POST['samplePackage'] as $sampleSubmit){
-            
-            if($sampleSubmit['matrixType'] == 'A'){
+        foreach ($_POST['samplePackage'] as $sampleSubmit) {
+
+            if ($sampleSubmit['matrixType'] == 'A') {
                 $matrixToUse = 'A';
-                $counterValue = $aCounter; 
+                $counterValue = $aCounter;
                 $aCounter++;
-            }
-
-            elseif($sampleSubmit['matrixType'] == 'B'){
+            } elseif ($sampleSubmit['matrixType'] == 'B') {
                 $matrixToUse = 'B';
-                $counterValue = $bCounter; 
+                $counterValue = $bCounter;
                 $bCounter++;
-            }
-
-            elseif($sampleSubmit['matrixType'] == 'C'){
+            } elseif ($sampleSubmit['matrixType'] == 'C') {
                 $matrixToUse = 'C';
-                $counterValue = $cCounter; 
+                $counterValue = $cCounter;
                 $cCounter++;
             }
 
-            $bar =  $this->generateBarCode(False, 'L', $counterValue, $matrixToUse);
-            array_push($predicted, array('sampleI' => $sampleSubmit['sampleI'], 'barcode' => $bar));            
+            $bar = $this->generateBarCode(false, 'L', $counterValue, $matrixToUse);
+            array_push($predicted, ['sampleI' => $sampleSubmit['sampleI'], 'barcode' => $bar]);
         }
 
-        print json_encode($predicted);
+        echo json_encode($predicted);
 
     }
 
-    function predictLegBarcode($matrixType, $offset){
+    public function predictLegBarcode($matrixType, $offset)
+    {
         $this->render = false;
-        print $this->generateBarCode(False, 'L', $offset, $matrixType);
+        echo $this->generateBarCode(false, 'L', $offset, $matrixType);
     }
 
-    function add()
+    public function add()
     {
         $nextUp = $this->generateBarCode();
         $customFields = upa('sampleFields', 'renderCustomFields');
         $this->_template->set('custom_fields', $customFields);
 
-        $projectFields = upa('projectFields', 'renderProjectFields', array());
-        $projectPreloadFields = upa('projectFields', 'renderProjectFields', array(False, True));
+        $projectFields = upa('projectFields', 'renderProjectFields', []);
+        $projectPreloadFields = upa('projectFields', 'renderProjectFields', [false, true]);
 
-        $this->_template->set('matrix_content', upa('matrix', 'matrixDropdown', array(), False));
+        $this->_template->set('matrix_content', upa('matrix', 'matrixDropdown', [], false));
 
         $this->_template->set('MAX_LABEL_PRINT', MAX_LABEL_PRINT);
         $this->_template->set('project_fields', $projectFields);
@@ -1260,115 +1178,117 @@ class samplesController extends Controller
         $sForm->setTemplate('generic');
         $sForm->returnAsFieldArray();
 
-        //client & project
-        //$sForm->addInputField('client_name', False, 'text', 'ajax-typeahead input-block-level', False, 'Start typing client name', array('autocomplete' => 'off'));
-        $sForm->addInputField('client_name', False, 'text', 'select2-input select2-default input-block-level', False, False,
-            array('autocomplete' => 'off', 'autocorrect' => 'off', 'autocapitalize' => 'off', 'spellcheck' => 'false', 'aria-activedescendant' => 'select2-result-label-351'));
+        // client & project
+        // $sForm->addInputField('client_name', False, 'text', 'ajax-typeahead input-block-level', False, 'Start typing client name', array('autocomplete' => 'off'));
+        $sForm->addInputField('client_name', false, 'text', 'select2-input select2-default input-block-level', false, false,
+            ['autocomplete' => 'off', 'autocorrect' => 'off', 'autocapitalize' => 'off', 'spellcheck' => 'false', 'aria-activedescendant' => 'select2-result-label-351']);
 
-        $sForm->addInputField('client', False, 'hidden', 'hidden', False, 'NULL', '');
-        $sForm->addInputField('subclient', False, 'hidden', 'hidden', False, 'NULL', '');
+        $sForm->addInputField('client', false, 'hidden', 'hidden', false, 'NULL', '');
+        $sForm->addInputField('subclient', false, 'hidden', 'hidden', false, 'NULL', '');
 
-        //$sForm->addDropdownField('subclient', False, 'input-block-level', '', array('NULL' => 'Select Subclient'), False);
-        //$sForm->addValidation('subclient', 'NOT_NULL');
+        // $sForm->addDropdownField('subclient', False, 'input-block-level', '', array('NULL' => 'Select Subclient'), False);
+        // $sForm->addValidation('subclient', 'NOT_NULL');
 
         $newProjButton = '<i id="newProjButton" class="icon-folder-open-alt"></i>';
-        $sForm->addDropdownField('project', False, 'input-block-level', '', array('NULL' => '{MESA_SAD_SAMPLEPROJECTSELECT}'), '', $newProjButton);
+        $sForm->addDropdownField('project', false, 'input-block-level', '', ['NULL' => '{MESA_SAD_SAMPLEPROJECTSELECT}'], '', $newProjButton);
         $sForm->addValidation('project', 'NOT_NULL');
 
-        //sample
-        $sForm->addInputField('barcode', False, 'text', 'input-block-level', $nextUp, '', 'disabled', '<i class="icon-barcode"></i> ');
-        $sForm->addInputField('samplen', False, 'text', 'input-block-level', '1', '', '', 'n=');
-        $sForm->addInputField('description', False, 'text', 'input-block-level', False, '{MESA_SAD_SAMPLEDESCRIPTION}', False, '{MESA_SAD_DESCRIPTION}');
+        // sample
+        $sForm->addInputField('barcode', false, 'text', 'input-block-level', $nextUp, '', 'disabled', '<i class="icon-barcode"></i> ');
+        $sForm->addInputField('samplen', false, 'text', 'input-block-level', '1', '', '', 'n=');
+        $sForm->addInputField('description', false, 'text', 'input-block-level', false, '{MESA_SAD_SAMPLEDESCRIPTION}', false, '{MESA_SAD_DESCRIPTION}');
         $sForm->addValidation('description', 'NOT_EMPTY');
 
-        //$sForm->addTextArea('sample_note', False, 'text', 'input-block-level', False, 'Monster notities', False, 'Notities');
-        //$sForm->addTextArea('sample_note', 'Notities', 'textarea', 'input-block-level', False, 'Monster notities');
+        // $sForm->addTextArea('sample_note', False, 'text', 'input-block-level', False, 'Monster notities', False, 'Notities');
+        // $sForm->addTextArea('sample_note', 'Notities', 'textarea', 'input-block-level', False, 'Monster notities');
 
-        //buffer, tht or both?
-        $registerMethods = array();
+        // buffer, tht or both?
+        $registerMethods = [];
         $registerMethods['standard'] = 'Normaal monster';
         $registerMethods['tht'] = 'THT monster';
         $registerMethods['buffer'] = 'Aanmelden in buffer';
 
-        $sForm->addDropdownField('register_as', False, 'input-block-level', 'standard', $registerMethods, False, 'Aanmelden als');
-        $sForm->addInputField('tht_trigger_date', False, 'text', 'input-block-level', False, 'Inzet datum voor THT', False, 'Inzet datum voor THT');
+        $sForm->addDropdownField('register_as', false, 'input-block-level', 'standard', $registerMethods, false, 'Aanmelden als');
+        $sForm->addInputField('tht_trigger_date', false, 'text', 'input-block-level', false, 'Inzet datum voor THT', false, 'Inzet datum voor THT');
 
-        
-        $storageConditions = array();
-        $storageConditions['4'] = '+3°C';        
+        $storageConditions = [];
+        $storageConditions['4'] = '+3°C';
         $storageConditions['1'] = '+7°C';
         $storageConditions['2'] = '-18°C';
         $storageConditions['3'] = 'Kamer temperatuur';
 
-        $sForm->addDropdownField('tht_storage',  False, 'input-block-level', 'standard', $storageConditions, False, 'Bewaar temperatuur');
+        $sForm->addDropdownField('tht_storage', false, 'input-block-level', 'standard', $storageConditions, false, 'Bewaar temperatuur');
 
-        //sampling method
-        $sampMethodOp = pa('sampleProcedures', 'getProceduresArr', array('SMPL_METHOD_AVAIL_NORMAL'));
+        // sampling method
+        $sampMethodOp = pa('sampleProcedures', 'getProceduresArr', ['SMPL_METHOD_AVAIL_NORMAL']);
 
-        $sForm->addDropdownField('sampling_method', False, 'input-block-level', MESA_STD_SMPL_METHOD, $sampMethodOp, False, '{MESA_SAD_SAMPLEMETHOD}');
-        //$renderedHtml .= generateHTML('customFields/customFieldTextArea', $field);
-        $noteField = generateHTML('customFields/notes', array());
+        $sForm->addDropdownField('sampling_method', false, 'input-block-level', MESA_STD_SMPL_METHOD, $sampMethodOp, false, '{MESA_SAD_SAMPLEMETHOD}');
+        // $renderedHtml .= generateHTML('customFields/customFieldTextArea', $field);
+        $noteField = generateHTML('customFields/notes', []);
         $this->_template->set('sample_note', $noteField);
 
-
-        //submit
-        //$sForm->addButton('saveSampleButton', 'icon-save', '', 'btn btn-primary', 'Hoi', '');
+        // submit
+        // $sForm->addButton('saveSampleButton', 'icon-save', '', 'btn btn-primary', 'Hoi', '');
         $sForm->submitTrough('saveSampleButton', 'saveSample');
 
         $formFields = $sForm->render();
         $this->_template->setByArray($formFields);
 
-        $profilesAvail = upa('researchProfiles', 'fetchGlobalProfiles', array(False, True));
-        //$assaysAvail = upa('assays', 'fetchAssaysList', array(True));
+        $profilesAvail = upa('researchProfiles', 'fetchGlobalProfiles', [false, true]);
+        // $assaysAvail = upa('assays', 'fetchAssaysList', array(True));
 
         $this->_template->set('global_profile_list', $profilesAvail['html']);
         $this->_template->set('global_profile_drop_list', $profilesAvail['options']);
 
-        //$this->_template->set('assay_list', $assaysAvail['html']);
+        // $this->_template->set('assay_list', $assaysAvail['html']);
         $this->_template->set('assay_list', '');
 
-        //$this->_template->set('assay_drop_list', $assaysAvail['options']);
+        // $this->_template->set('assay_drop_list', $assaysAvail['options']);
         $this->_template->set('cust_profile_list', '');
     }
 
-    function update(){
+    public function update()
+    {
 
-        $profilesAvail = upa('researchProfiles', 'fetchGlobalProfiles', array(False, True));
-        $assaysAvail = upa('assays', 'fetchAssaysList', array(True));
+        $profilesAvail = upa('researchProfiles', 'fetchGlobalProfiles', [false, true]);
+        $assaysAvail = upa('assays', 'fetchAssaysList', [true]);
 
         $this->_template->set('global_profile_list', $profilesAvail['html']);
         $this->_template->set('global_profile_drop_list', $profilesAvail['options']);
 
         $this->_template->set('assay_list', '');
-        $this->_template->set('matrix_content', upa('matrix', 'matrixDropdown', array(), False));
+        $this->_template->set('matrix_content', upa('matrix', 'matrixDropdown', [], false));
 
-        //$this->_template->set('assay_list', $assaysAvail['html']);
+        // $this->_template->set('assay_list', $assaysAvail['html']);
         $this->_template->set('assay_drop_list', $assaysAvail['options']);
         $this->_template->set('cust_profile_list', '');
 
     }
 
-    function preciseCountEmptys(){
-      $this->Sample->where('isEmpty', '1');      
-      return $this->Sample->countIds();
+    public function preciseCountEmptys()
+    {
+        $this->Sample->where('isEmpty', '1');
+
+        return $this->Sample->countIds();
     }
 
-    public function checkSampleIsEmpty($id){                    
+    public function checkSampleIsEmpty($id)
+    {
         $this->Sample->where('id', $id);
         $sample = $this->Sample->search();
 
-        if(!empty($sample)){
-            $isEmpty = upa('sampleAnalysis', 'isSampleEmpty', array($id), False);      
-                        
-            if ($isEmpty == True) {
+        if (! empty($sample)) {
+            $isEmpty = upa('sampleAnalysis', 'isSampleEmpty', [$id], false);
+
+            if ($isEmpty == true) {
                 $this->Sample->id = $id;
                 $this->Sample->isEmpty = 1;
-            } else{                
+            } else {
                 $this->Sample->id = $id;
                 $this->Sample->isEmpty = 0;
             }
-    
-          $this->Sample->save();
+
+            $this->Sample->save();
         }
     }
 
@@ -1382,87 +1302,79 @@ class samplesController extends Controller
     //   }
     // }
 
-    function loadUpdateList($loadFrom = 0, $emptyOnly = True, $search = False ){
+    public function loadUpdateList($loadFrom = 0, $emptyOnly = true, $search = false)
+    {
 
         global $lang;
-        $this->render = False;
+        $this->render = false;
         $limit = 150;
-        $retObj = array();        
+        $retObj = [];
 
         $this->Sample->where('isEmpty', 1);
 
-        if($loadFrom != 0){
-            //$this->Sample->lessThanHard('id', $loadFrom);
+        if ($loadFrom != 0) {
+            // $this->Sample->lessThanHard('id', $loadFrom);
             $this->Sample->greaterThanHard('id', $loadFrom);
         }
 
         $this->Sample->limit($limit);
-        //$this->Sample->order('id', 'DESC');
+        // $this->Sample->order('id', 'DESC');
         $this->Sample->order('id', 'ASC');
         $result = $this->Sample->search();
-        $table  = '';
+        $table = '';
 
-        $striped = False; 
+        $striped = false;
 
         $clients = array_column($result, 'client');
         $clients = array_unique($clients);
-        $clientNames = []; 
+        $clientNames = [];
 
-        if(count($clients) > 0)
-        {
-            $clientObj = new Client();
-            $clientSql = 'SELECT * FROM clients WHERE id IN (' . implode(',', $clients) .')';
+        if (count($clients) > 0) {
+            $clientObj = new Client;
+            $clientSql = 'SELECT * FROM clients WHERE id IN ('.implode(',', $clients).')';
             $clientNames = $clientObj->customQuery($clientSql, []);
-            $clientNames = array_column($clientNames, null, 'id');                
+            $clientNames = array_column($clientNames, null, 'id');
         }
 
         $projects = array_column($result, 'project');
         $projects = array_unique($projects);
-        
-        if(count($projects) > 0)
-        {
-            $projectObj = new Project();
-            $projectSql = 'SELECT * FROM projects WHERE id IN (' . implode(',', $projects) .')';
+
+        if (count($projects) > 0) {
+            $projectObj = new Project;
+            $projectSql = 'SELECT * FROM projects WHERE id IN ('.implode(',', $projects).')';
             $projectNames = $projectObj->customQuery($projectSql, []);
             $projectNames = array_column($projectNames, null, 'id');
         }
 
-     
+        foreach ($result as $thisSampleArrInd => $thisSample) {
 
-        foreach($result as $thisSampleArrInd => $thisSample){
+            // client info
+            $clientInfo = array_key_exists($thisSample['client'], $clientNames) ? $clientNames[$thisSample['client']] : false;
 
-            //client info            
-            $clientInfo = array_key_exists($thisSample['client'], $clientNames) ? $clientNames[$thisSample['client']] : false;            
-            
-            //fallback
-            if($clientInfo === false)
-            {
-                $clientInfo = upa('clients', 'fetch', array($thisSample['client']), False);
+            // fallback
+            if ($clientInfo === false) {
+                $clientInfo = upa('clients', 'fetch', [$thisSample['client']], false);
             }
 
-            if(empty($clientInfo))
-            {
+            if (empty($clientInfo)) {
                 continue;
             }
 
             $thisSample['client_name'] = $clientInfo['name'];
             $thisSample['lb'] = $lang['LB'];
 
-
-            //innoc date
-            if(!empty($thisSample['sample_innoculated'])){
+            // innoc date
+            if (! empty($thisSample['sample_innoculated'])) {
                 $thisSample['inzet_datum'] = date('d-m-Y', $thisSample['sample_innoculated']);
-            } else{
+            } else {
                 $thisSample['inzet_datum'] = 'Niet ingezet';
             }
 
-            
-            $project = array_key_exists($thisSample['project'], $projectNames) ? $projectNames[$thisSample['project']] : false; 
-            
-            //fallback
-            if($project === false)
-            {
-                $project = upa('projects', 'fetch', array($thisSample['project']), False);
+            $project = array_key_exists($thisSample['project'], $projectNames) ? $projectNames[$thisSample['project']] : false;
+
+            // fallback
+            if ($project === false) {
+                $project = upa('projects', 'fetch', [$thisSample['project']], false);
             }
 
             $fields = json_decode($project['custom_fields'], JSON_FORCE_OBJECT);
@@ -1470,10 +1382,10 @@ class samplesController extends Controller
             $ontvangst = '';
             $ontvangstTijd = '';
 
-            if(is_array($fields) && array_key_exists('project_ontvangst', $fields )){
+            if (is_array($fields) && array_key_exists('project_ontvangst', $fields)) {
                 $ontvangst = $fields['project_ontvangst'];
             }
-            if(is_array($fields) && array_key_exists('project_ontvangst', $fields)){
+            if (is_array($fields) && array_key_exists('project_ontvangst', $fields)) {
                 $ontvangstTijd = $fields['project_tijd_ontvangst'];
             }
 
@@ -1481,112 +1393,107 @@ class samplesController extends Controller
             $thisSample['ontvangst_tijd'] = $ontvangstTijd;
             $thisSample['project_id'] = $thisSample['project'];
 
-            //note?
+            // note?
             $thisSample['warning_note'] = '';
 
-            if(!empty($thisSample['sample_note'])){
-                $thisSample['warning_note'] = '<i class="icon icon-exclamation-sign" onClick="noteDisplay(\'' . $thisSample['id'] . '\')"></i>';
+            if (! empty($thisSample['sample_note'])) {
+                $thisSample['warning_note'] = '<i class="icon icon-exclamation-sign" onClick="noteDisplay(\''.$thisSample['id'].'\')"></i>';
             }
 
-            //check if attachment array IS an array
+            // check if attachment array IS an array
             $attachtmentArray = json_decode($clientInfo['attachment'], JSON_FORCE_OBJECT);
 
-            if(!is_array($attachtmentArray)){
-                $attachtmentArray = array();
+            if (! is_array($attachtmentArray)) {
+                $attachtmentArray = [];
             }
 
-            //note 2?
-            if($clientInfo['notes'] != '' || !empty($attachtmentArray)){
-                $thisSample['warning_note'] .= '<i class="icon icon-smile" onClick="openClientWishes(\'' . $clientInfo['id'] . '\')"></i>';
+            // note 2?
+            if ($clientInfo['notes'] != '' || ! empty($attachtmentArray)) {
+                $thisSample['warning_note'] .= '<i class="icon icon-smile" onClick="openClientWishes(\''.$clientInfo['id'].'\')"></i>';
             }
 
             $thisSample['show_requested_analysis'] = 'hide';
-            $thisSample['import_requested_analysis'] = False;
-            $thisSample['import_other_directions'] =  False;
+            $thisSample['import_requested_analysis'] = false;
+            $thisSample['import_other_directions'] = false;
 
-            //coming from CSV?
-            if($thisSample['source'] == 1){
+            // coming from CSV?
+            if ($thisSample['source'] == 1) {
                 $importInfo = json_decode($thisSample['analyses_data'], JSON_FORCE_OBJECT);
                 $requestedAssays = checkKeyOrFalse($importInfo['analyses_selected']);
                 $requestedDirections = checkKeyOrFalse($importInfo['misc_directions']);
 
-                if(!empty($requestedAssays) || !empty($requestedDirections)){
+                if (! empty($requestedAssays) || ! empty($requestedDirections)) {
                     $thisSample['show_requested_analysis'] = '';
                     $thisSample['import_requested_analysis'] = $requestedAssays;
-                    $thisSample['import_other_directions'] = $requestedDirections;;
+                    $thisSample['import_other_directions'] = $requestedDirections;
                 }
             }
 
-            //coming from PORTAL
-            if($thisSample['source'] == 3){
+            // coming from PORTAL
+            if ($thisSample['source'] == 3) {
 
-              $importInfo = json_decode($thisSample['analyses_data'], JSON_FORCE_OBJECT);
-              $portalInfo = json_decode($thisSample['portal_analyses'], JSON_FORCE_OBJECT);
+                $importInfo = json_decode($thisSample['analyses_data'], JSON_FORCE_OBJECT);
+                $portalInfo = json_decode($thisSample['portal_analyses'], JSON_FORCE_OBJECT);
 
-              if(!is_array($portalInfo)){
-                continue;
-              }
-
-              $portalText = '';
-
-              if($portalInfo['profile_id'] == NULL)
-              {
-
-                foreach($portalInfo['assays_all'] as $idx => $allAssays){
-                  $portalText = $portalText . ' <span class="label label-info">' . $allAssays . '</span>';
-                }
-              } 
-              
-              else{
-
-                $portalText = ' <span class="label" style=" background-color: #f0a843;">'. $portalInfo['profile'] . '</span>';
-
-                foreach($portalInfo['assays_addition'] as $idx => $addedAssay){
-                  $portalText = $portalText . ' <span class="label label-success"><i class="icon icon-plus"></i>' . $addedAssay . '</span>';
+                if (! is_array($portalInfo)) {
+                    continue;
                 }
 
-                foreach($portalInfo['assays_substraction'] as $idx => $subbedAssay){
-                  $portalText = $portalText . ' <span class="label label-warning"><i class="icon icon-minus"></i>' . $subbedAssay . '</span>';
+                $portalText = '';
+
+                if ($portalInfo['profile_id'] == null) {
+
+                    foreach ($portalInfo['assays_all'] as $idx => $allAssays) {
+                        $portalText = $portalText.' <span class="label label-info">'.$allAssays.'</span>';
+                    }
+                } else {
+
+                    $portalText = ' <span class="label" style=" background-color: #f0a843;">'.$portalInfo['profile'].'</span>';
+
+                    foreach ($portalInfo['assays_addition'] as $idx => $addedAssay) {
+                        $portalText = $portalText.' <span class="label label-success"><i class="icon icon-plus"></i>'.$addedAssay.'</span>';
+                    }
+
+                    foreach ($portalInfo['assays_substraction'] as $idx => $subbedAssay) {
+                        $portalText = $portalText.' <span class="label label-warning"><i class="icon icon-minus"></i>'.$subbedAssay.'</span>';
+                    }
                 }
-              }
 
-
-              $requestedDirections = checkKeyOrFalse($importInfo['misc_directions']);
-              $thisSample['show_requested_analysis'] = '';
-              $thisSample['import_requested_analysis'] = $portalText;
-              $thisSample['import_other_directions'] = $requestedDirections;;
+                $requestedDirections = checkKeyOrFalse($importInfo['misc_directions']);
+                $thisSample['show_requested_analysis'] = '';
+                $thisSample['import_requested_analysis'] = $portalText;
+                $thisSample['import_other_directions'] = $requestedDirections;
 
             }
 
-            $thisSample['rowColour'] = ($striped == True) ? '#bcbcbc' : 'white';	
-            $striped = !$striped;
+            $thisSample['rowColour'] = ($striped == true) ? '#bcbcbc' : 'white';
+            $striped = ! $striped;
 
-            //make table
+            // make table
             $table .= generateHTML('updateList', $thisSample);
         }
 
         $retObj['number_of_emptys'] = count($result);
         $retObj['html'] = $table;
-        print json_encode($retObj, JSON_FORCE_OBJECT);
+        echo json_encode($retObj, JSON_FORCE_OBJECT);
     }
 
-    function generateRoamingForm($assayId, $client=False)
+    public function generateRoamingForm($assayId, $client = false)
     {
-        //roaming assay form
+        // roaming assay form
         $this->doNotRenderHeader = 1;
 
+        $referenceSources = upa('referenceSources', 'list', [$client], false);
 
-        $referenceSources = upa('referenceSources', 'list', array($client), False);
-
-        //defaults
+        // defaults
         $defaultDillution = '';
         $defaultReplicates = '0';
-        $defaultReferences = array();
+        $defaultReferences = [];
 
         if (isset($_POST['loadInDefaults']) && $_POST['loadInDefaults'] != false && $_POST['loadInDefaults'] != 'false') {
-            $assayDefaults = pa('assayProfiles', 'fetchProfileById', array($_POST['loadInDefaults']));
+            $assayDefaults = pa('assayProfiles', 'fetchProfileById', [$_POST['loadInDefaults']]);
             $defaultDillution = dillutionToText($assayDefaults['0']['dillutions']);
-            $defaultReferences = json_decode($assayDefaults['0']['reference'], True);
+            $defaultReferences = json_decode($assayDefaults['0']['reference'], true);
         }
 
         $roamF = new formFactory('researchProfiles');
@@ -1596,39 +1503,39 @@ class samplesController extends Controller
         $roamF->method('');
         $roamF->addClass('');
         $roamF->setTemplate('generic');
-        
+
         $roamF->addInputField('roam_replicates', '{MESA_SAD_REPLICATESSETUP}', 'text', 'input-block-level', $defaultReplicates, '{MESA_SAD_REPLICATESSETUP}');
 
-        $outputs = upa('results', 'fetchOutputFields', array($assayId), False);
+        $outputs = upa('results', 'fetchOutputFields', [$assayId], false);
 
-        $restrict = [1,4,6,9];
+        $restrict = [1, 4, 6, 9];
 
-        $assay = new Assay();
+        $assay = new Assay;
         $assay->select('type_base');
         $assay->where('id', $assayId);
-        $typeBase = $assay->first(); 
-        
+        $typeBase = $assay->first();
+
         $refValueFields = '';
 
         foreach ($outputs as $outputName => $dummyOutput) {
             $thisDefaultRef = '';
-            if (array_key_exists('ref_' . $outputName, $defaultReferences)) {
-                $thisDefaultRef = $defaultReferences['ref_' . $outputName];
+            if (array_key_exists('ref_'.$outputName, $defaultReferences)) {
+                $thisDefaultRef = $defaultReferences['ref_'.$outputName];
             }
-        
-            $numFilter = (in_array($typeBase['type_base'], $restrict)) ? 'numerical-only-filter' : '';
-            $roamF->addInputField('ref_' . $outputName, 'Referentie waarde voor uitkomst: ' . $dummyOutput, 'text', 'input-block-level input-reference-field ' . $numFilter, $thisDefaultRef, 'Referentie waarde');
-            
-        }
-        
-        $roamF->addDropdownField('reference_source', 'Referentie Bron', 'input-block-level', NULL, $referenceSources, False);
 
-        $roamF->submitTrough('saveRoamingButton', 'saveRoamingAssay');        
+            $numFilter = (in_array($typeBase['type_base'], $restrict)) ? 'numerical-only-filter' : '';
+            $roamF->addInputField('ref_'.$outputName, 'Referentie waarde voor uitkomst: '.$dummyOutput, 'text', 'input-block-level input-reference-field '.$numFilter, $thisDefaultRef, 'Referentie waarde');
+
+        }
+
+        $roamF->addDropdownField('reference_source', 'Referentie Bron', 'input-block-level', null, $referenceSources, false);
+
+        $roamF->submitTrough('saveRoamingButton', 'saveRoamingAssay');
 
         $fields = $roamF->render();
 
         foreach ($outputs as $outputName => $dummyOutput) {
-            $refValueFields = $fields['ref_'. $outputName];
+            $refValueFields = $fields['ref_'.$outputName];
         }
 
         $this->_template->set('roam_dillution', $defaultDillution);
@@ -1640,95 +1547,92 @@ class samplesController extends Controller
 
     }
 
-    function saveLeg($faker=False){
+    public function saveLeg($faker = false)
+    {
 
         $this->render = 0;
-        $printSAids = array();
-        $printSampleIds = array();
+        $printSAids = [];
+        $printSampleIds = [];
 
         $client = $_POST['client'];
-        
-        //$legProfile = upa('researchProfiles', 'fetchTip', array(LEGIONELLA_BASE_PROFILE), False);
 
-        if(!isset($_POST['samplePackage'])){
-            $nextBar = $this->generateBarCode(True, 'L');
-            $jsonObj = array();
+        // $legProfile = upa('researchProfiles', 'fetchTip', array(LEGIONELLA_BASE_PROFILE), False);
+
+        if (! isset($_POST['samplePackage'])) {
+            $nextBar = $this->generateBarCode(true, 'L');
+            $jsonObj = [];
             $jsonObj['nextBar'] = $nextBar['bar_full'];
-            $jsonObj['project'] = False;
-            print json_encode($jsonObj, JSON_FORCE_OBJECT);
+            $jsonObj['project'] = false;
+            echo json_encode($jsonObj, JSON_FORCE_OBJECT);
+
             return;
         }
 
-        $defaultPG = upa('productGroups', 'getClientDefaultGroup', array($client), False);                                    
+        $defaultPG = upa('productGroups', 'getClientDefaultGroup', [$client], false);
 
-        //$lockSQL = 'LOCK TABLE samples WRITE;';
-        //$this->Sample->raw($lockSQL);                 
+        // $lockSQL = 'LOCK TABLE samples WRITE;';
+        // $this->Sample->raw($lockSQL);
 
-        foreach($_POST['samplePackage'] as $sampleSubmit){             
-            
+        foreach ($_POST['samplePackage'] as $sampleSubmit) {
 
             unset($this->Sample->id);
 
-            $this->Sample->lock(); 
+            $this->Sample->lock();
 
-            $barParts = $this->generateBarCode(True, 'L', False, $sampleSubmit['thisMatrix']);
+            $barParts = $this->generateBarCode(true, 'L', false, $sampleSubmit['thisMatrix']);
 
             $this->Sample->barcode = $barParts['bar_full'];
             $this->Sample->follow_no = $barParts['bar_follow'];
-            $this->Sample->date_registered = time();           
+            $this->Sample->date_registered = time();
             $this->Sample->sample_type = 'L';
-            $this->Sample->leg_type = $sampleSubmit['thisMatrix'];             
-            
-            $this->Sample->save(); 
+            $this->Sample->leg_type = $sampleSubmit['thisMatrix'];
 
-            $this->Sample->unlock(); 
+            $this->Sample->save();
 
-            $this->Sample->id = $this->Sample->lastInsertId; 
-            
+            $this->Sample->unlock();
 
+            $this->Sample->id = $this->Sample->lastInsertId;
 
             if ($_POST['createProject'] == 'True') {
 
-                $projectName =  $barParts['bar_full']; 
+                $projectName = $barParts['bar_full'];
 
-                if(!empty($_POST['customProjectName']))
-                {
+                if (! empty($_POST['customProjectName'])) {
                     $projectName = $_POST['customProjectName'];
                 }
 
-                $projectExtra = json_encode([], JSON_FORCE_OBJECT);                
+                $projectExtra = json_encode([], JSON_FORCE_OBJECT);
 
-                $otfProjectId = upa('projects', 'createProject', array($client, 0, $projectName, time(), $_POST['projectPreload'], $projectExtra, 1), 0);
+                $otfProjectId = upa('projects', 'createProject', [$client, 0, $projectName, time(), $_POST['projectPreload'], $projectExtra, 1], 0);
                 $this->Sample->project = $otfProjectId;
                 $_POST['selected_project_id'] = $otfProjectId;
                 $_POST['createProject'] = 'False';
-                upa('projects', 'projectEdited', array($this->Sample->project), False);
-            } else{
-                if(isset($_POST['selected_project_id']) && !empty($_POST['selected_project_id'])){
+                upa('projects', 'projectEdited', [$this->Sample->project], false);
+            } else {
+                if (isset($_POST['selected_project_id']) && ! empty($_POST['selected_project_id'])) {
                     $this->Sample->project = $_POST['selected_project_id'];
-                } else{                    
-                    die();
+                } else {
+                    exit();
                 }
             }
 
-            //$this->Sample->barcode = $barParts['bar_full'];
-            //$this->Sample->sampling_method = $_POST['samplingMethod'];
-            $this->Sample->sampling_method = $sampleSubmit['thisSamplingMethod'];            
-            //$this->Sample->follow_no = $barParts['bar_follow'];
-            //$this->Sample->date_registered = time();            
+            // $this->Sample->barcode = $barParts['bar_full'];
+            // $this->Sample->sampling_method = $_POST['samplingMethod'];
+            $this->Sample->sampling_method = $sampleSubmit['thisSamplingMethod'];
+            // $this->Sample->follow_no = $barParts['bar_follow'];
+            // $this->Sample->date_registered = time();
             $this->Sample->description = LEGIONELLA_STD_DESCRIPTION;
             $this->Sample->client_description = 'Geen omschrijving beschikbaar';
-            //$this->Sample->client_description = LEGIONELLA_STD_DESCRIPTION;
-            $this->Sample->portal_product_group_id =   ($defaultPG) ? $defaultPG['portal_id'] : null;
+            // $this->Sample->client_description = LEGIONELLA_STD_DESCRIPTION;
+            $this->Sample->portal_product_group_id = ($defaultPG) ? $defaultPG['portal_id'] : null;
 
-            $custoArr = array();
-            //$custArr['details']  = $sampleSubmit['thisDescription'];
-            $custArr['details']  = '';
-            
-            //This injects the faker-set details into this sample. 
-            if($faker === True)
-            {
-                $customFields = array();
+            $custoArr = [];
+            // $custArr['details']  = $sampleSubmit['thisDescription'];
+            $custArr['details'] = '';
+
+            // This injects the faker-set details into this sample.
+            if ($faker === true) {
+                $customFields = [];
 
                 if (isset($_POST['customFields'])) {
                     foreach ($_POST['customFields'] as $customField) {
@@ -1737,53 +1641,42 @@ class samplesController extends Controller
 
                 }
                 $this->Sample->custom_fields = json_encode($customFields, JSON_FORCE_OBJECT);
-            }
-
-            else
-            {
+            } else {
                 $this->Sample->custom_fields = json_encode($custArr, JSON_FORCE_OBJECT);
             }
-            
 
             $this->Sample->registered_by = getUserId();
             $this->Sample->client = $client;
-            $this->Sample->sample_note = isset($_POST['sample_note']) ? $_POST['sample_note'] : '' ; 
-            //$this->Sample->sample_note = $_POST['sampleNotes'];
-            //$this->Sample->sample_type = 'L';
-            //$this->Sample->leg_type = $sampleSubmit['thisMatrix'];
+            $this->Sample->sample_note = isset($_POST['sample_note']) ? $_POST['sample_note'] : '';
+            // $this->Sample->sample_note = $_POST['sampleNotes'];
+            // $this->Sample->sample_type = 'L';
+            // $this->Sample->leg_type = $sampleSubmit['thisMatrix'];
 
-            $legVolumeA = (int)LEGIONELLA_FILTER_VOLUME_A;
-            $legVolumeB = (int)LEGIONELLA_FILTER_VOLUME_B;
-            $legVolumeC = (int)LEGIONELLA_FILTER_VOLUME_C;
+            $legVolumeA = (int) LEGIONELLA_FILTER_VOLUME_A;
+            $legVolumeB = (int) LEGIONELLA_FILTER_VOLUME_B;
+            $legVolumeC = (int) LEGIONELLA_FILTER_VOLUME_C;
 
-            if($sampleSubmit['thisMatrix'] == 'A'){
+            if ($sampleSubmit['thisMatrix'] == 'A') {
+                $legVolume = $legVolumeA;
+            } elseif ($sampleSubmit['thisMatrix'] == 'B') {
+                $legVolume = $legVolumeB;
+            } elseif ($sampleSubmit['thisMatrix'] == 'C') {
+                $legVolume = $legVolumeC;
+            } else {
+                // fallback to the most common
                 $legVolume = $legVolumeA;
             }
 
-            else if($sampleSubmit['thisMatrix'] == 'B'){
-                $legVolume = $legVolumeB;                
-            }
-
-            else if($sampleSubmit['thisMatrix'] == 'C'){
-                $legVolume = $legVolumeC;                
-            }
-
-            else{
-                //fallback to the most common
-                $legVolume = $legVolumeA;
-            }
-
-
-            $extraArray = array('follow'=> $sampleSubmit['thisFollow'], 'type'=> '', 'temperature' => '', 'filter_volume' => $legVolume );
+            $extraArray = ['follow' => $sampleSubmit['thisFollow'], 'type' => '', 'temperature' => '', 'filter_volume' => $legVolume];
             $this->Sample->sample_extra = json_encode($extraArray);
 
-            if(!empty($_POST['innocDate'])){
+            if (! empty($_POST['innocDate'])) {
                 $date = new DateTime($_POST['innocDate']);
 
-                if(!empty($_POST['innocTime'])){
+                if (! empty($_POST['innocTime'])) {
                     $time = new DateTime($_POST['innocTime']);
-                    $merge = new DateTime($date->format('d-m-Y') .' ' .$time->format('H:i:s'));
-                } else{
+                    $merge = new DateTime($date->format('d-m-Y').' '.$time->format('H:i:s'));
+                } else {
                     $merge = new DateTime($date->format('d-m-Y'));
                 }
 
@@ -1793,118 +1686,106 @@ class samplesController extends Controller
 
             $this->Sample->save();
 
-            $projReference = upa('projects', 'updateProjReference', array($this->Sample->project));
+            $projReference = upa('projects', 'updateProjReference', [$this->Sample->project]);
             $assignedProject = $this->Sample->project;
             $sampleId = $this->Sample->id;
-            $this->newSampleId = $sampleId; 
+            $this->newSampleId = $sampleId;
 
-            $event = 'Monster ' . $this->Sample->barcode . ' toegevoegd aan project';
-            upa('changeTracker', 'changed', array(2, $this->Sample->project, $sampleId, False, $event, False, False), False);
+            $event = 'Monster '.$this->Sample->barcode.' toegevoegd aan project';
+            upa('changeTracker', 'changed', [2, $this->Sample->project, $sampleId, false, $event, false, false], false);
 
-            $nextGroupNumber = upa('sampleAnalysis', 'nextFreeGroupNumber', array(), False);
+            $nextGroupNumber = upa('sampleAnalysis', 'nextFreeGroupNumber', [], false);
 
+            // upa('printing', 'sampleRegFire', array($sampleId), False);
             array_push($printSampleIds, $sampleId);
 
-
             $profile = $sampleSubmit['thisProfile'];
-            $profile = upa('researchProfiles', 'fetchProfileTip', array($profile), False);
-            
-            $assaysInProfile = upa('assayProfiles', 'fetchAnalysis', array($profile, True), False);            
-            $followNumber = upa('sampleAnalysis', 'nextFreeFollowNumber', array($sampleId), False);
+            $profile = upa('researchProfiles', 'fetchProfileTip', [$profile], false);
+
+            $assaysInProfile = upa('assayProfiles', 'fetchAnalysis', [$profile, true], false);
+            $followNumber = upa('sampleAnalysis', 'nextFreeFollowNumber', [$sampleId], false);
             $projectOrder = 0;
 
-            if(is_array($assaysInProfile))
-            {
-                foreach ($assaysInProfile as $pAssay) 
-                {
+            if (is_array($assaysInProfile)) {
+                foreach ($assaysInProfile as $pAssay) {
                     $thisOrder = $projectOrder + $pAssay['project_order'];
-                    $said = upa('sampleAnalysis', 'registerSampleAnalysis', array($sampleId, $nextGroupNumber, $followNumber, $profile, $pAssay['id'], 0, $pAssay['assay'], $this->Sample->project, False, False, $thisOrder), False);
-                    upa('results', 'registerResult', array($sampleId, $said, $profile, $pAssay['id']), False);                    
+                    $said = upa('sampleAnalysis', 'registerSampleAnalysis', [$sampleId, $nextGroupNumber, $followNumber, $profile, $pAssay['id'], 0, $pAssay['assay'], $this->Sample->project, false, false, $thisOrder], false);
+                    upa('results', 'registerResult', [$sampleId, $said, $profile, $pAssay['id']], false);
+                    // upa('printing', 'assayAddFire', array($said), False);
                     array_push($printSAids, $said);
                     $followNumber++;
                 }
-            }                                    
-        }        
+            }
+        }
 
-        upa('printing', 'batchProcess', array($printSampleIds, $printSAids, False), False);
-        $nextBar = $this->generateBarCode(True, 'L');
-        $jsonObj = array();
+        upa('printing', 'batchProcess', [$printSampleIds, $printSAids, false], false);
+        $nextBar = $this->generateBarCode(true, 'L');
+        $jsonObj = [];
         $jsonObj['nextBar'] = $nextBar['bar_full'];
         $jsonObj['project'] = $assignedProject;
 
-        if($faker == False)
-        {
-            print json_encode($jsonObj, JSON_FORCE_OBJECT);
+        if ($faker == false) {
+            echo json_encode($jsonObj, JSON_FORCE_OBJECT);
         }
-        
+
     }
 
-
-    function commitBuffer($buffer){
+    public function commitBuffer($buffer)
+    {
         $this->render = 0;
 
-        $legVolumeA = (int)LEGIONELLA_FILTER_VOLUME_A;
-        $legVolumeB = (int)LEGIONELLA_FILTER_VOLUME_B;
-        $legVolumeC = (int)LEGIONELLA_FILTER_VOLUME_C;
+        $legVolumeA = (int) LEGIONELLA_FILTER_VOLUME_A;
+        $legVolumeB = (int) LEGIONELLA_FILTER_VOLUME_B;
+        $legVolumeC = (int) LEGIONELLA_FILTER_VOLUME_C;
 
-
-        $printBool = True;
-        $portalSend = array();
-        $printSampleIds = array();
-        $printSAids = array();
+        $printBool = true;
+        $portalSend = [];
+        $printSampleIds = [];
+        $printSAids = [];
 
         $lockSQL = 'LOCK TABLE samples WRITE;';
-        $this->Sample->raw($lockSQL); 
+        $this->Sample->raw($lockSQL);
 
-        foreach($buffer as $projectSlug => $project){            
+        foreach ($buffer as $projectSlug => $project) {
 
-            $projectCreated = False;
+            $projectCreated = false;
 
-            $follow = 1; 
+            $follow = 1;
 
-            foreach($project as $sampleIdx => $sample){
-             
+            foreach ($project as $sampleIdx => $sample) {
+
                 unset($this->Sample->id);
 
                 $this->Sample->lock();
 
                 $props = json_decode($sample['sample_properties'], JSON_FORCE_OBJECT);
 
-                if(!is_array($props))
-                {
-                    $props = array();
+                if (! is_array($props)) {
+                    $props = [];
                 }
-                
+
                 $props = array_column($props, null, 'property_name');
 
-                //legionella from portal. 
-                if($sample['sample_research_type'] == '3')
-                {
+                // legionella from portal.
+                if ($sample['sample_research_type'] == '3') {
                     $matrix = checkKeyOrBlank($props, 'matrixType', 'value');
-                    $barParts = $this->generateBarCode(True, 'L', False, $matrix );
+                    $barParts = $this->generateBarCode(true, 'L', false, $matrix);
+                } else {
+                    $barParts = $this->generateBarCode(true);
                 }
-             
-                else
-                {
-                    $barParts = $this->generateBarCode(True);
-                }
-
-
 
                 $this->Sample->client = $sample['client'];
-                $this->Sample->subclient = 0;                
+                $this->Sample->subclient = 0;
                 $this->Sample->barcode = $barParts['bar_full'];
                 $this->Sample->date_registered = time();
                 $this->Sample->follow_no = $barParts['bar_follow'];
                 $this->Sample->tht_code = $sample['tht_code'];
 
-                if($sample['sample_research_type'] == '2')
-                {
+                if ($sample['sample_research_type'] == '2') {
                     $this->Sample->sample_type = 'R';
                 }
 
-                if($sample['sample_research_type'] == '3')
-                {                    
+                if ($sample['sample_research_type'] == '3') {
                     $this->Sample->sample_type = 'L';
                     $this->Sample->leg_type = $matrix;
                 }
@@ -1914,88 +1795,69 @@ class samplesController extends Controller
                 $this->Sample->unlock();
 
                 $this->Sample->id = $this->Sample->lastInsertId;
-           
-                if($projectCreated == False)
-                {                    
+
+                if ($projectCreated == false) {
                     $projectName = $barParts['bar_full'];
 
-                    if(!empty(trim($sample['project_name'])))
-                    {
+                    if (! empty(trim($sample['project_name']))) {
                         $projectName = $sample['project_name'];
                     }
-                    
 
-                    if($sample['sample_research_type'] == '3')
-                    {     
-                        
-                        //leg
+                    if ($sample['sample_research_type'] == '3') {
+
+                        // leg
                         $samplingTime = checkKeyOrBlank($props, 'waterSamplingTime', 'value');
 
                         $preloads = [
                             0 => [
                                 'preloadFieldId' => 'preload_project_bemonster_tijd',
-                                'preloadFieldVal' => $samplingTime
-                            ]
+                                'preloadFieldVal' => $samplingTime,
+                            ],
                         ];
-                        
-                        
-                        $otfProjectId = upa('projects', 'createProject', array($this->Sample->client, 0, $projectName, time(), $preloads, False, 1, $sample['portal_project']), 0);
-                    }
 
-                    elseif($sample['sample_research_type'] == '2')
-                    {     
+                        $otfProjectId = upa('projects', 'createProject', [$this->Sample->client, 0, $projectName, time(), $preloads, false, 1, $sample['portal_project']], 0);
+                    } elseif ($sample['sample_research_type'] == '2') {
 
-                        
-                        //rodac
+                        // rodac
                         $samplingTime = checkKeyOrBlank($props, 'rodacSamplingTime', 'value');
 
-                        $projectExtra = json_encode(array('sample_method' => MESA_STD_RODACSMPL_METHOD,  'number_of_blanks' => '0'), JSON_FORCE_OBJECT);
+                        $projectExtra = json_encode(['sample_method' => MESA_STD_RODACSMPL_METHOD,  'number_of_blanks' => '0'], JSON_FORCE_OBJECT);
 
                         $preloads = [
                             0 => [
                                 'preloadFieldId' => 'preload_project_bemonster_tijd',
-                                'preloadFieldVal' => $samplingTime
-                            ]
+                                'preloadFieldVal' => $samplingTime,
+                            ],
                         ];
-                        
-                        
-                        $otfProjectId = upa('projects', 'createProject', array($this->Sample->client, 0, $projectName, time(), $preloads, $projectExtra, 2, $sample['portal_project']), 0);
+
+                        $otfProjectId = upa('projects', 'createProject', [$this->Sample->client, 0, $projectName, time(), $preloads, $projectExtra, 2, $sample['portal_project']], 0);
+                    } else {
+                        $otfProjectId = upa('projects', 'createProject', [$this->Sample->client, $this->Sample->subclient, $projectName, time(), false, false, false, $sample['portal_project']], 0);
                     }
 
-                    else
-                    {
-                        $otfProjectId = upa('projects', 'createProject', array($this->Sample->client, $this->Sample->subclient, $projectName, time(), False, False, False, $sample['portal_project']), 0);
-                    }
-                    
-
-                                                            
                     $this->Sample->project = $otfProjectId;
                     $_POST['createProject'] = 'False';
                 }
 
-                upa('projects', 'setSamplingDate', array($this->Sample->project, $sample['sampling_date']), False);
+                upa('projects', 'setSamplingDate', [$this->Sample->project, $sample['sampling_date']], false);
 
-
-                //set receive date/time to row value, unless this is not a THT sample.
+                // set receive date/time to row value, unless this is not a THT sample.
                 $thtFlag = checkKeyOrFalse($sample, 'tht');
                 $thtFlag = filter_var($thtFlag, FILTER_VALIDATE_BOOLEAN);
 
-
-                if($thtFlag === True){
+                if ($thtFlag === true) {
                     $thisDate = checkKeyOrFalse($sample, 'receive_date');
                     $thisTime = checkKeyOrFalse($sample, 'receive_time');
-                }else{                                        
+                } else {
                     $thisDate = $_POST['commit_receive_date'];
-                    $thisTime =  $_POST['commit_receive_time'];
+                    $thisTime = $_POST['commit_receive_time'];
                 }
 
-                upa('projects', 'setReceivedDateAndTime', array($this->Sample->project, $thisDate, $thisTime), False);
-
+                upa('projects', 'setReceivedDateAndTime', [$this->Sample->project, $thisDate, $thisTime], false);
 
                 $this->Sample->description = $sample['sample_name'];
 
-                if($sample['sample_research_type'] == '3')
-                {
+                if ($sample['sample_research_type'] == '3') {
                     $this->Sample->description = LEGIONELLA_STD_DESCRIPTION;
                     $this->Sample->sample_type = 'L';
                     $this->Sample->leg_type = $matrix;
@@ -2003,256 +1865,228 @@ class samplesController extends Controller
                     $temperature = checkKeyOrBlank($props, 'waterTemperature', 'value');
                     $waterLineType = checkKeyOrBlank($props, 'waterLineType', 'value');
 
-                    if($matrix == 'A'){
+                    if ($matrix == 'A') {
                         $legVolume = $legVolumeA;
-                    }
-        
-                    else if($matrix == 'B'){
-                        $legVolume = $legVolumeB;                
-                    }
-        
-                    else if($matrix == 'C'){
-                        $legVolume = $legVolumeC;                
-                    }
-        
-                    else{
-                        //fallback to the most common
+                    } elseif ($matrix == 'B') {
+                        $legVolume = $legVolumeB;
+                    } elseif ($matrix == 'C') {
+                        $legVolume = $legVolumeC;
+                    } else {
+                        // fallback to the most common
                         $legVolume = $legVolumeA;
                     }
 
-                    $extraArray = array('follow'=> $follow, 'type'=> $waterLineType, 'temperature' => $temperature, 'filter_volume' => $legVolume );
+                    $extraArray = ['follow' => $follow, 'type' => $waterLineType, 'temperature' => $temperature, 'filter_volume' => $legVolume];
                     $this->Sample->sample_extra = json_encode($extraArray);
                 }
-                
 
-                if($sample['sample_research_type'] == '2')
-                {
+                if ($sample['sample_research_type'] == '2') {
                     $this->Sample->sample_type = 'R';
                     $this->Sample->description = RODAC_STD_DESCRIPTION;
 
                     $location = checkKeyOrBlank($props, 'rodacRoom', 'value');
 
-                    $extraArray = array('follow'=> $follow, 'location'=> $location);
+                    $extraArray = ['follow' => $follow, 'location' => $location];
                     $this->Sample->sample_extra = json_encode($extraArray);
-                  
+
                 }
-                
-                //$this->Sample->barcode = $barParts['bar_full'];
-                //$this->Sample->date_registered = time();
-                //$this->Sample->follow_no = $barParts['bar_follow'];
-                //$this->Sample->tht_code = $sample['tht_code'];
-                
-                
+
+                // $this->Sample->barcode = $barParts['bar_full'];
+                // $this->Sample->date_registered = time();
+                // $this->Sample->follow_no = $barParts['bar_follow'];
+                // $this->Sample->tht_code = $sample['tht_code'];
+
                 $this->Sample->sampling_method = $sample['sampling_method'];
                 $this->Sample->registered_by = getUserId();
 
-                $customFields = array('details' => $sample['sample_details']);                
-                
+                $customFields = ['details' => $sample['sample_details']];
+
                 $this->Sample->custom_fields = json_encode($customFields, JSON_FORCE_OBJECT);
-                
+
                 $this->Sample->sample_note = '';
 
-                if(!empty($sample['misc_directions']))
-                {
+                if (! empty($sample['misc_directions'])) {
                     $this->Sample->portal_notes = $sample['misc_directions'];
                 }
-                
 
-                
                 $this->Sample->source = $sample['source'];
-                
 
-                //csv
-                if((int)$sample['source'] === 1){
+                // csv
+                if ((int) $sample['source'] === 1) {
                     $this->Sample->client_description = $sample['sample_name'];
-                }                   
-
-                //LIMS, saved as buffer 
-                if((int)$sample['source'] === 2){
-                    $this->Sample->client_description = 'Geen omschrijving beschikbaar';
-                }                   
-              
-                //portal 
-                if((int)$sample['source'] === 3){
-                  $this->Sample->client_description = $sample['sample_name'];
-                  $this->Sample->portal_sample_id = $sample['portal_id'];
-                  $this->Sample->portal_project_id = $sample['portal_project'];
-                  $this->Sample->portal_analyses = $sample['portal_analyses'];
                 }
 
-                //is a PG set? if not, grab default
-                if(!empty($sample['portal_product_group_id']))
-                {
-                    $this->Sample->portal_product_group_id = $sample['portal_product_group_id'];
-                } 
+                // LIMS, saved as buffer
+                if ((int) $sample['source'] === 2) {
+                    $this->Sample->client_description = 'Geen omschrijving beschikbaar';
+                }
 
-                else
-                {
-                    $defaultPG = upa('productGroups', 'getClientDefaultGroup', array($this->Sample->client), False);                
+                // portal
+                if ((int) $sample['source'] === 3) {
+                    $this->Sample->client_description = $sample['sample_name'];
+                    $this->Sample->portal_sample_id = $sample['portal_id'];
+                    $this->Sample->portal_project_id = $sample['portal_project'];
+                    $this->Sample->portal_analyses = $sample['portal_analyses'];
+                }
+
+                // is a PG set? if not, grab default
+                if (! empty($sample['portal_product_group_id'])) {
+                    $this->Sample->portal_product_group_id = $sample['portal_product_group_id'];
+                } else {
+                    $defaultPG = upa('productGroups', 'getClientDefaultGroup', [$this->Sample->client], false);
                     $this->Sample->portal_product_group_id = ($defaultPG) ? $defaultPG['portal_id'] : null;
                 }
 
-                $infoArray = array('misc_directions' => $sample['misc_directions'] , 'analyses_selected' => $sample['analyses_selected'] );
+                $infoArray = ['misc_directions' => $sample['misc_directions'], 'analyses_selected' => $sample['analyses_selected']];
                 $this->Sample->analyses_data = json_encode($infoArray, JSON_FORCE_OBJECT);
                 $assignedProject = $this->Sample->project;
                 $this->Sample->save();
                 $follow++;
-                                                       
-                
-                //$lockSQL = 'UNLOCK TABLES;';
-                //$this->Sample->raw($lockSQL); 
+
+                // $lockSQL = 'UNLOCK TABLES;';
+                // $this->Sample->raw($lockSQL);
 
                 $sampleId = $this->Sample->id;
 
+                // add legionelal samples if legionella
+                if ($sample['sample_research_type'] == '3') {
 
-                
-                //add legionelal samples if legionella 
-                if($sample['sample_research_type'] == '3')
-                {
-
-                    $nextGroupNumber = upa('sampleAnalysis', 'nextFreeGroupNumber', array(), False);
+                    $nextGroupNumber = upa('sampleAnalysis', 'nextFreeGroupNumber', [], false);
 
                     $profile = checkKeyOrBlank($props, 'matrixBaseProfile', 'value');
-                   
-                    $profile = upa('researchProfiles', 'fetchProfileTip', array($profile), False);
-                    
-                    $assaysInProfile = upa('assayProfiles', 'fetchAnalysis', array($profile, True), False);            
 
+                    $profile = upa('researchProfiles', 'fetchProfileTip', [$profile], false);
 
-                    $followNumber = upa('sampleAnalysis', 'nextFreeFollowNumber', array($sampleId), False);
+                    $assaysInProfile = upa('assayProfiles', 'fetchAnalysis', [$profile, true], false);
+
+                    $followNumber = upa('sampleAnalysis', 'nextFreeFollowNumber', [$sampleId], false);
                     $projectOrder = 0;
-        
-                    if(is_array($assaysInProfile))
-                    {
-                        foreach ($assaysInProfile as $pAssay) 
-                        {
+
+                    if (is_array($assaysInProfile)) {
+                        foreach ($assaysInProfile as $pAssay) {
                             $thisOrder = $projectOrder + $pAssay['project_order'];
-                            $said = upa('sampleAnalysis', 'registerSampleAnalysis', array($sampleId, $nextGroupNumber, $followNumber, $profile, $pAssay['id'], 0, $pAssay['assay'], $this->Sample->project, False, False, $thisOrder), False);
-                            upa('results', 'registerResult', array($sampleId, $said, $profile, $pAssay['id']), False);                            
+                            $said = upa('sampleAnalysis', 'registerSampleAnalysis', [$sampleId, $nextGroupNumber, $followNumber, $profile, $pAssay['id'], 0, $pAssay['assay'], $this->Sample->project, false, false, $thisOrder], false);
+                            upa('results', 'registerResult', [$sampleId, $said, $profile, $pAssay['id']], false);
+                            // upa('printing', 'assayAddFire', array($said), False);
                             array_push($printSAids, $said);
                             $followNumber++;
                         }
-                    }             
+                    }
                 }
 
-
-                //register meta keys
+                // register meta keys
                 $metaData = json_decode($sample['meta'], JSON_FORCE_OBJECT);
 
-                //originating from portal, load in meta_data_key_id
-                //and store if it is set
-                $portalMeta = array();
-                if($sample['source'] == 3){
-                  $portalMeta = json_decode($sample['portal_meta'], JSON_FORCE_OBJECT);
+                // originating from portal, load in meta_data_key_id
+                // and store if it is set
+                $portalMeta = [];
+                if ($sample['source'] == 3) {
+                    $portalMeta = json_decode($sample['portal_meta'], JSON_FORCE_OBJECT);
                 }
 
                 $morder = 1;
-                foreach($metaData as $metaName => $metaValue){                    
+                foreach ($metaData as $metaName => $metaValue) {
 
-                    if(is_array($metaValue))
-                    {
+                    if (is_array($metaValue)) {
                         $metaName = $metaValue[0];
-                        $metaValue = $metaValue[1];                        
+                        $metaValue = $metaValue[1];
                     }
-        
 
-                    $meta_data_key_id = (array_key_exists($metaName,$portalMeta ) ? $portalMeta[$metaName] : NULL);
-                    upa('metadata', 'add', array($sampleId, $metaName, $metaValue, $meta_data_key_id, $morder), False);
+                    $meta_data_key_id = (array_key_exists($metaName, $portalMeta) ? $portalMeta[$metaName] : null);
+                    upa('metadata', 'add', [$sampleId, $metaName, $metaValue, $meta_data_key_id, $morder], false);
                     $morder++;
                 }
 
-                if($projectCreated == False){
-                    $projReference = upa('projects', 'updateProjReference', array($this->Sample->project));
-                    $projectCreated = True; //so we dont recreate for the next sample in the project
+                if ($projectCreated == false) {
+                    $projReference = upa('projects', 'updateProjReference', [$this->Sample->project]);
+                    $projectCreated = true; // so we dont recreate for the next sample in the project
                 }
 
-                $lteArray = array('sample_barcode' => $this->Sample->barcode, 'sample_description' => $this->Sample->description, 'sample_project' => $projReference, 'sample_project_id' => $this->Sample->project);
+                $lteArray = ['sample_barcode' => $this->Sample->barcode, 'sample_description' => $this->Sample->description, 'sample_project' => $projReference, 'sample_project_id' => $this->Sample->project];
 
-                //upa('labtalkEvents', 'automation', array('SAMPLEADD', $lteArray), 0);
-                
-                $event = 'Monster ' . $this->Sample->barcode . ' toegevoegd aan project';
-                
-                if($thtFlag === True)
-                {
-                    $event = $event . ' - THT code was: ' . $sample['tht_code'];
+                // upa('labtalkEvents', 'automation', array('SAMPLEADD', $lteArray), 0);
+
+                $event = 'Monster '.$this->Sample->barcode.' toegevoegd aan project';
+
+                if ($thtFlag === true) {
+                    $event = $event.' - THT code was: '.$sample['tht_code'];
                 }
-                                
-                
-                upa('changeTracker', 'changed', array(2, $this->Sample->project, $sampleId, False, $event, False, False), False);
-                
-                upa('projects', 'projectEdited', array($this->Sample->project), False);
+
+                upa('changeTracker', 'changed', [2, $this->Sample->project, $sampleId, false, $event, false, false], false);
+
+                upa('projects', 'projectEdited', [$this->Sample->project], false);
 
                 array_push($printSampleIds, $sampleId);
 
-                //add to portal send array
-                if($sample['source'] == 3){
-                  $thisSampleToSend = array(  'portal_sample_id' => $this->Sample->portal_sample_id,
-                                              'portal_project_id' => $this->Sample->portal_project_id,
-                                              'mesa_sample_id' => $sampleId,
-                                              'mesa_project_id' =>   $this->Sample->project,
-                                              'mesa_barcode' => $this->Sample->barcode,
-                                              'mesa_project_reference' => $projReference
-                                            );
-                  array_push($portalSend, $thisSampleToSend);
+                // add to portal send array
+                if ($sample['source'] == 3) {
+                    $thisSampleToSend = ['portal_sample_id' => $this->Sample->portal_sample_id,
+                        'portal_project_id' => $this->Sample->portal_project_id,
+                        'mesa_sample_id' => $sampleId,
+                        'mesa_project_id' => $this->Sample->project,
+                        'mesa_barcode' => $this->Sample->barcode,
+                        'mesa_project_reference' => $projReference,
+                    ];
+                    array_push($portalSend, $thisSampleToSend);
                 }
-            
+
             }
         }
 
-        if($printBool != False){
-            upa('printing', 'batchProcess', array($printSampleIds, [], False), False);
+        if ($printBool != false) {
+            upa('printing', 'batchProcess', [$printSampleIds, [], false], false);
         }
 
-        //if any, send to portal
-        if(!empty($portalSend)){
-          upa('portal', 'acceptSamples', array($portalSend), False);
+        // if any, send to portal
+        if (! empty($portalSend)) {
+            upa('portal', 'acceptSamples', [$portalSend], false);
         }
-        
+
         $this->Sample->subclient = 0;
     }
 
-    function fakerEntryPoint($data, $insertIntoProject = False, $legionella=False, $rodac = False)
+    public function fakerEntryPoint($data, $insertIntoProject = false, $legionella = false, $rodac = false)
     {
 
         $settings = [
-            'printBool' => False, 
-            'createProject' => ($insertIntoProject != False) ? False : True,  
-            'samplen' => 1, 
+            'printBool' => false,
+            'createProject' => ($insertIntoProject != false) ? false : true,
+            'samplen' => 1,
             'sampleNotes' => 'Testing sample',
-            'innocDate' => null, 
+            'innocDate' => null,
             'innocTime' => null,
             'registerType' => 'standard',
             'bufferSamplingTrack' => 'Onbekend',
-            'thtTriggerDate' => null, 
-            'thtStorage' => 0,            
+            'thtTriggerDate' => null,
+            'thtStorage' => 0,
             'bufferReceiveDateTrack' => '29-04-2020',
 
             'customFields' => [
                 [
                     'customFieldId' => 'details',
-                    'customFieldVal' => (isset($data->details) ? $data->details : '')
-                ]
+                    'customFieldVal' => (isset($data->details) ? $data->details : ''),
+                ],
             ],
 
             'sampleFields' => [
                 [
                     'sampleField' => 'client_name',
-                    'sampleFieldValue' => $data->client 
+                    'sampleFieldValue' => $data->client,
                 ],
 
                 [
                     'sampleField' => 'client',
-                    'sampleFieldValue' => $data->client
+                    'sampleFieldValue' => $data->client,
                 ],
 
                 [
                     'sampleField' => 'project',
-                    'sampleFieldValue' =>  ($insertIntoProject != False) ? $insertIntoProject : 'CREATE' 
+                    'sampleFieldValue' => ($insertIntoProject != false) ? $insertIntoProject : 'CREATE',
                 ],
 
                 [
                     'sampleField' => 'description',
-                    'sampleFieldValue' => $data->description 
+                    'sampleFieldValue' => $data->description,
                 ],
 
             ],
@@ -2260,131 +2094,118 @@ class samplesController extends Controller
             'projectPreload' => [
 
                 [
-                    'preloadFieldId'  => 'preload_project_monster',
-                    'preloadFieldVal' => ''
+                    'preloadFieldId' => 'preload_project_monster',
+                    'preloadFieldVal' => '',
                 ],
 
                 [
-                    'preloadFieldId'  => 'preload_project_bemonster_tijd',
-                    'preloadFieldVal' => ''
+                    'preloadFieldId' => 'preload_project_bemonster_tijd',
+                    'preloadFieldVal' => '',
                 ],
 
                 [
-                    'preloadFieldId'  => 'preload_project_ontvangst',
-                    'preloadFieldVal' => '29-04-2020'
+                    'preloadFieldId' => 'preload_project_ontvangst',
+                    'preloadFieldVal' => '29-04-2020',
                 ],
 
                 [
-                    'preloadFieldId'  => 'preload_project_tijd_ontvangst',
-                    'preloadFieldVal' => ''
-                ]
+                    'preloadFieldId' => 'preload_project_tijd_ontvangst',
+                    'preloadFieldVal' => '',
+                ],
 
-            ]
-     
-        ];        
+            ],
+
+        ];
 
         $_POST = $settings;
 
+        if ($legionella == false && $rodac == false) {
 
-        if($legionella == False && $rodac == False)
-        {
-            
-            $this->save(True, True);
+            $this->save(true, true);
         }
 
-        if($legionella == True)
-        {
-
-            
+        if ($legionella == true) {
 
             $_POST['client'] = $data->client;
             $_POST['clientReference'] = '';
 
-            $samplePackage = array(); 
-            $samplePackage[0] = array();
+            $samplePackage = [];
+            $samplePackage[0] = [];
 
             $samplePackage[0]['thisMatrix'] = $data->matrix;
             $samplePackage[0]['thisSamplingMethod'] = $data->sampmethod;
             $samplePackage[0]['thisFollow'] = $data->follow_no;
             $samplePackage[0]['thisProfile'] = $data->profile;
 
-                        
             $_POST['samplePackage'] = $samplePackage;
 
-            $_POST['selected_project_id'] =  ($insertIntoProject != False) ? $insertIntoProject : 'CREATE' ;
+            $_POST['selected_project_id'] = ($insertIntoProject != false) ? $insertIntoProject : 'CREATE';
 
-            $this->saveLeg(True);
+            $this->saveLeg(true);
         }
 
-        if($rodac == True)
-        {
-            
+        if ($rodac == true) {
+
             $_POST['client'] = $data->client;
             $_POST['clientReference'] = '';
             $_POST['number_of_blanks'] = 0;
             $_POST['samplingMethod'] = $data->sampmethod;
             $_POST['sample_note'] = 'Test';
-            
-            
 
-            $samplePackage = array(); 
-            $samplePackage[0] = array();
+            $samplePackage = [];
+            $samplePackage[0] = [];
 
-            $samplePackage[0]['follow'] = $data->follow_no;            
+            $samplePackage[0]['follow'] = $data->follow_no;
             $samplePackage[0]['thisFollow'] = $data->follow_no;
             $samplePackage[0]['thisLocation'] = 'test';
-            $samplePackage[0]['thisDescription'] =  (isset($data->details) ? $data->details : '');
-            #$samplePackage[0]['thisDescription'] = 'test';
-            
+            $samplePackage[0]['thisDescription'] = (isset($data->details) ? $data->details : '');
+            // $samplePackage[0]['thisDescription'] = 'test';
+
             $_POST['samplePackage'] = $samplePackage;
 
-            $_POST['selected_project_id'] =  ($insertIntoProject != False) ? $insertIntoProject : 'CREATE' ;
+            $_POST['selected_project_id'] = ($insertIntoProject != false) ? $insertIntoProject : 'CREATE';
 
-            
-
-            $this->saveRodac(True);
+            $this->saveRodac(true);
 
         }
-        
+
         return $this->newSampleId;
 
     }
 
+    public function save($nextBar = false, $faker = false)
+    {
 
-    function save($nextBar = False, $faker = False)
-    {   
-        
         $this->render = 0;
-                              
-        $bufferCommit = False;
 
-        $printSampleIds = array();
-        $printSAids = array();
+        $bufferCommit = false;
 
-        //load in sample fields into model
-        foreach($_POST['sampleFields'] as $sampleField) {            
-            $sampleFieldName = $sampleField['sampleField'];                        
+        $printSampleIds = [];
+        $printSAids = [];
+
+        // load in sample fields into model
+        foreach ($_POST['sampleFields'] as $sampleField) {
+            $sampleFieldName = $sampleField['sampleField'];
             $this->Sample->$sampleFieldName = $sampleField['sampleFieldValue'];
         }
 
-        //test
-        $defaultPG = upa('productGroups', 'getClientDefaultGroup', array($this->Sample->client), False);      
+        // test
+        $defaultPG = upa('productGroups', 'getClientDefaultGroup', [$this->Sample->client], false);
 
-        //put custom fields into array
-        $customFields = array();
+        // put custom fields into array
+        $customFields = [];
         if (isset($_POST['customFields'])) {
             foreach ($_POST['customFields'] as $customField) {
                 $customFields[$customField['customFieldId']] = $customField['customFieldVal'];
             }
         }
 
-        //COMMIT TO BUFFER NOT TO SAMPLE TABLE
-        if(isset($_POST['registerType']) && $_POST['registerType'] != 'standard'){
-            $bufferCommit = True; //set buffer flag for downstream project + barcode generation
-            $bufferPayload = array();            
-            
-            
-            //project?
+        // COMMIT TO BUFFER NOT TO SAMPLE TABLE
+        if (isset($_POST['registerType']) && $_POST['registerType'] != 'standard') {
+            $bufferCommit = true; // set buffer flag for downstream project + barcode generation
+            $bufferPayload = [];
+
+            // project?
             for ($i = 0; $i < $_POST['samplen']; $i++) {
                 $bufferPayload[$i]['client'] = $this->Sample->client;
                 $bufferPayload[$i]['source'] = 2;
@@ -2399,104 +2220,101 @@ class samplesController extends Controller
                 $bufferPayload[$i]['receive_time'] = $_POST['bufferReceiveTimeTrack'];
                 $bufferPayload[$i]['portal_product_group_id'] = ($defaultPG) ? $defaultPG['portal_id'] : null;
 
-                
-                if($_POST['registerType'] == 'tht'){
+                if ($_POST['registerType'] == 'tht') {
                     $bufferPayload[$i]['tht'] = 1;
                     $bufferPayload[$i]['authorized'] = 1;
-                    $bufferPayload[$i]['tht_date'] = $_POST['thtTriggerDate'];     
-                    $bufferPayload[$i]['tht_storage']  = $_POST['thtStorage'];
-                } else{
+                    $bufferPayload[$i]['tht_date'] = $_POST['thtTriggerDate'];
+                    $bufferPayload[$i]['tht_storage'] = $_POST['thtStorage'];
+                } else {
                     $bufferPayload[$i]['tht'] = 0;
                 }
             }
 
-            upa('sampleBuffers', 'commitFromRegisterScreen', array($bufferPayload), False);
-        } //END COMMIT TO BUFFER TABLE
+            upa('sampleBuffers', 'commitFromRegisterScreen', [$bufferPayload], false);
+        } // END COMMIT TO BUFFER TABLE
 
-        //COMMIT TO TABLE
-        if(isset($_POST['registerType']) && $_POST['registerType'] == 'standard'){
+        // COMMIT TO TABLE
+        if (isset($_POST['registerType']) && $_POST['registerType'] == 'standard') {
             $printBool = checkKeyOrFalse($_POST, 'printBool');
             $printBool = filter_var($printBool, FILTER_VALIDATE_BOOLEAN);
 
             if (isset($_POST['requested'])) {
                 $requested = $_POST['requested'];
             } else {
-                $requested = False;
+                $requested = false;
             }
             if (isset($_POST['roaming'])) {
                 $roaming = $_POST['roaming'];
             } else {
-                $roaming = False;
+                $roaming = false;
             }
             if (isset($_POST['excluded'])) {
                 $excluded = $_POST['excluded'];
             } else {
-                $excluded = False;
+                $excluded = false;
             }
 
-            //project created create samples
+            // project created create samples
             $this->Sample->subclient = 0;
 
-            //$profiler->addCheckpoint('preamble  complete');
+            // $profiler->addCheckpoint('preamble  complete');
 
-            // //lock 
-         
+            // //lock
+
             for ($i = 0; $i < $_POST['samplen']; $i++) {
 
-
                 unset($this->Sample->id);
-                
+
                 $this->Sample->lock();
-                              
-                $barParts = $this->generateBarCode(True);
-                
-                //Save this and unlock, so we can hopefully get no duplicate barcodes
+
+                $barParts = $this->generateBarCode(true);
+
+                // Save this and unlock, so we can hopefully get no duplicate barcodes
                 $this->Sample->barcode = $barParts['bar_full'];
                 $this->Sample->follow_no = $barParts['bar_follow'];
                 $this->Sample->date_registered = time();
-                $this->Sample->save(False);     //no transaction                
-                
-                $this->Sample->unlock(); 
-                
-                $this->Sample->id = $this->Sample->lastInsertId; 
-                                                
-                $updateProjReference = False;
+                $this->Sample->save(false);     // no transaction
 
-                //create project
+                $this->Sample->unlock();
+
+                $this->Sample->id = $this->Sample->lastInsertId;
+
+                $updateProjReference = false;
+
+                // create project
                 if ($_POST['createProject'] == 'True') {
-                                        
-                    $projectName =  $barParts['bar_full']; 
 
-                    if(!empty($_POST['customProjectName']))
-                    {
+                    $projectName = $barParts['bar_full'];
+
+                    if (! empty($_POST['customProjectName'])) {
                         $projectName = $_POST['customProjectName'];
                     }
 
-                    $otfProjectId = upa('projects', 'createProject', array($this->Sample->client, $this->Sample->subclient, $projectName, time(), $_POST['projectPreload']), 0);
-                    
+                    $otfProjectId = upa('projects', 'createProject', [$this->Sample->client, $this->Sample->subclient, $projectName, time(), $_POST['projectPreload']], 0);
+
                     $this->Sample->project = $otfProjectId;
-                    
+
                     $_POST['createProject'] = 'False';
-                    
-                    $updateProjReference = True; 
+
+                    $updateProjReference = true;
                 }
 
-                #$this->Sample->barcode = $barParts['bar_full'];
+                // $this->Sample->barcode = $barParts['bar_full'];
                 $this->Sample->client_description = 'Geen omschrijving beschikbaar';
-                #$this->Sample->follow_no = $barParts['bar_follow'];
-                #$this->Sample->date_registered = time();
+                // $this->Sample->follow_no = $barParts['bar_follow'];
+                // $this->Sample->date_registered = time();
                 $this->Sample->registered_by = getUserId();
                 $this->Sample->custom_fields = json_encode($customFields, JSON_FORCE_OBJECT);
                 $this->Sample->sample_note = $_POST['sampleNotes'];
-                $this->Sample->portal_product_group_id =  $defaultPG['portal_id'] ?? null; 
+                $this->Sample->portal_product_group_id = $defaultPG['portal_id'] ?? null;
 
-                if(!empty($_POST['innocDate'])){
+                if (! empty($_POST['innocDate'])) {
                     $date = new DateTime($_POST['innocDate']);
 
-                    if(!empty($_POST['innocTime'])){
+                    if (! empty($_POST['innocTime'])) {
                         $time = new DateTime($_POST['innocTime']);
-                        $merge = new DateTime($date->format('d-m-Y') . ' ' .$time->format('H:i:s'));
-                    } else{
+                        $merge = new DateTime($date->format('d-m-Y').' '.$time->format('H:i:s'));
+                    } else {
                         $merge = new DateTime($date->format('d-m-Y'));
                     }
 
@@ -2505,44 +2323,45 @@ class samplesController extends Controller
                 }
 
                 $assignedProject = $this->Sample->project;
-                
+
                 $this->Sample->save();
 
-                //unlock
-                //$lockSQL = 'UNLOCK TABLES;';
-                //$this->Sample->raw($lockSQL); 
+                // unlock
+                // $lockSQL = 'UNLOCK TABLES;';
+                // $this->Sample->raw($lockSQL);
 
-                //update project reference                                
-                $projReference = upa('projects', 'updateProjReference', array($this->Sample->project));                                
+                // update project reference
+                $projReference = upa('projects', 'updateProjReference', [$this->Sample->project]);
 
-                //create a labtalkEvent
-                $lteArray = array('sample_barcode' => $this->Sample->barcode, 'sample_description' => $this->Sample->description, 'sample_project' => $projReference, 'sample_project_id' => $this->Sample->project);
-                //upa('labtalkEvents', 'automation', array('SAMPLEADD', $lteArray), 0);
+                // create a labtalkEvent
+                $lteArray = ['sample_barcode' => $this->Sample->barcode, 'sample_description' => $this->Sample->description, 'sample_project' => $projReference, 'sample_project_id' => $this->Sample->project];
+                // upa('labtalkEvents', 'automation', array('SAMPLEADD', $lteArray), 0);
 
-                //$profiler->addCheckpoint('Labtalk done');
+                // $profiler->addCheckpoint('Labtalk done');
 
-                //get sample id and dump selected analysis
+                // get sample id and dump selected analysis
                 $sampleId = $this->Sample->id;
-                $this->newSampleId = $sampleId; 
+                $this->newSampleId = $sampleId;
 
-                $event = 'Monster ' . $this->Sample->barcode . ' toegevoegd aan project';
-                upa('changeTracker', 'changed', array(2, $this->Sample->project, $sampleId, False, $event, False, False), False);
+                $event = 'Monster '.$this->Sample->barcode.' toegevoegd aan project';
+                upa('changeTracker', 'changed', [2, $this->Sample->project, $sampleId, false, $event, false, false], false);
 
-                //$profiler->addCheckpoint('Changetracker done');
+                // $profiler->addCheckpoint('Changetracker done');
 
-                //run revisioner
-                //upa('revisions', 'registerRevision', array('SCOPE_PROJECT_SAMPLEADD', $this->Sample->project, $this->Sample->barcode), False);
-                upa('projects', 'projectEdited', array($this->Sample->project), False);
+                // run revisioner
+                // upa('revisions', 'registerRevision', array('SCOPE_PROJECT_SAMPLEADD', $this->Sample->project, $this->Sample->barcode), False);
+                upa('projects', 'projectEdited', [$this->Sample->project], false);
 
-                //$profiler->addCheckpoint('project edited done');
+                // $profiler->addCheckpoint('project edited done');
 
-                //fire sticker event
-                if($printBool != False){          
-                  array_push($printSampleIds, $sampleId);
+                // fire sticker event
+                if ($printBool != false) {
+                    // upa('printing', 'sampleRegFire', array($sampleId), False);
+                    array_push($printSampleIds, $sampleId);
                 }
 
-                //save the selected research profiles and assays into sampleAnalysis Table
-                //if it is a profile, the underlying assys need to be stored seperatly.
+                // save the selected research profiles and assays into sampleAnalysis Table
+                // if it is a profile, the underlying assys need to be stored seperatly.
                 $orderNumber = 0;
                 if (isset($_POST['requested'])) {
 
@@ -2550,39 +2369,40 @@ class samplesController extends Controller
 
                     foreach ($_POST['requested'] as $arrIndex => $request) {
 
-                        if (!isset($request['resType'])) {
+                        if (! isset($request['resType'])) {
                             continue;
                         }
 
                         if (is_array($excluded) && array_key_exists($arrIndex, $excluded)) {
                             $thisExcluded = $excluded[$arrIndex];
-                            //parray($thisExcluded);
+                            // parray($thisExcluded);
                         } else {
-                            $thisExcluded = array();
+                            $thisExcluded = [];
                         }
 
-                        $nextGroupNumber = pa('sampleAnalysis', 'nextFreeGroupNumber', array(), False);
+                        $nextGroupNumber = pa('sampleAnalysis', 'nextFreeGroupNumber', [], false);
 
                         if ($request['resType'] == 'profile') {
                             $profile = $request['resId'];
 
-                            //get this ordered by
-                            $assaysInProfile = pa('assayProfiles', 'fetchAnalysis', array($profile, True), False);
+                            // get this ordered by
+                            $assaysInProfile = pa('assayProfiles', 'fetchAnalysis', [$profile, true], false);
 
                             foreach ($assaysInProfile as $pAssay) {
-                                //skip if it has been excluded
+                                // skip if it has been excluded
                                 if (in_array($pAssay['id'], $thisExcluded)) {
                                     continue;
                                 }
 
                                 $projectOrder = $orderNumber + $pAssay['project_order'];
-                                $said = upa('sampleAnalysis', 'registerSampleAnalysis', array($sampleId, $nextGroupNumber, $followNumber, $profile, $pAssay['id'], 0, $pAssay['assay'], $this->Sample->project, False, False, $projectOrder), False);
-                                //$orderNumber++;
+                                $said = upa('sampleAnalysis', 'registerSampleAnalysis', [$sampleId, $nextGroupNumber, $followNumber, $profile, $pAssay['id'], 0, $pAssay['assay'], $this->Sample->project, false, false, $projectOrder], false);
+                                // $orderNumber++;
 
-                                upa('results', 'registerResult', array($sampleId, $said, $profile, $pAssay['id']), False);
-                                //fire label print
-                                if($printBool != False){                                  
-                                  array_push($printSAids, $said);
+                                upa('results', 'registerResult', [$sampleId, $said, $profile, $pAssay['id']], false);
+                                // fire label print
+                                if ($printBool != false) {
+                                    // upa('printing', 'assayAddFire', array($said), False);
+                                    array_push($printSAids, $said);
                                 }
 
                                 $followNumber++;
@@ -2595,34 +2415,34 @@ class samplesController extends Controller
 
                             $orderNumber++;
                             $projectOrder = $orderNumber;
-                            $said = upa('sampleAnalysis', 'registerSampleAnalysis', array($sampleId, $nextGroupNumber, $followNumber, 0, $request['assayId'], 0, $request['assayId'], $this->Sample->project, False, False, $projectOrder), False);
+                            $said = upa('sampleAnalysis', 'registerSampleAnalysis', [$sampleId, $nextGroupNumber, $followNumber, 0, $request['assayId'], 0, $request['assayId'], $this->Sample->project, false, false, $projectOrder], false);
 
                             $assay = $_POST['roaming'][$arrIndex]['assay_id'];
                             $dillutions = $_POST['roaming'][$arrIndex]['roam_dillution'];
                             $replicates = $_POST['roaming'][$arrIndex]['roam_replicates'];
-                            //$reference = $_POST['roaming'][$arrIndex]['reference'];
+                            // $reference = $_POST['roaming'][$arrIndex]['reference'];
 
-                            $refValueArr = array();
+                            $refValueArr = [];
                             foreach ($_POST['roaming'][$arrIndex] as $roamFieldId => $roamFieldValue) {
                                 if (substr($roamFieldId, 0, 4) == 'ref_') {
                                     $refValueArr[$roamFieldId] = $roamFieldValue;
                                 }
                             }
 
-                            //$referenceScope = $_POST['roaming'][$arrIndex]['reference_scope'];
+                            // $referenceScope = $_POST['roaming'][$arrIndex]['reference_scope'];
                             $reference = json_encode($refValueArr, JSON_FORCE_OBJECT);
 
-                            //reference source 
+                            // reference source
                             $referenceSource = $_POST['roaming'][$arrIndex]['reference_source'];
 
-                            $roamId = upa('roamingAnalysis', 'saveRoam', array($said, $assay, $dillutions, $replicates, $reference, $referenceSource), False);
-                            upa('sampleAnalysis', 'setRoam', array($said, $roamId), False);
-                            upa('results', 'registerResult', array($sampleId, $said, 0, $assay, $roamId), False);
+                            $roamId = upa('roamingAnalysis', 'saveRoam', [$said, $assay, $dillutions, $replicates, $reference, $referenceSource], false);
+                            upa('sampleAnalysis', 'setRoam', [$said, $roamId], false);
+                            upa('results', 'registerResult', [$sampleId, $said, 0, $assay, $roamId], false);
 
-                            //fire label print
-                            if($printBool != False){
-                            
-                              array_push($printSAids, $said);
+                            // fire label print
+                            if ($printBool != false) {
+                                // upa('printing', 'assayAddFire', array($said), False);
+                                array_push($printSAids, $said);
                             }
 
                             $followNumber++;
@@ -2630,185 +2450,168 @@ class samplesController extends Controller
                     }
                 }
             }
-            
 
+        } // END COMMIT TO SAMPLE TABLE
 
-        } //END COMMIT TO SAMPLE TABLE
+        // release print
+        upa('printing', 'batchProcess', [$printSampleIds, $printSAids, false], false);
 
-
-        //release print 
-        upa('printing', 'batchProcess', array($printSampleIds, $printSAids, False), False);
-
-        if ($nextBar !== False) {
-            $nextBar = $this->generateBarCode(True);
+        if ($nextBar !== false) {
+            $nextBar = $this->generateBarCode(true);
         }
 
-        $jsonObj = array();
+        $jsonObj = [];
         $jsonObj['nextBar'] = $nextBar['bar_full'];
 
-        if(isset($assignedProject)){
+        if (isset($assignedProject)) {
             $jsonObj['project'] = $assignedProject;
-        } else{
-            $jsonObj['project'] = False;
+        } else {
+            $jsonObj['project'] = false;
         }
 
-        //caught by screen to avoid loading in project which may not be assigned
-        $jsonObj['bufferCommit'] = $bufferCommit;   
+        // caught by screen to avoid loading in project which may not be assigned
+        $jsonObj['bufferCommit'] = $bufferCommit;
 
-        if($faker == False)
-        {
-            print json_encode($jsonObj, JSON_FORCE_OBJECT);
+        if ($faker == false) {
+            echo json_encode($jsonObj, JSON_FORCE_OBJECT);
         }
-        
-
 
     }
 
+    public function sampleUpdateWrapper()
+    {
 
+        $this->render = false;
+        $printSAids = [];
+        $printWarning = false;
+        $warningSamples = [];
 
-    function sampleUpdateWrapper(){
+        if (! isset($_POST['samplesToUpdate']) || count($_POST['samplesToUpdate']) == 0) {
+            echo json_encode([]);
 
-        $this->render = False;
-        $printSAids = array();
-        $printWarning = False; 
-        $warningSamples = []; 
-
-        if(!isset($_POST['samplesToUpdate']) || count($_POST['samplesToUpdate']) == 0){
-            print json_encode(array());
             return;
         }
 
         $lockSQL = 'LOCK TABLE samples WRITE;';
-        $this->Sample->raw($lockSQL); 
+        $this->Sample->raw($lockSQL);
 
-
-        foreach($_POST['samplesToUpdate'] as $sampleItem){
+        foreach ($_POST['samplesToUpdate'] as $sampleItem) {
 
             $_POST['sample'] = $sampleItem['sample'];
 
-            if(isset($_POST['addRequested'])){
+            if (isset($_POST['addRequested'])) {
                 $_POST['requested'] = $_POST['addRequested'];
             }
 
-            if(isset($_POST['addRoaming'])){
+            if (isset($_POST['addRoaming'])) {
                 $_POST['roaming'] = $_POST['addRoaming'];
             }
 
-            if(isset($_POST['addExcluded'])){
+            if (isset($_POST['addExcluded'])) {
                 $_POST['excluded'] = $_POST['addExcluded'];
             }
 
-            $addedSaids = $this->addNewResearch(True, True);
+            $addedSaids = $this->addNewResearch(true, true);
 
-            if($addedSaids === False)
-            {
-                $sampleInfoChannel = upa('samples', 'fetch', array($sampleItem['sample']), False);
-                //add barcode to warningSamples
+            if ($addedSaids === false) {
+                $sampleInfoChannel = upa('samples', 'fetch', [$sampleItem['sample']], false);
+                // add barcode to warningSamples
                 array_push($warningSamples, $sampleInfoChannel['barcode']);
-                $printWarning = True; 
+                $printWarning = true;
             }
 
-            if(is_array($addedSaids))
-            {
+            if (is_array($addedSaids)) {
                 $printSAids = array_merge($addedSaids, $printSAids);
             }
-
-            
 
         }
 
         $lockSQL = 'UNLOCK TABLES;';
-        $this->Sample->raw($lockSQL); 
+        $this->Sample->raw($lockSQL);
 
-        upa('printing', 'batchProcess', array(array(), $printSAids, False), False);
-        print json_encode(['warning' => $printWarning, 'warning_samples' => implode(',', $warningSamples)]);
+        upa('printing', 'batchProcess', [[], $printSAids, false], false);
+        echo json_encode(['warning' => $printWarning, 'warning_samples' => implode(',', $warningSamples)]);
     }
 
-    function fakerAddNewResearch($data, $profile = False)
+    public function fakerAddNewResearch($data, $profile = false)
     {
 
-
-            $settings = [
-                'requested' => [
-                    [
-                        'resType' => ($profile == True) ? 'profile' : 'assay',
-                        'assayId' => ($profile == False) ? $data->assay['id'] : '',
-                        'resId' => ($profile == True) ? $data->profile : '',
-                    ]
+        $settings = [
+            'requested' => [
+                [
+                    'resType' => ($profile == true) ? 'profile' : 'assay',
+                    'assayId' => ($profile == false) ? $data->assay['id'] : '',
+                    'resId' => ($profile == true) ? $data->profile : '',
                 ],
-    
-                'roaming' => ($profile == False) ? [
-                    
-                    [
-                        'ref_kve' => '',
-                        'roam_dillution' => $data->dillution,
-                        'reference_source' => '',
-                        'roam_replicates' => $data->replicates, 
-                        'assay_id' => $data->assay['id']
-                    ]
+            ],
 
-                    
-                ] : [],
-    
-                'sample' => $data->sample['id'],
-                'replace' => false
-            ];
-        
+            'roaming' => ($profile == false) ? [
+
+                [
+                    'ref_kve' => '',
+                    'roam_dillution' => $data->dillution,
+                    'reference_source' => '',
+                    'roam_replicates' => $data->replicates,
+                    'assay_id' => $data->assay['id'],
+                ],
+
+            ] : [],
+
+            'sample' => $data->sample['id'],
+            'replace' => false,
+        ];
 
         $_POST = $settings;
 
-        $saids = $this->addNewResearch(True);
+        $saids = $this->addNewResearch(true);
 
         return $saids;
 
     }
 
-   
-    function addNewResearch($defer = False, $checkForEmpty = False)
+    public function addNewResearch($defer = false, $checkForEmpty = false)
     {
-        
-        //check for empty disallows new research to be added if sample already has research
-        
+
+        // check for empty disallows new research to be added if sample already has research
+
         $this->render = 0;
-        $addedSAids = array();
+        $addedSAids = [];
 
         if (isset($_POST['requested'])) {
             $requested = $_POST['requested'];
         } else {
-            $requested = False;
+            $requested = false;
         }
         if (isset($_POST['roaming'])) {
             $roaming = $_POST['roaming'];
         } else {
-            $roaming = False;
+            $roaming = false;
         }
         if (isset($_POST['excluded'])) {
             $excluded = $_POST['excluded'];
         } else {
-            $excluded = False;
+            $excluded = false;
         }
         if (isset($_POST['replace']) && $_POST['replace'] == true) {
-            $replacing = True;
+            $replacing = true;
         } else {
-            $replacing = False;
+            $replacing = false;
         }
 
+        $nextFollowNumber = upa('sampleAnalysis', 'nextFreeFollowNumber', [$_POST['sample']], false);
 
+        if ($checkForEmpty == true) {
 
-        $nextFollowNumber = upa('sampleAnalysis', 'nextFreeFollowNumber', array($_POST['sample']), False);
-
-        if($checkForEmpty == True){
-            
-            if($nextFollowNumber != 1){
-                return False;
+            if ($nextFollowNumber != 1) {
+                return false;
             }
 
         }
 
         $sampleId = $_POST['sample'];
-        $sampleInfoChannel = upa('samples', 'fetch', array($sampleId), False);
+        $sampleInfoChannel = upa('samples', 'fetch', [$sampleId], false);
 
-        if(empty($sampleInfoChannel)){
+        if (empty($sampleInfoChannel)) {
             return;
         }
 
@@ -2818,63 +2621,60 @@ class samplesController extends Controller
 
             foreach ($_POST['requested'] as $arrIndex => $request) {
 
-
-                if (!isset($request['resType'])) {
+                if (! isset($request['resType'])) {
                     writeLog('Restype not found', ALPC_ERROR);
+
                     continue;
                 }
 
                 if (is_array($excluded) && array_key_exists($arrIndex, $excluded)) {
                     $thisExcluded = $excluded[$arrIndex];
-                    //parray($thisExcluded);
+                    // parray($thisExcluded);
                 } else {
-                    $thisExcluded = array();
+                    $thisExcluded = [];
                 }
 
-                $nextGroupNumber = pa('sampleAnalysis', 'nextFreeGroupNumber', array(), False);
+                $nextGroupNumber = pa('sampleAnalysis', 'nextFreeGroupNumber', [], false);
 
-                $orderNumber = upa('sampleAnalysis', 'getLastOrderNumber', array($sampleInfoChannel['project']), False );
-
+                $orderNumber = upa('sampleAnalysis', 'getLastOrderNumber', [$sampleInfoChannel['project']], false);
 
                 if ($request['resType'] == 'profile') {
 
                     $scope = 'SCOPE_SAMPLEINFO_PROFILEADD';
                     $profile = $request['resId'];
                     $changed = $profile;
-                    $assaysInProfile = pa('assayProfiles', 'fetchAnalysis', array($profile, True), False);
+                    $assaysInProfile = pa('assayProfiles', 'fetchAnalysis', [$profile, true], false);
 
                     foreach ($assaysInProfile as $pAssay) {
 
-                        //skip if it has been excluded
+                        // skip if it has been excluded
                         if (in_array($pAssay['id'], $thisExcluded)) {
                             continue;
                         }
 
                         $orderNumber++;
 
-                        if ($replacing == True) {
-                            //check if exists already, if so, remove current
-                            //$pAssay['assay']
-                            upa('sampleAnalysis', 'checkForReplacement', array($sampleId, $pAssay['assay']));
+                        if ($replacing == true) {
+                            // check if exists already, if so, remove current
+                            // $pAssay['assay']
+                            upa('sampleAnalysis', 'checkForReplacement', [$sampleId, $pAssay['assay']]);
                         }
 
+                        $said = upa('sampleAnalysis', 'registerSampleAnalysis', [$sampleId, $nextGroupNumber, $followNumber, $profile, $pAssay['id'], 0, $pAssay['assay'], $sampleInfoChannel['project'], false, false, $orderNumber], false);
 
-                        $said = upa('sampleAnalysis', 'registerSampleAnalysis', array($sampleId, $nextGroupNumber, $followNumber, $profile, $pAssay['id'], 0, $pAssay['assay'], $sampleInfoChannel['project'], False, False, $orderNumber), False);
+                        $event = 'Analyse (ID:'.$pAssay['assay'].') toegevoegd aan monster, uit profiel:'.$profile;
+                        upa('changeTracker', 'changed', [6, $sampleInfoChannel['project'], $sampleInfoChannel['id'], $said, $event, false, false], false);
 
-                        $event = 'Analyse (ID:' . $pAssay['assay'] .') toegevoegd aan monster, uit profiel:' . $profile;
-                        upa('changeTracker', 'changed', array(6, $sampleInfoChannel['project'], $sampleInfoChannel['id'], $said, $event, False, False), False);
-
-                        upa('results', 'registerResult', array($sampleId, $said, $profile, $pAssay['id']), False);
-                        //fire label print
-                        if($defer !== True){
-                            upa('printing', 'assayAddFire', array($said, False), False);                            
+                        upa('results', 'registerResult', [$sampleId, $said, $profile, $pAssay['id']], false);
+                        // fire label print
+                        if ($defer !== true) {
+                            upa('printing', 'assayAddFire', [$said, false], false);
                         }
 
                         array_push($addedSAids, $said);
-                        
+
                         $followNumber++;
                     }
-
 
                 }
 
@@ -2882,7 +2682,7 @@ class samplesController extends Controller
 
                     $orderNumber++;
                     $projectOrder = $orderNumber;
-                    $said = upa('sampleAnalysis', 'registerSampleAnalysis', array($sampleId, $nextGroupNumber, $followNumber, 0, $request['assayId'], 0, $request['assayId'], $sampleInfoChannel['project'], False, False, $projectOrder), False);
+                    $said = upa('sampleAnalysis', 'registerSampleAnalysis', [$sampleId, $nextGroupNumber, $followNumber, 0, $request['assayId'], 0, $request['assayId'], $sampleInfoChannel['project'], false, false, $projectOrder], false);
                     $assay = $_POST['roaming'][$arrIndex]['assay_id'];
 
                     $scope = 'SCOPE_SAMPLEINFO_ASSAYADD';
@@ -2890,36 +2690,35 @@ class samplesController extends Controller
 
                     $dillutions = $_POST['roaming'][$arrIndex]['roam_dillution'];
                     $replicates = $_POST['roaming'][$arrIndex]['roam_replicates'];
-                    //$reference = $_POST['roaming'][$arrIndex]['reference'];
+                    // $reference = $_POST['roaming'][$arrIndex]['reference'];
 
-                    $refValueArr = array();
+                    $refValueArr = [];
                     foreach ($_POST['roaming'][$arrIndex] as $roamFieldId => $roamFieldValue) {
                         if (substr($roamFieldId, 0, 4) == 'ref_') {
                             $refValueArr[$roamFieldId] = $roamFieldValue;
                         }
                     }
 
-
-                    //$referenceScope = $_POST['roaming'][$arrIndex]['reference_scope'];
+                    // $referenceScope = $_POST['roaming'][$arrIndex]['reference_scope'];
                     $reference = json_encode($refValueArr, JSON_FORCE_OBJECT);
 
-                    $referenceSource = $_POST['roaming'][$arrIndex]['reference_source'];                    
+                    $referenceSource = $_POST['roaming'][$arrIndex]['reference_source'];
 
-                    $roamId = upa('roamingAnalysis', 'saveRoam', array($said, $assay, $dillutions, $replicates, $reference, $referenceSource), False);
-                    upa('sampleAnalysis', 'setRoam', array($said, $roamId), False);
-                    upa('results', 'registerResult', array($sampleId, $said, 0, $assay, $roamId), False);
+                    $roamId = upa('roamingAnalysis', 'saveRoam', [$said, $assay, $dillutions, $replicates, $reference, $referenceSource], false);
+                    upa('sampleAnalysis', 'setRoam', [$said, $roamId], false);
+                    upa('results', 'registerResult', [$sampleId, $said, 0, $assay, $roamId], false);
 
-                    $event = 'Losse analyse (ID:' . $request['assayId'] .') toegevoegd aan monster';
-                    upa('changeTracker', 'changed', array(6, $sampleInfoChannel['project'], $sampleInfoChannel['id'], $said, $event, False, False), False);
+                    $event = 'Losse analyse (ID:'.$request['assayId'].') toegevoegd aan monster';
+                    upa('changeTracker', 'changed', [6, $sampleInfoChannel['project'], $sampleInfoChannel['id'], $said, $event, false, false], false);
 
-                    //fire label print
-                    if($defer !== True){
-                        upa('printing', 'assayAddFire', array($said, False), False);
+                    // fire label print
+                    if ($defer !== true) {
+                        upa('printing', 'assayAddFire', [$said, false], false);
                     }
 
                     array_push($addedSAids, $said);
 
-                    //function registerResult( $sample, $said, $profile, $assay, $roamingId = False){
+                    // function registerResult( $sample, $said, $profile, $assay, $roamingId = False){
 
                     $followNumber++;
                 }
@@ -2927,144 +2726,143 @@ class samplesController extends Controller
         }
 
         $this->estimateEndPoints($_POST['sample']);
-        //upa('revisions', 'registerRevision', array($scope, $sampleId, $changed), False);
-        upa('projects', 'projectEdited', array($sampleInfoChannel['project'], $sampleId), False);
-        upa('sampleAnalysis', 'checkProjectReady', array($sampleInfoChannel['project']), False);
+        // upa('revisions', 'registerRevision', array($scope, $sampleId, $changed), False);
+        upa('projects', 'projectEdited', [$sampleInfoChannel['project'], $sampleId], false);
+        upa('sampleAnalysis', 'checkProjectReady', [$sampleInfoChannel['project']], false);
+
         return $addedSAids;
     }
 
-
-    function estimateEndPoints($sampleID)
+    public function estimateEndPoints($sampleID)
     {
         $this->Sample->free();
         $this->Sample->where('id', $sampleID);
         $sample = $this->Sample->search();
 
         if (empty($sample)) {
-            return False;
+            return false;
         }
 
-        //needs to find all analysis attached
-        //check if innoculation started?
+        // needs to find all analysis attached
+        // check if innoculation started?
 
-        //if not started return -1?
-        //ignore -1 to estimate end points? or set project end for -1 aswell?
+        // if not started return -1?
+        // ignore -1 to estimate end points? or set project end for -1 aswell?
 
-        //if started, for each analysis
-        //find anchor point for analysis, add duration, write in array
-        //at end, pick longest running
+        // if started, for each analysis
+        // find anchor point for analysis, add duration, write in array
+        // at end, pick longest running
 
-        $endPoints = array('0');
+        $endPoints = ['0'];
 
         $this->Sample->arrayToModel($sample['0']);
 
-        $projInfo = upa('projects', 'fetchProjectInfo', array($this->Sample->project));
-        $projectFields = json_decode($projInfo['custom_fields'], True);
-        $customFields = json_decode($this->Sample->custom_fields, True);
+        $projInfo = upa('projects', 'fetchProjectInfo', [$this->Sample->project]);
+        $projectFields = json_decode($projInfo['custom_fields'], true);
+        $customFields = json_decode($this->Sample->custom_fields, true);
 
-        $sampleSa = upa('sampleAnalysis', 'fetchAnalysisArray', array($this->Sample->id));
+        $sampleSa = upa('sampleAnalysis', 'fetchAnalysisArray', [$this->Sample->id]);
         $now = time();
         $ifWasNow = -1;
-        $canCalculate = True;
+        $canCalculate = true;
 
         foreach ($sampleSa as $analysis) {
 
-            $assayBase = upa('assays', 'fetchSingle', array($analysis['assay_base']));
-            
-            //check if this is filled?
-            if(empty($assayBase['duration'])){
+            $assayBase = upa('assays', 'fetchSingle', [$analysis['assay_base']]);
+
+            // check if this is filled?
+            if (empty($assayBase['duration'])) {
                 $assayBase['duration'] = 0;
             }
 
             if ($assayBase['start_from'] == 'r') {
                 $endPoint = $this->Sample->date_registered + (86400 * $assayBase['duration']);
-            } elseif($assayBase['start_from'] == 'i'){
-                if($this->Sample->sample_innoculated == ''){
-                    //$endPoint = $now + (86400 * $assayBase['duration']);
+            } elseif ($assayBase['start_from'] == 'i') {
+                if ($this->Sample->sample_innoculated == '') {
+                    // $endPoint = $now + (86400 * $assayBase['duration']);
                     $endPoint = -1;
-                    $canCalculate = False;
-                } else{
+                    $canCalculate = false;
+                } else {
                     $endPoint = $this->Sample->sample_innoculated + (86400 * $assayBase['duration']);
                 }
-            } else{
+            } else {
                 $anchoring = explode(':', $assayBase['start_from']);
                 if ($anchoring['0'] == 'p') {
-                    if(array_key_exists($anchoring[1], $projectFields)){
+                    if (array_key_exists($anchoring[1], $projectFields)) {
                         $offSetTime = strtotime($projectFields[$anchoring['1']]);
                     }
                 } elseif ($anchoring['0'] == 's') {
-                    if(array_key_exists($anchoring[1], $customFields)){
+                    if (array_key_exists($anchoring[1], $customFields)) {
                         $offSetTime = strtotime($customFields[$customFields['1']]);
                     }
                 }
                 $endPoint = $offSetTime + (86400 * $assayBase['duration']);
             }
-            
-            //check if the end point is weekend or holiday, and advance to the next point if it is
-            $holidays = new holidays();
-            
-            if($endPoint > 0)
-            {
-                $endPoint = $holidays->getReadDateFromTimestamp($endPoint,'timestamp');
+
+            // check if the end point is weekend or holiday, and advance to the next point if it is
+            $holidays = new holidays;
+
+            if ($endPoint > 0) {
+                $endPoint = $holidays->getReadDateFromTimestamp($endPoint, 'timestamp');
             }
-                    
-            upa('sampleAnalysis', 'setEndPoint', array($analysis['id'], $endPoint));
+
+            upa('sampleAnalysis', 'setEndPoint', [$analysis['id'], $endPoint]);
 
             array_push($endPoints, $endPoint);
         }
 
-        //save endpoint
+        // save endpoint
         $endPoint = max($endPoints);
 
-        if($canCalculate == False){
-          $this->Sample->predicted_end = -1;
-        } else{
-          if ($endPoint == 0) {
-              $this->Sample->predicted_end = $now;
-          } else {
-              $this->Sample->predicted_end = $endPoint;
-          }
+        if ($canCalculate == false) {
+            $this->Sample->predicted_end = -1;
+        } else {
+            if ($endPoint == 0) {
+                $this->Sample->predicted_end = $now;
+            } else {
+                $this->Sample->predicted_end = $endPoint;
+            }
         }
 
         $this->Sample->save();
-        upa('projects', 'updateEndPoints', array($this->Sample->project));
+        upa('projects', 'updateEndPoints', [$this->Sample->project]);
 
         return $this->Sample->predicted_end;
 
     }
 
-    function returnRecentAdded()
+    public function returnRecentAdded()
     {
 
         $this->render = 0;
-        $query = 'SELECT * FROM `samples` ORDER BY `id` DESC LIMIT ' . MESA_RECENTLY_ADDED_AMOUNT;
-        $result = $this->Sample->customQuery($query, array());
+        $query = 'SELECT * FROM `samples` ORDER BY `id` DESC LIMIT '.MESA_RECENTLY_ADDED_AMOUNT;
+        $result = $this->Sample->customQuery($query, []);
 
         if (empty($result)) {
-            print 'No samples present!';
+            echo 'No samples present!';
         } else {
             foreach ($result as $sample) {
-                print generateHTML('recentlyAdded', $sample);
+                echo generateHTML('recentlyAdded', $sample);
             }
         }
     }
 
-    function lookup($entryScan = False)
+    public function lookup($entryScan = false)
     {
 
-        if ($entryScan == False) {
+        if ($entryScan == false) {
             $entryScan = 'null';
         }
-        $profilesAvail = pa('researchProfiles', 'fetchGlobalProfiles', array());
-        $assaysAvail = pa('assays', 'fetchAssaysList', array());
+        $profilesAvail = pa('researchProfiles', 'fetchGlobalProfiles', []);
+        $assaysAvail = pa('assays', 'fetchAssaysList', []);
         $this->_template->set('global_profile_list', $profilesAvail);
         $this->_template->set('assay_list', '');
-        $this->_template->set('matrix_content', upa('matrix', 'matrixDropdown', array(), False));
+        $this->_template->set('matrix_content', upa('matrix', 'matrixDropdown', [], false));
         $this->_template->set('cust_profile_list', '');
-        $sampleNoteField =  generateHTML('customFields/notes', array());
+        $sampleNoteField = generateHTML('customFields/notes', []);
         $this->_template->set('sample_notes', $sampleNoteField);
 
-        //roaming assay form
+        // roaming assay form
         $roamF = new formFactory('researchProfiles');
         $roamF->setId('roamingForm');
         $roamF->action('');
@@ -3078,31 +2876,30 @@ class samplesController extends Controller
         $roamF->submitTrough('saveRoamingButton', 'saveRoamingAssay');
         $this->_template->set('roaming_form', $roamF->render());
         $this->_template->set('entry_scan', $entryScan);
-        
+
     }
 
-    function buildSampleInfoBlock($id, $project)
+    public function buildSampleInfoBlock($id, $project)
     {
         $this->doNotRenderHeader = 1;
         $this->render = 0;
-        #$this->Sample->where('id', $id);
-        $this->Sample->select(['id', 'barcode', 'description', 'sampling_method', 'custom_fields','sample_extra', 'source', 'stored_in', 'diluted_at' ]);
+        // $this->Sample->where('id', $id);
+        $this->Sample->select(['id', 'barcode', 'description', 'sampling_method', 'custom_fields', 'sample_extra', 'source', 'stored_in', 'diluted_at']);
         $this->Sample->where('project', $project);
         $this->Sample->order('id', 'ASC');
         $this->Sample->order('follow_no', 'ASC');
-        $results = array();
+        $results = [];
         $pResults = $this->Sample->search();
-         
 
         $followNo = 1;
-        foreach($pResults as $idx => $sample){
-          if($sample['id'] == $id ){
-              $results['0'] = $sample;
-              break;
-          } else{
-              unset($results[$idx]);
-              $followNo++;
-          }
+        foreach ($pResults as $idx => $sample) {
+            if ($sample['id'] == $id) {
+                $results['0'] = $sample;
+                break;
+            } else {
+                unset($results[$idx]);
+                $followNo++;
+            }
         }
 
         $infoArr['0']['alias'] = '{MESA_SLU_BARCODE}';
@@ -3115,19 +2912,18 @@ class samplesController extends Controller
         $infoArr['1']['value'] = $results['0']['description'];
 
         $infoArr['2']['alias'] = '{MESA_SLU_SAMPLEMETHOD}';
-        $infoArr['2']['value'] = upa('sampleProcedures', 'procedureIdToName', array($results['0']['sampling_method']));
+        $infoArr['2']['value'] = upa('sampleProcedures', 'procedureIdToName', [$results['0']['sampling_method']]);
 
+        // get array of custom fields into mem
+        $customValues = json_decode($results['0']['custom_fields'], true);
 
-        //get array of custom fields into mem
-        $customValues = json_decode($results['0']['custom_fields'], True);
-
-        //fetch custom fields
-        $customFields = upa('sampleFields', 'fetchCustomFields', array());
+        // fetch custom fields
+        $customFields = upa('sampleFields', 'fetchCustomFields', []);
 
         $i = count($infoArr);
 
         foreach ($customFields as $field) {
-            //$infoArr[$field['alias']] = $customValues[$field['name']];
+            // $infoArr[$field['alias']] = $customValues[$field['name']];
             $infoArr[$i]['alias'] = $field['alias'];
             if (isset($customValues[$field['name']])) {
                 $infoArr[$i]['value'] = $customValues[$field['name']];
@@ -3138,32 +2934,30 @@ class samplesController extends Controller
             $i++;
         }
 
-
-        //sample extras
+        // sample extras
         $sampleExtra = json_decode($results['0']['sample_extra'], JSON_FORCE_OBJECT);
         $i++;
-        if(is_array($sampleExtra)){
-            foreach($sampleExtra as $extraKey => $extraValue){
+        if (is_array($sampleExtra)) {
+            foreach ($sampleExtra as $extraKey => $extraValue) {
 
-
-                if($extraKey == 'follow'){
+                if ($extraKey == 'follow') {
                     continue;
                     $extraDescription = 'Volgnummer';
                 }
 
-                if($extraKey == 'type'){
+                if ($extraKey == 'type') {
                     $extraDescription = 'Tappunt type';
                 }
 
-                if($extraKey == 'temperature'){
+                if ($extraKey == 'temperature') {
                     $extraDescription = 'Temperatuur';
                 }
 
-                if($extraKey == 'location'){
+                if ($extraKey == 'location') {
                     $extraDescription = 'Ruimte';
                 }
 
-                if($extraKey == 'filter_volume'){
+                if ($extraKey == 'filter_volume') {
                     $extraDescription = 'Onderzocht volume in ml.';
                 }
 
@@ -3175,131 +2969,58 @@ class samplesController extends Controller
 
         $infoArr[$i]['alias'] = 'Bron';
 
-        if( $results['0']['source'] == "2" ||  $results['0']['source'] == "0" ){
+        if ($results['0']['source'] == '2' || $results['0']['source'] == '0') {
             $infoArr[$i]['value'] = '<i class="icon icon-keyboard"></i>LIMS';
         }
 
-        if( $results['0']['source'] == "1"){
+        if ($results['0']['source'] == '1') {
             $infoArr[$i]['value'] = '<i class="icon icon-cloud"></i> CSV import';
         }
 
-        if( $results['0']['source'] == "3"){
+        if ($results['0']['source'] == '3') {
             $infoArr[$i]['value'] = '<i class="icon icon-cloud"></i> Portal ';
         }
 
         $i++;
 
         $infoArr[$i]['alias'] = 'In bak vriezer';
-        $infoArr[$i]['value'] =  $results['0']['stored_in'];
+        $infoArr[$i]['value'] = $results['0']['stored_in'];
 
         $i++;
 
         $infoArr[$i]['alias'] = 'Afweegstation';
-        $infoArr[$i]['value'] =  $results['0']['diluted_at'];
+        $infoArr[$i]['value'] = $results['0']['diluted_at'];
 
-        $tF = new tableFactory();
+        $tF = new tableFactory;
         $tF->loadTemplate('sampleBlock');
         $tF->loadValues($infoArr);
         $this->_template->set('sample_block_table', $tF->renderTable());
 
-
         return $this->hardRender();
     }
 
-    function getProjectInnoculationDate($projectId)
+    public function getProjectInnoculationDate($projectId)
     {
-        $samples = new Sample(); 
+        $samples = new Sample;
         $samples->where('project', $projectId);
         $samples->select(['sample_innoculated']);
         $samples->order('sample_innoculated', 'ASC');
-        $samples = $samples->search();         
-         
-        $rawInnoc = False;
- 
-         if(!empty($samples)){
- 
-             $first = False;
-             $last = False;
- 
-             foreach($samples as $innocCheck){
- 
-                 if(!empty($innocCheck['sample_innoculated']) && $first == False){
-                     $first = $innocCheck['sample_innoculated'];
-                 }
- 
-                 if(!empty($innocCheck['sample_innoculated']) && $innocCheck['sample_innoculated'] != $first){
-                     $last = $innocCheck['sample_innoculated'];
-                 }
-             }
- 
-             $firstReset = strtotime(date('d-m-Y', $first));
-             $lastReset = strtotime(date('d-m-Y', $last));
- 
-             if($first == False){                
-                 $innocDate = 'Nog niet ingezet';
-                 $innocTime = '';
-             } elseif($first != False && $last == False){
-                 $rawInnoc = $first; 
-                 $innocDate = date('d-m-Y', $first);           
-                 $innocTime = date('H:i', $first);           
-             }
-             elseif($last != False && $firstReset == $lastReset){
-                 $rawInnoc = $first; 
-                 $innocDate = date('d-m-Y', $first);
-                 $innocTime = date('H:i', $first);           
-             } else{
-                 $rawInnoc = $first; 
-                 $innocDate = date('d-m-Y H:i', $first);                
-                 $innocDate .= '<br />';
-                 $innocDate .= date('d-m-Y H:i', $last);
-                 $innocTime = 'Tweeledig';                
-             }
- 
- 
-         } else{
-             $innocDate = 'Nog niet ingezet';
-         }     
+        $samples = $samples->search();
 
-         return $innocDate; 
-    }
+        $rawInnoc = false;
 
-    function buildProjectInfoBlock($id, $project = False, $print = False)
-    {
+        if (! empty($samples)) {
 
-        $this->doNotRenderHeader = 1;
-        $this->render = 0;
-        
+            $first = false;
+            $last = false;
 
-        if ($project == False) {
-            $this->Sample->where('id', $id);
-            $results = $this->Sample->search();
-            $projectId = $results['0']['project'];
-            $this->Sample->free();
-        }
+            foreach ($samples as $innocCheck) {
 
-        if ($project !== False) {            
-            $projectId = $project;                        
-        }
-
-        //grab fringer for innoculation date
-        $this->Sample->where('project', $projectId);
-        $this->Sample->select(['sample_innoculated']);
-        $this->Sample->order('sample_innoculated', 'ASC');
-        $samples = $this->Sample->search();
-        $rawInnoc = False;
-
-        if(!empty($samples)){
-
-            $first = False;
-            $last = False;
-
-            foreach($samples as $innocCheck){
-
-                if(!empty($innocCheck['sample_innoculated']) && $first == False){
+                if (! empty($innocCheck['sample_innoculated']) && $first == false) {
                     $first = $innocCheck['sample_innoculated'];
                 }
 
-                if(!empty($innocCheck['sample_innoculated']) && $innocCheck['sample_innoculated'] != $first){
+                if (! empty($innocCheck['sample_innoculated']) && $innocCheck['sample_innoculated'] != $first) {
                     $last = $innocCheck['sample_innoculated'];
                 }
             }
@@ -3307,98 +3028,158 @@ class samplesController extends Controller
             $firstReset = strtotime(date('d-m-Y', $first));
             $lastReset = strtotime(date('d-m-Y', $last));
 
-            if($first == False){                
+            if ($first == false) {
                 $innocDate = 'Nog niet ingezet';
                 $innocTime = '';
-            } elseif($first != False && $last == False){
-                $rawInnoc = $first; 
-                $innocDate = date('d-m-Y', $first);           
-                $innocTime = date('H:i', $first);           
-            }
-            elseif($last != False && $firstReset == $lastReset){
-                $rawInnoc = $first; 
+            } elseif ($first != false && $last == false) {
+                $rawInnoc = $first;
                 $innocDate = date('d-m-Y', $first);
-                $innocTime = date('H:i', $first);           
-            } else{
-                $rawInnoc = $first; 
-                $innocDate = date('d-m-Y H:i', $first);                
+                $innocTime = date('H:i', $first);
+            } elseif ($last != false && $firstReset == $lastReset) {
+                $rawInnoc = $first;
+                $innocDate = date('d-m-Y', $first);
+                $innocTime = date('H:i', $first);
+            } else {
+                $rawInnoc = $first;
+                $innocDate = date('d-m-Y H:i', $first);
                 $innocDate .= '<br />';
                 $innocDate .= date('d-m-Y H:i', $last);
-                $innocTime = 'Tweeledig';                
+                $innocTime = 'Tweeledig';
             }
 
-
-        } else{
+        } else {
             $innocDate = 'Nog niet ingezet';
-        }        
+        }
 
-        $pInfo = pa('projects', 'fetchProjectInfo', array($projectId));
+        return $innocDate;
+    }
 
-        //error
+    public function buildProjectInfoBlock($id, $project = false, $print = false)
+    {
+
+        $this->doNotRenderHeader = 1;
+        $this->render = 0;
+
+        if ($project == false) {
+            $this->Sample->where('id', $id);
+            $results = $this->Sample->search();
+            $projectId = $results['0']['project'];
+            $this->Sample->free();
+        }
+
+        if ($project !== false) {
+            $projectId = $project;
+        }
+
+        // grab fringer for innoculation date
+        $this->Sample->where('project', $projectId);
+        $this->Sample->select(['sample_innoculated']);
+        $this->Sample->order('sample_innoculated', 'ASC');
+        $samples = $this->Sample->search();
+        $rawInnoc = false;
+
+        if (! empty($samples)) {
+
+            $first = false;
+            $last = false;
+
+            foreach ($samples as $innocCheck) {
+
+                if (! empty($innocCheck['sample_innoculated']) && $first == false) {
+                    $first = $innocCheck['sample_innoculated'];
+                }
+
+                if (! empty($innocCheck['sample_innoculated']) && $innocCheck['sample_innoculated'] != $first) {
+                    $last = $innocCheck['sample_innoculated'];
+                }
+            }
+
+            $firstReset = strtotime(date('d-m-Y', $first));
+            $lastReset = strtotime(date('d-m-Y', $last));
+
+            if ($first == false) {
+                $innocDate = 'Nog niet ingezet';
+                $innocTime = '';
+            } elseif ($first != false && $last == false) {
+                $rawInnoc = $first;
+                $innocDate = date('d-m-Y', $first);
+                $innocTime = date('H:i', $first);
+            } elseif ($last != false && $firstReset == $lastReset) {
+                $rawInnoc = $first;
+                $innocDate = date('d-m-Y', $first);
+                $innocTime = date('H:i', $first);
+            } else {
+                $rawInnoc = $first;
+                $innocDate = date('d-m-Y H:i', $first);
+                $innocDate .= '<br />';
+                $innocDate .= date('d-m-Y H:i', $last);
+                $innocTime = 'Tweeledig';
+            }
+
+        } else {
+            $innocDate = 'Nog niet ingezet';
+        }
+
+        $pInfo = pa('projects', 'fetchProjectInfo', [$projectId]);
+
+        // error
         if (empty($pInfo)) {
-            $project404 = generateHTML('alertWarning', array('alert_title' => 'Error', 'alert_message' => 'Project not found'));
+            $project404 = generateHTML('alertWarning', ['alert_title' => 'Error', 'alert_message' => 'Project not found']);
             $this->_template->set('project_block_table', $project404);
+
             return $this->hardRender();
         }
 
         $this->projectInfo = $pInfo;
 
-        $customFields = upa('projectFields', 'fetchProjectFields', array());
-        //$customValues =  json_decode($results['0']['custom_fields'], True);
-        $customValues = json_decode($pInfo['custom_fields'], True);
+        $customFields = upa('projectFields', 'fetchProjectFields', []);
+        // $customValues =  json_decode($results['0']['custom_fields'], True);
+        $customValues = json_decode($pInfo['custom_fields'], true);
 
         $infoArr['0.2']['alias'] = '{MESA_SLU_CLIENT}';
-        $clientName = upa('clients', 'clientIdToName', array($pInfo['client']));
-        $infoArr['0.2']['value'] = '<span id="portalClientStatus"><i id="portalClientIcon" class="icon-circle"></i></span> <a href="{LB}/clients/show/'. $pInfo['client'] .'">' . $clientName . '</a>';
+        $clientName = upa('clients', 'clientIdToName', [$pInfo['client']]);
+        $infoArr['0.2']['value'] = '<span id="portalClientStatus"><i id="portalClientIcon" class="icon-circle"></i></span> <a href="{LB}/clients/show/'.$pInfo['client'].'">'.$clientName.'</a>';
 
-
-        //$infoArr['0.3']['alias'] = '{MESA_SLU_SUBCLIENT}';
-        //$infoArr['0.3']['value'] = pa('subClients', 'subclientIdToName', array(0 => $pInfo['subclient']));
+        // $infoArr['0.3']['alias'] = '{MESA_SLU_SUBCLIENT}';
+        // $infoArr['0.3']['value'] = pa('subClients', 'subclientIdToName', array(0 => $pInfo['subclient']));
 
         $infoArr['0.4']['alias'] = '{MESA_SLU_PROJECT}';
-        $infoArr['0.4']['value'] = '<a href="{LB}/projects/search/' . $projectId . '">' . $pInfo['project_name'] . '</a>';
+        $infoArr['0.4']['value'] = '<a href="{LB}/projects/search/'.$projectId.'">'.$pInfo['project_name'].'</a>';
 
         $infoArr['0.45']['alias'] = 'Orderformulier';
         $infoArr['0.45']['value'] = 'Niet beschikbaar';
-        
-        if ($pInfo['portal_id'] != NULL ) {
-            $infoArr['0.45']['value'] = '<a target="_blank" href="{LB}/projects/orderForm/' . $pInfo['portal_id'] . '">Downloaden</a>';
+
+        if ($pInfo['portal_id'] != null) {
+            $infoArr['0.45']['value'] = '<a target="_blank" href="{LB}/projects/orderForm/'.$pInfo['portal_id'].'">Downloaden</a>';
         }
-        
 
         if ($pInfo['print_version'] == 0) {
             $pInfo['print_version'] = 1;
         }
 
         $infoArr['0.5']['alias'] = '{MESA_SLU_PROJECTREFERENCE}';
-        $infoArr['0.5']['value'] = $pInfo['reference'] . '.' . $pInfo['revision'] . '.' . $pInfo['print_version'];
+        $infoArr['0.5']['value'] = $pInfo['reference'].'.'.$pInfo['revision'].'.'.$pInfo['print_version'];
 
         $infoArr['1']['alias'] = 'Project aangemeld:';
         $infoArr['1']['value'] = date('d-m-Y', $pInfo['project_date']);
 
-        
-
-
         $infoArr['1.9']['alias'] = 'Project status';
-
-
 
         if ($pInfo['auth_status'] == 0) {
 
-          if($pInfo['started'] == 0){
-            $infoArr['1.9']['value'] = 'Ontvangen';
-          }
-          elseif($pInfo['is_ready'] == 1){
-            $infoArr['1.9']['value'] = 'Afgerond';
-          } else{
-            $infoArr['1.9']['value'] = 'Lopend';
-          }
-        } else{
-          if($pInfo['rap_stat'] == 1){
-            $infoArr['1.9']['value'] = 'PDF gegenereerd';
-          } else{
-            $infoArr['1.9']['value'] = 'Geautoriseerd';
-          }
+            if ($pInfo['started'] == 0) {
+                $infoArr['1.9']['value'] = 'Ontvangen';
+            } elseif ($pInfo['is_ready'] == 1) {
+                $infoArr['1.9']['value'] = 'Afgerond';
+            } else {
+                $infoArr['1.9']['value'] = 'Lopend';
+            }
+        } else {
+            if ($pInfo['rap_stat'] == 1) {
+                $infoArr['1.9']['value'] = 'PDF gegenereerd';
+            } else {
+                $infoArr['1.9']['value'] = 'Geautoriseerd';
+            }
 
         }
 
@@ -3406,14 +3187,14 @@ class samplesController extends Controller
         $infoArr['2']['value'] = $pInfo['revision'];
 
         if ($pInfo['auth_status'] == 0) {
-            //unauthorized
+            // unauthorized
             $infoArr['3']['alias'] = '{MESA_SLU_PROJECTAUTHORISATION}';
             $infoArr['3']['value'] = '{MESA_SLU_NOTAUTHORISED}';
         }
 
         if ($pInfo['auth_status'] == 1) {
-            //authorized
-            $authUser = pa('profiles', 'getUserFullName', array($pInfo['auth_by']));
+            // authorized
+            $authUser = pa('profiles', 'getUserFullName', [$pInfo['auth_by']]);
             $infoArr['3']['alias'] = '{MESA_SLU_PROJECTAUTHORISATION}';
             $infoArr['3']['value'] = '{MESA_SLU_AUTHORISED} <i class="icon-check icon-green"></i> ';
             $infoArr['4']['alias'] = '{MESA_SLU_AUTHBY}: ';
@@ -3421,24 +3202,24 @@ class samplesController extends Controller
         }
 
         if ($pInfo['auth_status'] == 2) {
-            //authorized
+            // authorized
             $infoArr['3']['alias'] = '{MESA_SLU_PROJECTAUTHORISATION}';
             $infoArr['3']['value'] = '{MESA_SLU_AUTHORISATIONPENDING}';
         }
 
         if ($pInfo['rap_stat'] == 1) {
-            //authorized
+            // authorized
             $infoArr['3.1']['alias'] = 'PDF gegenereerd op';
             $infoArr['3.1']['value'] = date('d-m-Y', $pInfo['rap_on']);
 
             $infoArr['3.2']['alias'] = 'PDF gegenereerd door';
-            $infoArr['3.2']['value'] = upa('profiles', 'getUserFullName', array($pInfo['rap_by']), false);
+            $infoArr['3.2']['value'] = upa('profiles', 'getUserFullName', [$pInfo['rap_by']], false);
         }
 
-        $i = count($infoArr);        
+        $i = count($infoArr);
 
         foreach ($customFields as $field) {
-            
+
             $infoArr[$i]['alias'] = $field['alias'];
 
             if (isset($customValues[$field['name']])) {
@@ -3449,7 +3230,7 @@ class samplesController extends Controller
             $i++;
         }
 
-        //$inzetI = $i + 1;
+        // $inzetI = $i + 1;
         $infoArr[$i]['alias'] = 'Inzet datum:';
         $infoArr[$i]['value'] = $innocDate;
         $i++;
@@ -3462,31 +3243,31 @@ class samplesController extends Controller
         $samplingTime = checkKeyOrFalse($customValues, 'project_bemonster_tijd');
 
         $infoArr[$i]['alias'] = 'Monstername tot analyse:';
-        $infoArr[$i]['value'] =  $this->termCalculation($rawInnoc, $samplingDate, $samplingTime );
+        $infoArr[$i]['value'] = $this->termCalculation($rawInnoc, $samplingDate, $samplingTime);
         $i++;
 
-        if($pInfo['predicted_end'] == -1 || $pInfo['predicted_end'] == 0){
+        if ($pInfo['predicted_end'] == -1 || $pInfo['predicted_end'] == 0) {
             $expectedDate = 'Nog niet bekend';
-        }else{
+        } else {
             $expectedDate = date('d-m-Y', $pInfo['predicted_end']);
-        }                
+        }
 
         $infoArr[$i]['alias'] = 'Gereed verwacht:';
         $infoArr[$i]['value'] = $expectedDate;
         $i++;
 
-        //check extra fields
-        if(!empty($pInfo['project_extra'])){
+        // check extra fields
+        if (! empty($pInfo['project_extra'])) {
 
             $extraInfo = json_decode($pInfo['project_extra'], JSON_FORCE_OBJECT);
-            foreach($extraInfo as $extraInfoKey => $extraInfoValue){
+            foreach ($extraInfo as $extraInfoKey => $extraInfoValue) {
 
-                if($extraInfoKey == 'sample_method' ){
+                if ($extraInfoKey == 'sample_method') {
                     $infoArr[$i]['alias'] = 'Bemonster. methode';
-                    $infoArr[$i]['value'] = upa('sampleProcedures', 'procedureIdToName', array($extraInfoValue));
+                    $infoArr[$i]['value'] = upa('sampleProcedures', 'procedureIdToName', [$extraInfoValue]);
                 }
 
-                if($extraInfoKey == 'client_reference'){
+                if ($extraInfoKey == 'client_reference') {
                     $infoArr[$i]['alias'] = 'Referentie klant:';
                     $infoArr[$i]['value'] = $extraInfoValue;
                 }
@@ -3495,439 +3276,387 @@ class samplesController extends Controller
             }
         }
 
-        $tF = new tableFactory();
-        $tF->loadTemplate('sampleBlock');   
+        $tF = new tableFactory;
+        $tF->loadTemplate('sampleBlock');
         $tF->loadValues($infoArr);
         $this->_template->set('project_block_table', $tF->renderTable());
 
-        if ($print == False) {
+        if ($print == false) {
             return ['html' => $this->hardRender(), 'project' => $pInfo];
         } else {
-            print $this->hardRender();
+            echo $this->hardRender();
         }
 
     }
 
     private function termCalculation($rawInnocDate, $samplingDate, $samplingTime)
     {
-     
-        try
-        {      
-        
-            if($rawInnocDate == False || empty($rawInnocDate))
-            {
+
+        try {
+
+            if ($rawInnocDate == false || empty($rawInnocDate)) {
                 return 'N.T.B. Geen inzet datum';
             }
 
-            if($samplingDate == False || empty($samplingDate) || strtolower($samplingDate)  == 'onbekend')
-            {
+            if ($samplingDate == false || empty($samplingDate) || strtolower($samplingDate) == 'onbekend') {
                 return 'N.T.B. Bemonster-datum onbekend';
             }
 
-            if($samplingTime == False || empty($samplingTime) || strtolower($samplingTime) == 'onbekend')
-            {
+            if ($samplingTime == false || empty($samplingTime) || strtolower($samplingTime) == 'onbekend') {
                 return 'N.T.B. Bemonster-tijd onbekend';
             }
 
-            $innocDateTime = new DateTime('@' . $rawInnocDate);
+            $innocDateTime = new DateTime('@'.$rawInnocDate);
 
             $samplingDate = new DateTime($samplingDate);
-            
-            //set time on datetime
-            $samplingDate->setTime((int)substr($samplingTime, 0, 2), (int)substr($samplingTime, 2, 2));
+
+            // set time on datetime
+            $samplingDate->setTime((int) substr($samplingTime, 0, 2), (int) substr($samplingTime, 2, 2));
 
             $diff = $samplingDate->diff($innocDateTime);
 
             $hours = $diff->h;
-            $hours = $hours + ($diff->days*24);               
-            
-            return $hours . ' uur';
+            $hours = $hours + ($diff->days * 24);
 
-        } catch (\Throwable $th) {
+            return $hours.' uur';
+
+        } catch (Throwable $th) {
 
             return 'N.T.B. Datum/tijd veld(en) incorrect';
 
         }
-        
+
     }
 
-    function buildResearchBlock($id)
+    public function buildResearchBlock($id)
     {
 
         $this->doNotRenderHeader = 1;
         $this->render = 0;
-            
-        $res = new SampleAnalysis();
+
+        $res = new SampleAnalysis;
         $res->where('sample', $id);
-        $res->select(['assay_base', 'profile_group', 'roaming_id','profile','is_ready','conf_requested','follow_number', 'id']);
-        $res->order('project_order', 'ASC' );
-        $res->order('follow_number', 'ASC' );
+        $res->select(['assay_base', 'profile_group', 'roaming_id', 'profile', 'is_ready', 'conf_requested', 'follow_number', 'id']);
+        $res->order('project_order', 'ASC');
+        $res->order('follow_number', 'ASC');
         $attRes = $res->search();
 
-        
+        if (! empty($attRes)) {
 
-        if(!empty($attRes))
-        {            
-          
-            //load in assays 
-            $sql = 'SELECT id,name,type,confirmation FROM assays WHERE id IN (' . implode(',',array_column($attRes, 'assay_base'))  . ')';
-            $baseAssays = new Assay();
-            $baseAssaysInfo = $baseAssays->customQuery($sql, []);    
+            // load in assays
+            $sql = 'SELECT id,name,type,confirmation FROM assays WHERE id IN ('.implode(',', array_column($attRes, 'assay_base')).')';
+            $baseAssays = new Assay;
+            $baseAssaysInfo = $baseAssays->customQuery($sql, []);
             $baseAssaysInfo = array_column($baseAssaysInfo, null, 'id');
 
-            //load in profiles            
-            $rp = new ResearchProfile();
-            $sql = 'SELECT id,name FROM researchprofiles WHERE id IN (' . implode(',',array_unique(array_column($attRes, 'profile')))  . ')';
+            // load in profiles
+            $rp = new ResearchProfile;
+            $sql = 'SELECT id,name FROM researchprofiles WHERE id IN ('.implode(',', array_unique(array_column($attRes, 'profile'))).')';
             $profilesInfo = $rp->customQuery($sql, []);
             $profilesInfo = array_column($profilesInfo, null, 'id');
-            
-        }        
 
-        $thisGroup = False;
-        $newGroup = True;
+        }
+
+        $thisGroup = false;
+        $newGroup = true;
         $blockRender = '';
-        $resArr = array();
+        $resArr = [];
         $currGroup = 0;
 
-        foreach ($attRes as $sa) {            
-            
+        foreach ($attRes as $sa) {
+
             $assayBaseInfo = $baseAssaysInfo[$sa['assay_base']];
 
             $activeGroup = $currGroup - 1;
 
-            if ($thisGroup == False) {    //profile group not initialized yet
-                $thisGroup = $sa['profile_group'] . $currGroup;
+            if ($thisGroup == false) {    // profile group not initialized yet
+                $thisGroup = $sa['profile_group'].$currGroup;
                 $currGroup++;
-                $newGroup = True;
+                $newGroup = true;
             } else {
-                //do check if this group is still the same
-                if ($sa['profile_group'] . $activeGroup  == $thisGroup) {
-                    $newGroup = False;
+                // do check if this group is still the same
+                if ($thisGroup == $sa['profile_group'].$activeGroup) {
+                    $newGroup = false;
                 } else {
-                    $thisGroup = $sa['profile_group'] . $currGroup;
+                    $thisGroup = $sa['profile_group'].$currGroup;
                     $currGroup++;
-                    $newGroup = True;
+                    $newGroup = true;
                 }
             }
 
-            if ($newGroup == True) {
+            if ($newGroup == true) {
                 $resArr[$thisGroup] = '';
 
-                if ($sa['roaming_id'] != 0) {                    
+                if ($sa['roaming_id'] != 0) {
                     $groupName = $assayBaseInfo['name'];
-                } else {                    
+                } else {
                     $profileInfo = $profilesInfo[$sa['profile']];
                     $groupName = $profileInfo['name'];
                 }
-                $blockRender .= generateHTML('lookup/resHeader', array('res_profile' => $groupName, 'profile_group' => $thisGroup));
+                $blockRender .= generateHTML('lookup/resHeader', ['res_profile' => $groupName, 'profile_group' => $thisGroup]);
             }
 
             $hideStatus = 'hide';
-            if($assayBaseInfo['type'] == '4'){
+            if ($assayBaseInfo['type'] == '4') {
                 $hideStatus = '';
             }
 
             $readyHider = null;
-            if($sa['is_ready'] == 1){
+            if ($sa['is_ready'] == 1) {
                 $readyHider = '';
-            } else{
+            } else {
                 $readyHider = 'hide';
             }
 
             $confHider = null;
             $confDenyHider = null;
 
-            if($assayBaseInfo['confirmation'] == 0){
-              $confHider = 'hide';
-              $confDenyHider = 'hide';
+            if ($assayBaseInfo['confirmation'] == 0) {
+                $confHider = 'hide';
+                $confDenyHider = 'hide';
             } else {
-              if($sa['conf_requested'] == 0){
-                  $confHider = 'hide';
-                  $confDenyHider = 'hide';
-              } elseif($sa['conf_requested'] == 1){
-                  $confHider = '';
-                  $confDenyHider = 'hide';
-              } elseif($sa['conf_requested'] == 2){
-                  $confHider = 'hide';
-                  $confDenyHider = '';
-              }
+                if ($sa['conf_requested'] == 0) {
+                    $confHider = 'hide';
+                    $confDenyHider = 'hide';
+                } elseif ($sa['conf_requested'] == 1) {
+                    $confHider = '';
+                    $confDenyHider = 'hide';
+                } elseif ($sa['conf_requested'] == 2) {
+                    $confHider = 'hide';
+                    $confDenyHider = '';
+                }
             }
 
-            $resArr[$thisGroup] .= generateHTML('lookup/resLine', array('conf_hider'  => $confHider, 'conf_deny_hider' => $confDenyHider,
-                                                                        'ready_hider' => $readyHider, 'hide_status'=> $hideStatus, 'assay_name' => $assayBaseInfo['name'],
-                                                                        'said' => $sa['id'], 'follow_no' => $sa['follow_number']));
+            $resArr[$thisGroup] .= generateHTML('lookup/resLine', ['conf_hider' => $confHider, 'conf_deny_hider' => $confDenyHider,
+                'ready_hider' => $readyHider, 'hide_status' => $hideStatus, 'assay_name' => $assayBaseInfo['name'],
+                'said' => $sa['id'], 'follow_no' => $sa['follow_number']]);
         }
 
         if (empty($attRes)) {
-            $this->_template->set('research_info_block', generateHTML('alertWarning', array('alert_title' => 'Geen analyses', 'alert_message' => 'Dit monster heeft geen analyses.')));
+            $this->_template->set('research_info_block', generateHTML('alertWarning', ['alert_title' => 'Geen analyses', 'alert_message' => 'Dit monster heeft geen analyses.']));
         } else {
-            $this->_template->set('research_info_block', generateHTML($blockRender, $resArr, True));
+            $this->_template->set('research_info_block', generateHTML($blockRender, $resArr, true));
         }
 
         return $this->hardRender();
     }
 
-
-    function doLookup($barcode)
+    public function doLookup($barcode)
     {
-        
+
         $this->render = 0;
-        $retObj = array();
+        $retObj = [];
 
         /* Release old sample from Keyring */
-        if(isset($_POST['previous_sample']))
-        {
-            upa('keyrings', 'removeOwnLock', array('SAMPLE', $_POST['previous_sample']));
+        if (isset($_POST['previous_sample'])) {
+            upa('keyrings', 'removeOwnLock', ['SAMPLE', $_POST['previous_sample']]);
         }
-        
 
         /*
          * First check what kind of barcode was requested
          */
         $barExp = explode('.', $barcode);
         $sampleBar = $barExp[0];
-        $sampleAnalysis = False;
-        $sampleAnalysisFollow = False;
-        $shortHand  = $this->isShortHand($barcode);
-        
-        if($shortHand === False)
-        {
-            $this->Sample->where('barcode', $sampleBar);                
+        $sampleAnalysis = false;
+        $sampleAnalysisFollow = false;
+        $shortHand = $this->isShortHand($barcode);
+
+        if ($shortHand === false) {
+            $this->Sample->where('barcode', $sampleBar);
             $this->Sample->insertOR();
-            $this->Sample->where('tht_code', $sampleBar);                
-        } 
-        
-        else
-        {
-            $this->Sample->where('follow_no', $shortHand['follow_no']);                
-            $this->Sample->where('sample_type', $shortHand['sample_type']); 
-            $this->Sample->where('leg_type', $shortHand['matrix_type']); 
-            $this->Sample->order('id', 'desc');                        
+            $this->Sample->where('tht_code', $sampleBar);
+        } else {
+            $this->Sample->where('follow_no', $shortHand['follow_no']);
+            $this->Sample->where('sample_type', $shortHand['sample_type']);
+            $this->Sample->where('leg_type', $shortHand['matrix_type']);
+            $this->Sample->order('id', 'desc');
         }
 
         $this->Sample->limit(1);
 
-        $results = $this->Sample->search();        
+        $results = $this->Sample->search();
 
-
-        //check if a match was found
+        // check if a match was found
         if (empty($results)) {
-            print json_encode(array('error' => 'BAR_WRONG'), JSON_FORCE_OBJECT);
+            echo json_encode(['error' => 'BAR_WRONG'], JSON_FORCE_OBJECT);
+
             return;
         }
-        //store standard info in model for now
+        // store standard info in model for now
         $this->Sample->arrayToModel($results['0']);
-
 
         if (isset($barExp[1]) && $barExp[1] != '') {
             $sampleAnalysis = $barExp[1];
-            //convert to sample analysis ID
-            $retObj['selected_analysis'] = $barExp[1];            
+            // convert to sample analysis ID
+            $retObj['selected_analysis'] = $barExp[1];
         } else {
-            $retObj['selected_analysis'] = False;
+            $retObj['selected_analysis'] = false;
         }
 
         if (isset($barExp[2]) && $barExp[2] != '') {
 
-            $sampleAnalysisFollow = $barExp[2];            
+            $sampleAnalysisFollow = $barExp[2];
 
-            $sa = new SampleAnalysis();
+            $sa = new SampleAnalysis;
             $sa->where('sample', $this->Sample->id);
             $sa->where('follow_number', $sampleAnalysis);
             $sa->select('id');
             $said = $sa->first();
 
-           
-
-            $focusResult = new Result(); 
-            $focusResult->where('sample', $this->Sample->id);                        
+            $focusResult = new Result;
+            $focusResult->where('sample', $this->Sample->id);
             $focusResult->where('sa_id', $said['id']);
             $focusResult->select(['id']);
-            $focusResult->where('follow_no', $sampleAnalysisFollow);            
-            $focusElement = $focusResult->first();           
-            
-            if(!empty($focusElement))
-            {
-                $retObj['selected_follow'] = $focusElement['id'];
-            }
+            $focusResult->where('follow_no', $sampleAnalysisFollow);
+            $focusElement = $focusResult->first();
 
-            else
-            {
-                $retObj['selected_follow'] = False; 
+            if (! empty($focusElement)) {
+                $retObj['selected_follow'] = $focusElement['id'];
+            } else {
+                $retObj['selected_follow'] = false;
             }
-            
-            
 
         } else {
-            $retObj['selected_follow'] = False;
+            $retObj['selected_follow'] = false;
         }
-        
 
         /*
          * Get lock status
          */
-        $lockObject = upa('keyrings', 'requestLockAndStatus', array('SAMPLE', $this->Sample->id), False);
+        $lockObject = upa('keyrings', 'requestLockAndStatus', ['SAMPLE', $this->Sample->id], false);
 
         /*
          * Fetch the different "blocks" needed for the sample window
          */
-        $retObj['sample_block'] = upa('samples', 'buildSampleInfoBlock', array($this->Sample->id, $this->Sample->project));
+        $retObj['sample_block'] = upa('samples', 'buildSampleInfoBlock', [$this->Sample->id, $this->Sample->project]);
 
         $retObj['metadata_block'] = $this->buildMetadataBlock($this->Sample->id);
 
         $retObj['productgroup_block'] = $this->buildproductGroupBlock($this->Sample->id);
 
-        $projectBlock = upa('samples', 'buildProjectInfoBlock', array(False, $this->Sample->project));
+        $projectBlock = upa('samples', 'buildProjectInfoBlock', [false, $this->Sample->project]);
 
-        $retObj['project_block'] = $projectBlock['html'];        
-        $retObj['project_auth'] = ($projectBlock['project']['auth_status'] == 1) ? True : False; 
-                
-        $retObj['research_block'] = upa('samples', 'buildResearchBlock', array($this->Sample->id));
+        $retObj['project_block'] = $projectBlock['html'];
+        $retObj['project_auth'] = ($projectBlock['project']['auth_status'] == 1) ? true : false;
 
-        $documents = json_decode( upa('sampleFiles', 'listFiles', array($this->Sample->id, True, True) ));
+        $retObj['research_block'] = upa('samples', 'buildResearchBlock', [$this->Sample->id]);
 
-        $retObj['documents_block'] =    $documents->table;
+        $documents = json_decode(upa('sampleFiles', 'listFiles', [$this->Sample->id, true, true]));
+
+        $retObj['documents_block'] = $documents->table;
 
         $retObj['selected_client'] = $this->Sample->client;
         $retObj['selected_sample'] = $this->Sample->id;
 
-        $retObj['sample_note'] = $this->Sample->sample_note;    
-        //$retObj['portal_notes'] =  $this->Sample->portal_notes;
+        $retObj['sample_note'] = $this->Sample->sample_note;
+        // $retObj['portal_notes'] =  $this->Sample->portal_notes;
 
-        //prepend all except the first occurance of ● with a <br />
-        //there must be a better way for this.... but i have no time. 
+        // prepend all except the first occurance of ● with a <br />
+        // there must be a better way for this.... but i have no time.
         $retObj['portal_notes'] = preg_replace('/●/', '<br />●', $this->Sample->portal_notes);
         $retObj['portal_notes'] = preg_replace('/^<br \/>/', '', $retObj['portal_notes']);
-       
 
         $retObj['barcode'] = $this->Sample->barcode;
         $retObj['was_tht'] = ($this->Sample->tht_code === null || empty($this->Sample->tht_code)) ? false : true;
-        
 
-        if($retObj['project_auth'] == True)
-        {
+        if ($retObj['project_auth'] == true) {
             $retObj['progress'] = 100;
-        } 
-        
-        else
-        {
+        } else {
 
-            if($this->Sample->predicted_end  == -1)
-            {
-              $roundedPercent = 0;
-            } 
-            
-            else
-            {
-              $distance = $this->Sample->predicted_end - $this->Sample->date_registered;
-              
-        
-            $left = $this->Sample->predicted_end - time();
-        
-            if($distance !== 0)
-            {
-                $percent = (1 - ($left / $distance)) * 100;
-            } 
+            if ($this->Sample->predicted_end == -1) {
+                $roundedPercent = 0;
+            } else {
+                $distance = $this->Sample->predicted_end - $this->Sample->date_registered;
 
-            else
-            {
-                $percent = 0;
-            }
-            
-        
+                $left = $this->Sample->predicted_end - time();
 
-        
-              
-              
-              if($percent > 100 ){
-                  $percent = 100;
-              }
+                if ($distance !== 0) {
+                    $percent = (1 - ($left / $distance)) * 100;
+                } else {
+                    $percent = 0;
+                }
 
-              $roundedPercent = ceil($percent);
+                if ($percent > 100) {
+                    $percent = 100;
+                }
+
+                $roundedPercent = ceil($percent);
             }
 
             $retObj['progress'] = $roundedPercent;
         }
 
         $retObj['lock_object'] = $lockObject;
-        
-        
-        $reqExcResearch = upa('sampleAnalysis', 'analysisAndProfilesArray', array($this->Sample->id));
-                        
+
+        $reqExcResearch = upa('sampleAnalysis', 'analysisAndProfilesArray', [$this->Sample->id]);
+
         $retObj['reqResearch'] = $reqExcResearch['req'];
         $retObj['excResearch'] = $reqExcResearch['exc'];
 
-        print json_encode($retObj, JSON_FORCE_OBJECT);
+        echo json_encode($retObj, JSON_FORCE_OBJECT);
     }
 
-    function buildMetadataBlock($sampleId){
+    public function buildMetadataBlock($sampleId)
+    {
 
-        $allowed_detail_edit = upa('groupPrivileges', 'checkGUI', array('editSampleDetails'), False);
+        $allowed_detail_edit = upa('groupPrivileges', 'checkGUI', ['editSampleDetails'], false);
 
-        $metadata = upa('metadata', 'forSample', array($sampleId), False);
+        $metadata = upa('metadata', 'forSample', [$sampleId], false);
 
-        array_walk($metadata, function (&$v, $k) use ($allowed_detail_edit){
+        array_walk($metadata, function (&$v, $k) use ($allowed_detail_edit) {
             $v['value'] = nl2br($v['value']);
-            $v['class'] = ($allowed_detail_edit == True) ? '' : 'hide';
-        }); 
+            $v['class'] = ($allowed_detail_edit == true) ? '' : 'hide';
+        });
 
-
-        $tF = new tableFactory();
+        $tF = new tableFactory;
         $tF->loadTemplate('metadata');
         $tF->loadValues($metadata);
+
         return $tF->renderTable();
     }
 
-    function buildproductGroupBlock($sampleId){
-        
-        $group = upa('productGroups', 'getProductGroup', array($this->Sample->portal_product_group_id), False);
-        
-        if($group == null)
-        {
-            return  generateHTML('productGroup', array('id' => 'Onbekend', 'name' => 'Onbekend', 'default' => 'Onbekend'));    
+    public function buildproductGroupBlock($sampleId)
+    {
+
+        $group = upa('productGroups', 'getProductGroup', [$this->Sample->portal_product_group_id], false);
+
+        if ($group == null) {
+            return generateHTML('productGroup', ['id' => 'Onbekend', 'name' => 'Onbekend', 'default' => 'Onbekend']);
         }
 
         $defaultGroup = ($group['default'] == 1) ? 'Ja' : 'Nee';
 
-        return  generateHTML('productGroup', array('id' => $this->Sample->portal_product_group_id, 'name' => $group['name'], 'default' => $defaultGroup));
+        return generateHTML('productGroup', ['id' => $this->Sample->portal_product_group_id, 'name' => $group['name'], 'default' => $defaultGroup]);
 
     }
 
-    function updateSampleProductGroup(){
+    public function updateSampleProductGroup()
+    {
 
-        $this->render = False; 
-        $this->Sample->where('id', $_POST['sample_id']);        
+        $this->render = false;
+        $this->Sample->where('id', $_POST['sample_id']);
         $result = $this->Sample->search();
 
-        if($result){
-
-            
+        if ($result) {
 
             $this->Sample->arrayToModel($result['0']);
 
             $this->Sample->portal_product_group_id = $_POST['product_group_id'];
 
-            if($this->Sample->portal_sample_id != null)
-            {
-                //update portal about this change 
-                upa('portal', 'updateProductGroup', array($this->Sample->portal_sample_id, $this->Sample->portal_product_group_id), False);
+            if ($this->Sample->portal_sample_id != null) {
+                // update portal about this change
+                upa('portal', 'updateProductGroup', [$this->Sample->portal_sample_id, $this->Sample->portal_product_group_id], false);
             }
-            
-                        
-            $this->Sample->save(); 
+
+            $this->Sample->save();
 
         }
 
-        
-
-
-
     }
 
-    function estimateProgress($sample)
+    public function estimateProgress($sample)
     {
 
-        return;
         /*
         $analysis = pa('sampleAnalysis', 'fetchAnalysisArray', array($sample));
 
@@ -4001,62 +3730,60 @@ class samplesController extends Controller
         return floor($progress); */
     }
 
-
-    function checkMalformedBar($barcode)
+    public function checkMalformedBar($barcode)
     {
 
         $this->render = 0;
 
-        //empty
+        // empty
         if ($barcode == '') {
-            return False;
+            return false;
         }
 
-        //non A or S
+        // non A or S
         if ($barcode[0] != 'S') {
-            return False;
+            return false;
         }
 
-        return True;
+        return true;
     }
 
     public function countSamplesInProject($projectId)
     {
         $this->Sample->where('project', $projectId);
         $results = $this->Sample->search();
+
         return count($results);
     }
-
 
     public function countSamplesAndTypesInProject($projectId)
     {
         $this->Sample->where('project', $projectId);
         $results = $this->Sample->search();
-        $legFound = False;
-        $normalFound = False;
-        $rodacFound = False;
-        $sourceIsClient = False; 
+        $legFound = false;
+        $normalFound = false;
+        $rodacFound = false;
+        $sourceIsClient = false;
 
-        if(!empty($results)){
+        if (! empty($results)) {
 
-            foreach($results as $sample){
-                if($sample['sample_type'] == 'L'){
-                    $legFound = True;
-                } elseif($sample['sample_type'] == 'R'){
-                    $rodacFound = True;
+            foreach ($results as $sample) {
+                if ($sample['sample_type'] == 'L') {
+                    $legFound = true;
+                } elseif ($sample['sample_type'] == 'R') {
+                    $rodacFound = true;
+                } else {
+                    $normalFound = true;
                 }
-                else{
-                    $normalFound = True;
-                }
 
-                if((int)$sample['source'] === 1 || (int)$sample['source'] === 3){
-                    $sourceIsClient = true; 
+                if ((int) $sample['source'] === 1 || (int) $sample['source'] === 3) {
+                    $sourceIsClient = true;
                 }
 
             }
         }
 
-        $returnArr = array();
+        $returnArr = [];
         $returnArr['count'] = count($results);
         $returnArr['leg'] = $legFound;
         $returnArr['normal'] = $normalFound;
@@ -4066,17 +3793,18 @@ class samplesController extends Controller
         return $returnArr;
     }
 
-    public function projectSamples($projectId, $startBySample = False)
+    public function projectSamples($projectId, $startBySample = false)
     {
 
         $this->Sample->where('project', $projectId);
         $result = $this->Sample->search();
 
-        if ($startBySample == True) {
-            $stratArr = array();
+        if ($startBySample == true) {
+            $stratArr = [];
             foreach ($result as $sampleInd => $sample) {
                 $stratArr[$sample['id']] = $sample;
             }
+
             return $stratArr;
         }
 
@@ -4086,23 +3814,22 @@ class samplesController extends Controller
     public function createResultTable($sampleId)
     {
 
-
-        //fetch sample info
+        // fetch sample info
         $this->Sample->where('id', $sampleId);
         $result = $this->Sample->search();
 
         if (empty($result)) {
-            return False;
+            return false;
         }
 
-        //fetch results
-        $sampleResults = pa('results', 'getSampleResults', array($sampleId, True));
-        $requestedFlows = pa('sampleAnalysis', 'fetchAnalysisArray', array($sampleId));
+        // fetch results
+        $sampleResults = pa('results', 'getSampleResults', [$sampleId, true]);
+        $requestedFlows = pa('sampleAnalysis', 'fetchAnalysisArray', [$sampleId]);
 
-        //parray($requestedAna);
-        //parray($sampleResults);
+        // parray($requestedAna);
+        // parray($sampleResults);
 
-        $tF = new tableFactory();
+        $tF = new tableFactory;
         $tF->setTableId('result_table');
         $tF->legoMode();
         $tF->loadTemplate('resultLego');
@@ -4110,43 +3837,39 @@ class samplesController extends Controller
         $resultsRender = '';
         $flowResultRender = '';
 
-
-        //loop trough requested and build up table
+        // loop trough requested and build up table
         foreach ($requestedFlows as $thisFlow) {
 
-            //get flow components
-            $flowInfo = pa('flows', 'getFlow', array($thisFlow['flow']));
-            $flowComp = pa('flows', 'findInputComponents', array($thisFlow['flow']));
-
+            // get flow components
+            $flowInfo = pa('flows', 'getFlow', [$thisFlow['flow']]);
+            $flowComp = pa('flows', 'findInputComponents', [$thisFlow['flow']]);
 
             foreach ($sampleResults[$thisFlow['id']] as $resultRow) {
 
-                $thisFields = pa('analyticalFields', 'fetchFields', array($resultRow['ana_base']));
-                $fielResultData = json_decode($resultRow['data'], True);
-                $tF->useBrick('th', array('table_title' => $flowComp[$resultRow['component_id']]['name']));
+                $thisFields = pa('analyticalFields', 'fetchFields', [$resultRow['ana_base']]);
+                $fielResultData = json_decode($resultRow['data'], true);
+                $tF->useBrick('th', ['table_title' => $flowComp[$resultRow['component_id']]['name']]);
 
                 foreach ($thisFields as $fieldId => $fieldInfo) {
-                    $tF->useBrick('resultOnly', array('field_name' => $fieldInfo['alias'], 'field_value' => $fielResultData[$fieldInfo['name']]));
+                    $tF->useBrick('resultOnly', ['field_name' => $fieldInfo['alias'], 'field_value' => $fielResultData[$fieldInfo['name']]]);
                 }
             }
 
             $flowResultRender .= $tF->returnRender();
             $tF->resetRender();
 
-
-            //get result fields
-            $tF->useBrick('th', array('table_title' => 'Result fields'));
-            $resultFields = pa('flows', 'getResultFieldsArray', array($thisFlow['id']));
+            // get result fields
+            $tF->useBrick('th', ['table_title' => 'Result fields']);
+            $resultFields = pa('flows', 'getResultFieldsArray', [$thisFlow['id']]);
 
             foreach ($resultFields as $resName => $resValue) {
-                $tF->useBrick('resultOnly', array('field_name' => $resName, 'field_value' => $resValue));
+                $tF->useBrick('resultOnly', ['field_name' => $resName, 'field_value' => $resValue]);
             }
-
 
             $flowResultRender .= $tF->returnRender();
             $tF->resetRender();
 
-            $resultsRender .= generateHTML('results/resultsWrap', array('flow_name' => $flowInfo['name'], 'flow_results' => $flowResultRender));
+            $resultsRender .= generateHTML('results/resultsWrap', ['flow_name' => $flowInfo['name'], 'flow_results' => $flowResultRender]);
             $flowResultRender = '';
         }
 
@@ -4229,7 +3952,7 @@ class samplesController extends Controller
 
         $this->renderAlternateHeader = 'slim';
 
-        //fetch sample info
+        // fetch sample info
         $this->Sample->where('id', $sampleId);
         $result = $this->Sample->search();
 
@@ -4239,58 +3962,58 @@ class samplesController extends Controller
 
         $resultTable = $this->createResultTable($sampleId);
 
-        //set rendering
-        $clientByName = pa('clients', 'clientIdToName', array($result[0]['client']));
+        // set rendering
+        $clientByName = pa('clients', 'clientIdToName', [$result[0]['client']]);
         $this->_template->set('sample_results', $resultTable);
         $this->_template->set('barcode', $result[0]['barcode']);
         $this->_template->set('description', $result[0]['description']);
         $this->_template->set('client_by_name', $clientByName);
     }
 
-    function removeSample($sampleId, $recursive = True, $supressRevisionAdditions = False, $projectDelete = False)
+    public function removeSample($sampleId, $recursive = true, $supressRevisionAdditions = false, $projectDelete = false)
     {
-        //remove from main
+        // remove from main
         $this->render = 0;
         $result = $this->fetch($sampleId);
         $this->Sample->free();
 
-        if ($recursive == True) {
-            upa('sampleAnalysis', 'removeForSample', array($sampleId));
+        if ($recursive == true) {
+            upa('sampleAnalysis', 'removeForSample', [$sampleId]);
         }
 
         $this->Sample->id = $sampleId;
         $this->Sample->delete();
 
-        if($supressRevisionAdditions == False){
-            //upa('revisions', 'registerRevision', array('SCOPE_PROJECT_SAMPLEREM', $result['project'], $result['barcode']), False);
-            //upa('revisions', 'removeSampleRevisions', array($sampleId), False);
-            $event = 'Monster ' . $result['barcode'] . ' verwijderd uit project';
-            upa('changeTracker', 'changed', array(10, $result['project'], $sampleId, False, $event, False, False), False);
-            upa('projects', 'projectEdited', array($result['project']), False);
-            upa('projects', 'updateEndPoints', array($result['project']), False);
-        } else{
-            upa('revisions', 'removeSampleRevisions', array($sampleId), False);
+        if ($supressRevisionAdditions == false) {
+            // upa('revisions', 'registerRevision', array('SCOPE_PROJECT_SAMPLEREM', $result['project'], $result['barcode']), False);
+            // upa('revisions', 'removeSampleRevisions', array($sampleId), False);
+            $event = 'Monster '.$result['barcode'].' verwijderd uit project';
+            upa('changeTracker', 'changed', [10, $result['project'], $sampleId, false, $event, false, false], false);
+            upa('projects', 'projectEdited', [$result['project']], false);
+            upa('projects', 'updateEndPoints', [$result['project']], false);
+        } else {
+            upa('revisions', 'removeSampleRevisions', [$sampleId], false);
         }
 
-        if(!empty($result['sample_innoculated'])){
-          upa('assuranceForms', 'updateFormByInnocDate', array($result['sample_innoculated']), False);
+        if (! empty($result['sample_innoculated'])) {
+            upa('assuranceForms', 'updateFormByInnocDate', [$result['sample_innoculated']], false);
         }
 
-        if($result['portal_sample_id'] !== NULL && $projectDelete === False){
-            upa('portal', 'destroySample', array($result['portal_sample_id']), False );
-        } else{
+        if ($result['portal_sample_id'] !== null && $projectDelete === false) {
+            upa('portal', 'destroySample', [$result['portal_sample_id']], false);
+        } else {
             cphp('skipping portal notif');
         }
 
     }
 
-    function authoriseAllInProject($projectId = False, $fillHoles = False)
+    public function authoriseAllInProject($projectId = false, $fillHoles = false)
     {
 
         $this->render = 0;
 
-        if ($projectId == False) {
-            if (!isset($_POST['projectId'])) {
+        if ($projectId == false) {
+            if (! isset($_POST['projectId'])) {
                 return;
             } else {
                 $projectId = $_POST['projectId'];
@@ -4301,22 +4024,22 @@ class samplesController extends Controller
         $results = $this->Sample->search();
 
         foreach ($results as $sample) {
-            if ($fillHoles == False) {
-                pa('sampleAnalysis', 'authoriseAll', array($sample['id']));
+            if ($fillHoles == false) {
+                pa('sampleAnalysis', 'authoriseAll', [$sample['id']]);
             } else {
-                pa('sampleAnalysis', 'authoriseAll', array($sample['id']), False, True);
+                pa('sampleAnalysis', 'authoriseAll', [$sample['id']], false, true);
             }
 
         }
     }
 
-    function deAuthoriseAllInProject($projectId = False)
+    public function deAuthoriseAllInProject($projectId = false)
     {
 
         $this->render = 0;
 
-        if ($projectId == False) {
-            if (!isset($_POST['projectId'])) {
+        if ($projectId == false) {
+            if (! isset($_POST['projectId'])) {
                 return;
             } else {
                 $projectId = $_POST['projectId'];
@@ -4327,34 +4050,32 @@ class samplesController extends Controller
         $results = $this->Sample->search();
 
         foreach ($results as $sample) {
-            pa('sampleAnalysis', 'authoriseAll', array($sample['id'], True));
+            pa('sampleAnalysis', 'authoriseAll', [$sample['id'], true]);
         }
     }
 
-
-
-    function partOfAuthProject($sampleId, $project = False)
+    public function partOfAuthProject($sampleId, $project = false)
     {
-        
+
         $this->render = 0;
-     
-        if($project == False){
-            $this->Sample->where('id', (int)$sampleId);
-            $result = $this->Sample->search();                                  
+
+        if ($project == false) {
+            $this->Sample->where('id', (int) $sampleId);
+            $result = $this->Sample->search();
             $project = $result[0]['project'];
         }
-        
-        $projectInfo = upa('projects', 'fetchProjectInfo', array($project));
 
-        if ($projectInfo['auth_status'] == 1) {            
-            return True;
+        $projectInfo = upa('projects', 'fetchProjectInfo', [$project]);
+
+        if ($projectInfo['auth_status'] == 1) {
+            return true;
         } else {
-            return False;
+            return false;
         }
 
     }
 
-    function removeProjectSamples($projectId, $recursive = True)
+    public function removeProjectSamples($projectId, $recursive = true)
     {
 
         $this->Sample->where('project', $projectId);
@@ -4362,83 +4083,82 @@ class samplesController extends Controller
 
         foreach ($result as $sample) {
 
-            $this->removeSample($sample['id'], True, True, True);
+            $this->removeSample($sample['id'], true, true, true);
 
-
-            //$this->Sample->id = $sample['id'];
-            //$this->Sample->delete();
-            //if($recursive == True){
+            // $this->Sample->id = $sample['id'];
+            // $this->Sample->delete();
+            // if($recursive == True){
             //    pa('sampleAnalysis', 'removeForSample', array($sample['id']) );
             //    pa('results', 'removeResultSample', array($sample['id']));
             //
-            //}
+            // }
         }
 
         return $result;
     }
 
-    function removeAnalysis($sampleAnalysis, $sampleId)
+    public function removeAnalysis($sampleAnalysis, $sampleId)
     {
 
         $this->render = 0;
-        $saInfo = upa('sampleAnalysis', 'fetch', array($sampleAnalysis), 0);
-        upa('sampleAnalysis', 'removeById', array($sampleAnalysis,$sampleId));
-        upa('results', 'removeResults', array($sampleAnalysis));
-        upa('roamingAnalysis', 'removeRoamBySA', array($sampleAnalysis));
-        upa('confirmations', 'removeConfirmationBySA', array($sampleAnalysis));
-        upa('vetoResults', 'removeVetoSaid', array($sampleAnalysis));
+        $saInfo = upa('sampleAnalysis', 'fetch', [$sampleAnalysis], 0);
+        upa('sampleAnalysis', 'removeById', [$sampleAnalysis, $sampleId]);
+        upa('results', 'removeResults', [$sampleAnalysis]);
+        upa('roamingAnalysis', 'removeRoamBySA', [$sampleAnalysis]);
+        upa('confirmations', 'removeConfirmationBySA', [$sampleAnalysis]);
+        upa('vetoResults', 'removeVetoSaid', [$sampleAnalysis]);
 
-        $sampleInfo = upa('samples', 'fetch', array($sampleId), False);
+        $sampleInfo = upa('samples', 'fetch', [$sampleId], false);
 
-        //update project order
-        upa('sampleAnalysis', 'reorderOrderList', array($sampleId), False);
+        // update project order
+        upa('sampleAnalysis', 'reorderOrderList', [$sampleId], false);
 
-        //run revision
-        $assayInfo = upa('assays', 'fetch', array($saInfo['assay_base']), False);
+        // run revision
+        $assayInfo = upa('assays', 'fetch', [$saInfo['assay_base']], false);
 
-        //upa('revisions', 'registerRevision', array('SCOPE_SAMPLEINFO_ASSAYREM', $assayInfo['name'], $sampleId, ), False);
-        upa('projects', 'projectEdited', array(False, $sampleId), False);
-        upa('sampleAnalysis', 'checkProjectReady', array($saInfo['project']), False);
+        // upa('revisions', 'registerRevision', array('SCOPE_SAMPLEINFO_ASSAYREM', $assayInfo['name'], $sampleId, ), False);
+        upa('projects', 'projectEdited', [false, $sampleId], false);
+        upa('sampleAnalysis', 'checkProjectReady', [$saInfo['project']], false);
 
-        $sampleInfo = upa('samples', 'fetch', array($sampleId), False);
-        $event = 'Analyse ' . $assayInfo['name'] .' verwijderd van monster ' . $sampleInfo['barcode'];
-        upa('changeTracker', 'changed', array(7, $saInfo['project'], $saInfo['sample'], $saInfo['id'], $event, False, False), False);
+        $sampleInfo = upa('samples', 'fetch', [$sampleId], false);
+        $event = 'Analyse '.$assayInfo['name'].' verwijderd van monster '.$sampleInfo['barcode'];
+        upa('changeTracker', 'changed', [7, $saInfo['project'], $saInfo['sample'], $saInfo['id'], $event, false, false], false);
         $this->estimateEndPoints($sampleId);
 
-        if(!empty($sampleInfo['sample_innoculated'])){
-          upa('assuranceForms', 'updateFormByInnocDate', array($sampleInfo['sample_innoculated']), False);
+        if (! empty($sampleInfo['sample_innoculated'])) {
+            upa('assuranceForms', 'updateFormByInnocDate', [$sampleInfo['sample_innoculated']], false);
         }
 
-        //SCOPE_SAMPLEINFO_ASSAYREM
+        // SCOPE_SAMPLEINFO_ASSAYREM
         // $scope, $scopeId, $changed = False, $from = False, $to = False, $saId = 0, $resultId = 0
     }
 
-    function sampleInProjectOverview($id)
+    public function sampleInProjectOverview($id)
     {
         global $lang;
         $this->render = 0;
 
-        $sampMethodOp = upa('sampleProcedures', 'getProceduresArr', array());
+        $sampMethodOp = upa('sampleProcedures', 'getProceduresArr', []);
         $this->Sample->where('id', $id);
         $results = $this->Sample->search();
         $this->Sample->arrayToModel($results['0']);
 
-        $projectStatus = upa('projects', 'authStatus', array($this->Sample->project));
+        $projectStatus = upa('projects', 'authStatus', [$this->Sample->project]);
 
-        //release previous lock, request lock status
-        upa('keyrings', 'removeOwnLock', array('SAMPLE', $_POST['previous_sample']));
-        $lockObject = upa('keyrings', 'requestLockAndStatus', array('SAMPLE', $id), False);
+        // release previous lock, request lock status
+        upa('keyrings', 'removeOwnLock', ['SAMPLE', $_POST['previous_sample']]);
+        $lockObject = upa('keyrings', 'requestLockAndStatus', ['SAMPLE', $id], false);
 
-        $allowed_detail_edit = upa('groupPrivileges', 'checkGUI', array('editSampleDetails'), False);
+        $allowed_detail_edit = upa('groupPrivileges', 'checkGUI', ['editSampleDetails'], false);
 
-        if ($projectStatus == True || $lockObject['locked'] == True || $allowed_detail_edit == False) {
+        if ($projectStatus == true || $lockObject['locked'] == true || $allowed_detail_edit == false) {
             $disabled = 'disabled';
-            $projectStatus = True;
+            $projectStatus = true;
         } else {
             $disabled = '';
-        
+
         }
-              
+
         $sForm = new formFactory($this->_controller);
         $sForm->setId('sampleForm');
         $sForm->action('#');
@@ -4446,71 +4166,70 @@ class samplesController extends Controller
         $sForm->addClass('');
         $sForm->setTemplate('generic');
         $sForm->returnAsFieldArray();
-        $sForm->addDropdownField('sampling_method', False, 'input-block-level', $this->Sample->sampling_method, $sampMethodOp, $disabled, $lang['MESA_SAD_SAMPLEMETHOD']);
-        $sForm->addInputField('description', False, 'text', 'input-block-level ', $this->Sample->description, 'Monster omschrijving LIMS', $disabled, 'Monster omschrijving LIMS');
-        
-        $followInfo = upa('samples', 'sampleGetProjectFollowNo', array( $this->Sample->id,  $this->Sample->project), False);
-        $sForm->addInputField('prj_follow_no', False, 'text', 'input-block-level ', $followInfo['db_follow'], 'Volgnummer', 'disabled="disabled"', 'Volgnummer');
+        $sForm->addDropdownField('sampling_method', false, 'input-block-level', $this->Sample->sampling_method, $sampMethodOp, $disabled, $lang['MESA_SAD_SAMPLEMETHOD']);
+        $sForm->addInputField('description', false, 'text', 'input-block-level ', $this->Sample->description, 'Monster omschrijving LIMS', $disabled, 'Monster omschrijving LIMS');
 
-            
-        $sForm->addInputField('client_description', False, 'text', 'input-block-level ', $this->Sample->client_description, 'Monster omschrijving klant', 'readonly style="background: #efefef"', 'Monster omschrijving klant');
+        $followInfo = upa('samples', 'sampleGetProjectFollowNo', [$this->Sample->id,  $this->Sample->project], false);
+        $sForm->addInputField('prj_follow_no', false, 'text', 'input-block-level ', $followInfo['db_follow'], 'Volgnummer', 'disabled="disabled"', 'Volgnummer');
 
-        $displayExtraFields = False;
+        $sForm->addInputField('client_description', false, 'text', 'input-block-level ', $this->Sample->client_description, 'Monster omschrijving klant', 'readonly style="background: #efefef"', 'Monster omschrijving klant');
 
-        if(!empty($this->Sample->sample_extra)){
+        $displayExtraFields = false;
+
+        if (! empty($this->Sample->sample_extra)) {
 
             $extraFields = json_decode($this->Sample->sample_extra, JSON_FORCE_OBJECT);
-            if(is_array($extraFields)){
+            if (is_array($extraFields)) {
 
-                foreach($extraFields as $exFieldKey => $exFieldValue){
-                    $displayExtraFields = True;
+                foreach ($extraFields as $exFieldKey => $exFieldValue) {
+                    $displayExtraFields = true;
                     $extaFieldClass = '';
-                    $extraFieldTags  = '';
-                    $intFilter = '';                    
+                    $extraFieldTags = '';
+                    $intFilter = '';
 
-                    if($exFieldKey == 'follow'){
+                    if ($exFieldKey == 'follow') {
                         continue;
                         $fieldDescription = 'Volgnummer';
-                        $extaFieldClass =  'disabled';
+                        $extaFieldClass = 'disabled';
                         $extraFieldTags = 'disabled="disabled"';
                     }
 
-                    if ($projectStatus == True || $lockObject['locked'] == True) {
-                          $extraFieldTags = 'disabled="disabled"';
+                    if ($projectStatus == true || $lockObject['locked'] == true) {
+                        $extraFieldTags = 'disabled="disabled"';
                     }
 
-                    if($exFieldKey == 'type'){
+                    if ($exFieldKey == 'type') {
                         $fieldDescription = 'Type';
                     }
 
-                    if($exFieldKey == 'temperature'){
+                    if ($exFieldKey == 'temperature') {
                         $fieldDescription = 'Temperatuur';
                     }
 
-                    if($exFieldKey == 'location'){
+                    if ($exFieldKey == 'location') {
                         $fieldDescription = 'Ruimte';
                     }
 
-                    if($exFieldKey == 'filter_volume'){
+                    if ($exFieldKey == 'filter_volume') {
                         $fieldDescription = 'Onderzocht volume in ml.';
                         $intFilter = ' int-filter';
                     }
 
-                    if($exFieldKey == 'type'){
-                      //addDropdownField($name, $label, $classes, $value, $options, $tags, $prepend = False){
-                      $fieldDescription = 'Leiding';
-                      $leidingOptions = array();
-                      $leidingOptions['Koud'] = 'Koud';
-                      $leidingOptions['Warm'] = 'Warm';
-                      $leidingOptions['Mengwater'] = 'Mengwater';
-                      $leidingOptions[''] = '';
-                      $sForm->addDropdownField($exFieldKey, False, 'input-block-level sample-extra-field ' . $extaFieldClass, $exFieldValue, $leidingOptions, $extraFieldTags, $fieldDescription );
-                    } else{
-                      //addInputField($name, $label, $fieldType, $classes, $value, $placeHolder, $tags = False, $prepend = False) {
-                      $sForm->addInputField($exFieldKey, False, 'text',  'input-block-level sample-extra-field ' . $intFilter,  $exFieldValue, $fieldDescription, $extraFieldTags, $fieldDescription);
+                    if ($exFieldKey == 'type') {
+                        // addDropdownField($name, $label, $classes, $value, $options, $tags, $prepend = False){
+                        $fieldDescription = 'Leiding';
+                        $leidingOptions = [];
+                        $leidingOptions['Koud'] = 'Koud';
+                        $leidingOptions['Warm'] = 'Warm';
+                        $leidingOptions['Mengwater'] = 'Mengwater';
+                        $leidingOptions[''] = '';
+                        $sForm->addDropdownField($exFieldKey, false, 'input-block-level sample-extra-field '.$extaFieldClass, $exFieldValue, $leidingOptions, $extraFieldTags, $fieldDescription);
+                    } else {
+                        // addInputField($name, $label, $fieldType, $classes, $value, $placeHolder, $tags = False, $prepend = False) {
+                        $sForm->addInputField($exFieldKey, false, 'text', 'input-block-level sample-extra-field '.$intFilter, $exFieldValue, $fieldDescription, $extraFieldTags, $fieldDescription);
                     }
 
-                    if($exFieldKey == 'filter_volume'){
+                    if ($exFieldKey == 'filter_volume') {
                         $fieldDescription = 'Onderzocht volume in ml.';
                     }
                 }
@@ -4518,61 +4237,60 @@ class samplesController extends Controller
         }
 
         $form = $sForm->render();
-        $retObj = array();
+        $retObj = [];
 
-        //get custom fields
-        $customFields = upa('sampleFields', 'renderCustomFields', array($this->Sample->custom_fields, $projectStatus));
-        $retObj['sampleInfo'] = $form['sampling_method'] . $form['description'] . $form['prj_follow_no'] . $form['client_description'] . $customFields;
+        // get custom fields
+        $customFields = upa('sampleFields', 'renderCustomFields', [$this->Sample->custom_fields, $projectStatus]);
+        $retObj['sampleInfo'] = $form['sampling_method'].$form['description'].$form['prj_follow_no'].$form['client_description'].$customFields;
 
-        if($displayExtraFields == True){
-            foreach($extraFields as $exFieldKey => $exFieldValue){
-                if(array_key_exists($exFieldKey, $form)){
-                    $retObj['sampleInfo'] = $retObj['sampleInfo'] . $form[$exFieldKey];
-                }                
+        if ($displayExtraFields == true) {
+            foreach ($extraFields as $exFieldKey => $exFieldValue) {
+                if (array_key_exists($exFieldKey, $form)) {
+                    $retObj['sampleInfo'] = $retObj['sampleInfo'].$form[$exFieldKey];
+                }
             }
         }
 
-        //get assay results, grouped on
-        $metaDataInfo = upa('metadata', 'metdataEditForm', array($id, $projectStatus), False);
+        // get assay results, grouped on
+        $metaDataInfo = upa('metadata', 'metdataEditForm', [$id, $projectStatus], false);
         $metaDataFound = checkKeyOrFalse($metaDataInfo, 'found');
-        
-        if($metaDataFound === True){
-            $retObj['metadata_found'] =  '!';
-        } else{
-            $retObj['metadata_found'] =  '';
+
+        if ($metaDataFound === true) {
+            $retObj['metadata_found'] = '!';
+        } else {
+            $retObj['metadata_found'] = '';
         }
 
-        $retObj['metadata_info'] =  checkKeyOrFalse($metaDataInfo, 'table');        
-        $retObj['assay_results'] = upa('sampleAnalysis', 'fetchResultSummary', array($id));        
+        $retObj['metadata_info'] = checkKeyOrFalse($metaDataInfo, 'table');
+        $retObj['assay_results'] = upa('sampleAnalysis', 'fetchResultSummary', [$id]);
         $retObj['sample_notes'] = $this->Sample->sample_note;
 
-        $retObj['portal_notes'] = $this->Sample->portal_notes; 
+        $retObj['portal_notes'] = $this->Sample->portal_notes;
         $retObj['portal_notes'] = preg_replace('/●/', '<br />●', $retObj['portal_notes']);
         $retObj['portal_notes'] = preg_replace('/^<br \/>/', '', $retObj['portal_notes']);
 
         $retObj['sample_source'] = $this->Sample->source;
 
-        print json_encode($retObj, JSON_FORCE_OBJECT);
+        echo json_encode($retObj, JSON_FORCE_OBJECT);
 
     }
-    
 
-    function updateSampleField2($id, $field, $value, $extra){
-      $_POST['id'] = $id;
-      $_POST['field'] = $field; 
-      $_POST['value'] = $value; 
-      $_POST['extra'] = $extra;
-      //$this->updateSampleField();
-    }
-
-    function updateSampleNoteField()
+    public function updateSampleField2($id, $field, $value, $extra)
     {
-        $_POST['extra'] = False;
+        $_POST['id'] = $id;
+        $_POST['field'] = $field;
+        $_POST['value'] = $value;
+        $_POST['extra'] = $extra;
+        // $this->updateSampleField();
+    }
+
+    public function updateSampleNoteField()
+    {
+        $_POST['extra'] = false;
         $this->updateSampleField();
     }
-    
 
-    function updateSampleField()
+    public function updateSampleField()
     {
 
         $this->render = 0;
@@ -4581,141 +4299,133 @@ class samplesController extends Controller
         $value = $_POST['value'];
         $extra = $_POST['extra'];
 
-        $from = False;
+        $from = false;
 
         $this->Sample->where('id', $id);
         $result = $this->Sample->search();
-        
-        //sample was nto found
-        if(empty($result)){
+
+        // sample was nto found
+        if (empty($result)) {
             return;
         }
 
         $this->Sample->arrayToModel($result['0']);
 
-        $cArr = json_decode($this->Sample->custom_fields, True);
+        $cArr = json_decode($this->Sample->custom_fields, true);
         $eArr = json_decode($this->Sample->sample_extra, JSON_FORCE_OBJECT);
 
-        if(!is_array($eArr)){
-            $eArr = array();
+        if (! is_array($eArr)) {
+            $eArr = [];
         }
 
-        if(!is_array($cArr)){
-            $cArr = array();
+        if (! is_array($cArr)) {
+            $cArr = [];
         }
 
         if ($field == 'description') {
             $from = $this->Sample->description;
             $this->Sample->description = $value;
-        } 
-
-        elseif ($field == 'client_description') {     
-            $from = $this->Sample->client_description;      
+        } elseif ($field == 'client_description') {
+            $from = $this->Sample->client_description;
             $this->Sample->client_description = $value;
-        }
-        
-        elseif ($field == 'sampling_method') {
-            $sampMethodOp = upa('sampleProcedures', 'getProceduresArr', array());
-            //$from = $this->Sample->sampling_method;
+        } elseif ($field == 'sampling_method') {
+            $sampMethodOp = upa('sampleProcedures', 'getProceduresArr', []);
+            // $from = $this->Sample->sampling_method;
             $from = checkKeyOrFalse($sampMethodOp, $this->Sample->sampling_method);
             $this->Sample->sampling_method = $value;
             $value = checkKeyOrFalse($sampMethodOp, $value);
         } elseif ($field == 'sample_notes') {
             $from = $this->Sample->sample_note;
             $this->Sample->sample_note = $value;
-        } elseif(filter_var($extra, FILTER_VALIDATE_BOOLEAN)){
+        } elseif (filter_var($extra, FILTER_VALIDATE_BOOLEAN)) {
             $eArr[$field] = $value;
-        }
-        else {
-            if(array_key_exists($field, $cArr)){
+        } else {
+            if (array_key_exists($field, $cArr)) {
                 $from = $cArr[$field];
-            } else{
+            } else {
                 $from = 'Onbekend';
             }
 
             $cArr[$field] = $value;
         }
 
-        //repack and save
+        // repack and save
         $this->Sample->custom_fields = json_encode($cArr, JSON_FORCE_OBJECT);
         $this->Sample->sample_extra = json_encode($eArr, JSON_FORCE_OBJECT);
         $this->Sample->save();
 
-        //registerRevision( $scope, $scopeId, $changed, $from, $to, $saId = 0, $resultId = 0){
-        //run revision
-        //upa('revisions', 'registerRevision', array('SCOPE_SAMPLEINFO_CHANGE', $id, $field, $from, $value), False);
+        // registerRevision( $scope, $scopeId, $changed, $from, $to, $saId = 0, $resultId = 0){
+        // run revision
+        // upa('revisions', 'registerRevision', array('SCOPE_SAMPLEINFO_CHANGE', $id, $field, $from, $value), False);
 
-        if($field == 'description'){
+        if ($field == 'description') {
             $eventLabel = 'Omschrijving';
-        } elseif($field == 'sampling_method' ){
+        } elseif ($field == 'sampling_method') {
             $eventLabel = 'Bemonster methode';
-        } else{
+        } else {
             $eventLabel = $field;
         }
 
-        $event = 'Monster info gewijzigd: '  . $eventLabel;
-        upa('changeTracker', 'changed', array(5,  $this->Sample->project, $this->Sample->id, False, $event, $from, $value), False);
-        upa('projects', 'projectEdited', array($this->Sample->project, $id), False);
+        $event = 'Monster info gewijzigd: '.$eventLabel;
+        upa('changeTracker', 'changed', [5,  $this->Sample->project, $this->Sample->id, false, $event, $from, $value], false);
+        upa('projects', 'projectEdited', [$this->Sample->project, $id], false);
     }
 
-    function fetchSampleProject($sample, $barcode = False)
+    public function fetchSampleProject($sample, $barcode = false)
     {
 
-        if ($barcode == False) {
+        if ($barcode == false) {
             $this->Sample->where('id', $sample);
         } else {
-            //need to account for shorthands here
+            // need to account for shorthands here
 
+            if (strlen($barcode) <= 5) {
 
-            if(strlen($barcode) <= 5){
+                $shortHandIdentifier = substr($barcode, 0, 1);
+                if ($shortHandIdentifier == 'L') {
+                    $this->Sample->where('sample_type', 'L'); // make sure we only select legionella samples for shorthand
+                    $this->Sample->where('follow_no', substr($barcode, 1));
+                } else {
+                    $this->Sample->where('sample_type', 'S'); // make sure we only select legionella samples for shorthand
+                    $this->Sample->where('follow_no', $barcode);
+                }
 
-              $shortHandIdentifier = substr($barcode, 0,1);
-              if($shortHandIdentifier == 'L'){
-                $this->Sample->where('sample_type', 'L'); //make sure we only select legionella samples for shorthand
-                $this->Sample->where('follow_no', substr($barcode, 1));
-              } else{
-                $this->Sample->where('sample_type', 'S'); //make sure we only select legionella samples for shorthand
-                $this->Sample->where('follow_no', $barcode);
-              }
-
-                //$this->Sample->where('follow_no', $barcode);
-                //$this->Sample->where('sample_type', 'L'); //make sure we only select legionella samples for shorthand
+                // $this->Sample->where('follow_no', $barcode);
+                // $this->Sample->where('sample_type', 'L'); //make sure we only select legionella samples for shorthand
                 $this->Sample->order('id', 'desc');
                 $this->Sample->limit('1');
                 $results = $this->Sample->search();
-            } else{
+            } else {
                 $this->Sample->where('barcode', $barcode);
                 $this->Sample->insertOR();
-                $this->Sample->where('tht_code', $barcode);                
+                $this->Sample->where('tht_code', $barcode);
             }
-
-
 
         }
 
         $results = $this->Sample->search();
 
-        if (!empty($results)) {
+        if (! empty($results)) {
             return $results['0']['project'];
         } else {
-            return False;
+            return false;
         }
-
 
     }
 
-    function fetchSamplesInProject($project)
+    public function fetchSamplesInProject($project)
     {
         $this->Sample->where('project', $project);
         $results = $this->Sample->search();
+
         return $results;
     }
 
-    function fetchSpecificSamplesInProject($project, $sampleArray)
+    public function fetchSpecificSamplesInProject($project, $sampleArray)
     {
 
-        if(!is_array($sampleArray)){
-          $sampleArray = array();
+        if (! is_array($sampleArray)) {
+            $sampleArray = [];
         }
 
         $numSamples = count($sampleArray);
@@ -4723,10 +4433,8 @@ class samplesController extends Controller
 
         foreach ($sampleArray as $sample) {
 
-
             $this->Sample->where('project', $project);
             $this->Sample->where('id', $sample);
-
 
             if ($i < $numSamples) {
                 $this->Sample->insertOR();
@@ -4736,39 +4444,41 @@ class samplesController extends Controller
         }
 
         $results = $this->Sample->search();
+
         return $results;
     }
 
-    function fetchSamplesInProjectDropdown($project)
+    public function fetchSamplesInProjectDropdown($project)
     {
 
         $this->render = 0;
-        $dropArr = array();
+        $dropArr = [];
         $samples = $this->fetchSamplesInProject($project);
 
         foreach ($samples as $sample) {
-            $dropArr[$sample['id']] = $sample['barcode'] . ' - ' . $sample['description'];
+            $dropArr[$sample['id']] = $sample['barcode'].' - '.$sample['description'];
         }
+
         return $dropArr;
     }
 
-
-    function readyToday()
+    public function readyToday()
     {
 
         $this->render = 0;
 
-        $beginOfDay = strtotime("midnight", time());
-        $endOfDay = strtotime("tomorrow", $beginOfDay);
+        $beginOfDay = strtotime('midnight', time());
+        $endOfDay = strtotime('tomorrow', $beginOfDay);
 
         $this->Sample->lessThan('predicted_end', $endOfDay);
         $this->Sample->greaterThan('predicted_end', $beginOfDay);
 
         $results = $this->Sample->search();
+
         return $results;
     }
 
-    function fetchFirstSampleInProject($project, $barcode = False)
+    public function fetchFirstSampleInProject($project, $barcode = false)
     {
         $this->Sample->where('project', $project);
         $this->Sample->order('id', 'ASC');
@@ -4777,33 +4487,35 @@ class samplesController extends Controller
         $results = $this->Sample->search();
 
         if (empty($results)) {
-            return False;
+            return false;
         } else {
-            if ($barcode == False) {
+            if ($barcode == false) {
                 return $results['0']['id'];
             } else {
-                return $results['0']['barcode'];    
+                return $results['0']['barcode'];
             }
         }
+
         return $results;
     }
 
-    function findNumberOfSaplesPerClient($client)
+    public function findNumberOfSaplesPerClient($client)
     {
 
         $this->Sample->where('client', $client);
         $this->Sample->search();
         $noSamples = $this->Sample->lastQueryCount;
+
         return $noSamples;
     }
 
-    function checkCompletionPercentage($projectId)
+    public function checkCompletionPercentage($projectId)
     {
 
         $this->Sample->where('project', $projectId);
         $samples = $this->Sample->search();
 
-        $retObj = array();
+        $retObj = [];
         $retObj['n'] = count($samples);
         $retObj['running'] = 0;
         $retObj['completion'] = 100;
@@ -4836,28 +4548,29 @@ class samplesController extends Controller
         return $retObj;
     }
 
-    function checkSampleComplete($sampleId)
+    public function checkSampleComplete($sampleId)
     {
-        $saids = upa('sampleAnalysis', 'fetchAnalysisArray', array($sampleId), False);
-        $complete = True;
+        $saids = upa('sampleAnalysis', 'fetchAnalysisArray', [$sampleId], false);
+        $complete = true;
 
-        if(empty($saids)){
-          $complete = False;
-        } else{
-          foreach ($saids as $said) {
-              //$thisSAcompleted = upa('results', 'saidIsComplete', array($said['id']), False);
-              $thisSAcompleted = filter_var($said['is_ready'], FILTER_VALIDATE_BOOLEAN);
+        if (empty($saids)) {
+            $complete = false;
+        } else {
+            foreach ($saids as $said) {
+                // $thisSAcompleted = upa('results', 'saidIsComplete', array($said['id']), False);
+                $thisSAcompleted = filter_var($said['is_ready'], FILTER_VALIDATE_BOOLEAN);
 
-              if ($thisSAcompleted == False) {
-                  $complete = False;
-              }
-          }
+                if ($thisSAcompleted == false) {
+                    $complete = false;
+                }
+            }
         }
 
         return $complete;
     }
 
-    function register(){
+    public function register()
+    {
         $this->_template->set('scroll_speed', MESA_SAMPLELIST_SCROLL);
 
         $binObject = json_decode(MESA_CURRENT_BIN, JSON_FORCE_OBJECT);
@@ -4868,212 +4581,204 @@ class samplesController extends Controller
         $dilObject = checkArrayOrEmpty($dilObject);
         $dilBin = checkKeyOrFalse($dilObject, getUserId());
 
-        if($userBin === False || (empty($userBin) && $userBin !== '0')){
-          $userBin = 'A';
+        if ($userBin === false || (empty($userBin) && $userBin !== '0')) {
+            $userBin = 'A';
         }
 
-        if($dilBin === False || (empty($dilBin) && $dilBin !== '0')){
+        if ($dilBin === false || (empty($dilBin) && $dilBin !== '0')) {
             $dilBin = '1';
-          }
+        }
 
         $this->_template->set('default_dilution', $dilBin);
         $this->_template->set('default_bin', $userBin);
     }
 
-    function findInitialLoadRange(){
+    public function findInitialLoadRange()
+    {
         $sql = 'SELECT id,sample_innoculated FROM samples WHERE sample_innoculated = "" ORDER BY id ASC LIMIT 1;';
-        $result = $this->Sample->customQuery($sql, array());
+        $result = $this->Sample->customQuery($sql, []);
 
-        if(empty($result)){
-            return False;
+        if (empty($result)) {
+            return false;
         }
 
         $bottom = $result[0]['id'];
         $sql = 'SELECT id FROM samples ORDER BY id DESC LIMIT 1;';
-        $result = $this->Sample->customQuery($sql, array());
+        $result = $this->Sample->customQuery($sql, []);
         $top = $result[0]['id'];
 
-        $sql = 'SELECT id FROM samples WHERE id <=' . $top . ' AND id  >=' . $bottom . ';';
-        $result = $this->Sample->customQuery($sql, array());
+        $sql = 'SELECT id FROM samples WHERE id <='.$top.' AND id  >='.$bottom.';';
+        $result = $this->Sample->customQuery($sql, []);
         $size = count($result);
 
-        return array('top' => $top, 'bottom' => $bottom, 'size' => $size);
+        return ['top' => $top, 'bottom' => $bottom, 'size' => $size];
     }
 
-    function loadRegisterList($loadFrom = 0, $search = False, $listType = '1', $topup = False){
+    public function loadRegisterList($loadFrom = 0, $search = false, $listType = '1', $topup = false)
+    {
 
-        $this->render = False;
+        $this->render = false;
         $limit = 50;
-        $doNotImposeLimit = False;
-        $retObj = array();
+        $doNotImposeLimit = false;
+        $retObj = [];
 
-        if($search == False){
+        if ($search == false) {
 
-            if($listType == 1){
+            if ($listType == 1) {
                 $this->Sample->where('sample_type', 'S');
             }
 
-            if($listType == 2){
+            if ($listType == 2) {
                 $this->Sample->where('sample_type', 'L');
             }
 
-            if($listType == 3){
+            if ($listType == 3) {
                 $this->Sample->where('sample_type', 'R');
             }
 
         }
 
-        if($loadFrom == 'topup'){            
-            //check if all the list samples where still there.
+        if ($loadFrom == 'topup') {
+            // check if all the list samples where still there.
             $this->Sample->greaterThanHard('id', $topup);
-        }
-        elseif($loadFrom != 0){            
+        } elseif ($loadFrom != 0) {
             $this->Sample->lessThanHard('id', $loadFrom);
-        }
-
-        elseif($search != False || $search != '0'){
+        } elseif ($search != false || $search != '0') {
             $barExp = explode('.', $search);
             $sampleBar = $barExp[0];
 
-            $shortHand  = $this->isShortHand($search);
-            if($shortHand === False){
-                $this->Sample->where('barcode', $sampleBar);                
-            } else{
-                $this->Sample->where('follow_no', $shortHand['follow_no']);                
-                $this->Sample->where('sample_type', $shortHand['sample_type']); 
-                $this->Sample->where('leg_type', $shortHand['matrix_type']); 
-                $this->Sample->order('id', 'desc');                        
+            $shortHand = $this->isShortHand($search);
+            if ($shortHand === false) {
+                $this->Sample->where('barcode', $sampleBar);
+            } else {
+                $this->Sample->where('follow_no', $shortHand['follow_no']);
+                $this->Sample->where('sample_type', $shortHand['sample_type']);
+                $this->Sample->where('leg_type', $shortHand['matrix_type']);
+                $this->Sample->order('id', 'desc');
             }
-            
-            //$this->Sample->where('barcode', $sampleBar);
-        } else{
-            //normal range
-            $initalLoadRange = $this->findInitialLoadRange();                        
-            if($initalLoadRange !== False){
-                if($initalLoadRange['size'] > $limit){
+
+            // $this->Sample->where('barcode', $sampleBar);
+        } else {
+            // normal range
+            $initalLoadRange = $this->findInitialLoadRange();
+            if ($initalLoadRange !== false) {
+                if ($initalLoadRange['size'] > $limit) {
                     $limit = $initalLoadRange['size'];
                 }
             }
         }
-        
 
-        //check to cull this a bit 
-        if($limit > 500){
+        // check to cull this a bit
+        if ($limit > 500) {
             $limit = 500;
         }
 
-        if($doNotImposeLimit == False){
+        if ($doNotImposeLimit == false) {
             $this->Sample->limit($limit);
         }
-        
 
         $this->Sample->order('id', 'DESC');
         $result = $this->Sample->search();
 
-        if($loadFrom == 'topup'){
-          $firstId = $topup;
-        } else{
-          $firstId = False;
+        if ($loadFrom == 'topup') {
+            $firstId = $topup;
+        } else {
+            $firstId = false;
         }
 
-
-        if(empty($result)){
+        if (empty($result)) {
             $retObj['barcode'] = 'BAR_WRONG';
         }
 
         $retObj['n_results'] = count($result);
 
         $table = '';
-        $projects = array();
-        $clients = array();
-        $firstInNewTable = False;
+        $projects = [];
+        $clients = [];
+        $firstInNewTable = false;
 
         $listAna = json_decode(MAZ_LISTERIAALL_IDS);
-        $salmAna =  json_decode(MAZ_SALM_IDS);
+        $salmAna = json_decode(MAZ_SALM_IDS);
         $campyAna = json_decode(MAZ_CAMPYLO_IDS);
         $stecAna = json_decode(MAZ_STEC_IDS);
-        $sampleTagArray = array('listeria' => $listAna, 'salmonella' => $salmAna, 'campylobacter' => $campyAna, 'stec' => $stecAna);
+        $sampleTagArray = ['listeria' => $listAna, 'salmonella' => $salmAna, 'campylobacter' => $campyAna, 'stec' => $stecAna];
 
         $sampleIdList = array_column($result, 'id');
-        $checkForSampleAnalysis = upa('sampleAnalysis', 'batchCheckIfSampleHas', array($sampleIdList, $sampleTagArray), False);
+        $checkForSampleAnalysis = upa('sampleAnalysis', 'batchCheckIfSampleHas', [$sampleIdList, $sampleTagArray], false);
 
-        $clientIds =  array_unique(array_column($result, 'client'));
-        $projectIds =  array_unique(array_column($result, 'project'));
-        
-        if(count($result) > 0){
-            $idMap = implode(',', array_map('intval', $clientIds));        
-            $sql = 'SELECT `id`,`name` FROM `clients` WHERE id IN (' . $idMap . ');';
-            $clientresults = $this->Sample->customQuery($sql, array());
-            $clients = array_column($clientresults, NULL, 'id'); 
-    
+        $clientIds = array_unique(array_column($result, 'client'));
+        $projectIds = array_unique(array_column($result, 'project'));
+
+        if (count($result) > 0) {
+            $idMap = implode(',', array_map('intval', $clientIds));
+            $sql = 'SELECT `id`,`name` FROM `clients` WHERE id IN ('.$idMap.');';
+            $clientresults = $this->Sample->customQuery($sql, []);
+            $clients = array_column($clientresults, null, 'id');
+
             $idMap = implode(',', array_map('intval', $projectIds));
-            $sql = 'SELECT `id`,`custom_fields` FROM `projects` WHERE id IN (' . $idMap . ');';
-            $projectResults = $this->Sample->customQuery($sql, array());        
-            $projects = array_column($projectResults, NULL, 'id'); 
+            $sql = 'SELECT `id`,`custom_fields` FROM `projects` WHERE id IN ('.$idMap.');';
+            $projectResults = $this->Sample->customQuery($sql, []);
+            $projects = array_column($projectResults, null, 'id');
         }
-        
-  
-        foreach($result as $sample){
 
-            //if($firstId == False || $loadFrom == 'topup'){
-            if($firstInNewTable == False ){
-              $firstInNewTable = $sample['id'];
+        foreach ($result as $sample) {
+
+            // if($firstId == False || $loadFrom == 'topup'){
+            if ($firstInNewTable == false) {
+                $firstInNewTable = $sample['id'];
             }
 
-            if(!array_key_exists($sample['project'], $projects)){
-                //$projects[$sample['project']] = upa('projects', 'fetch', array($sample['project']), False);
+            if (! array_key_exists($sample['project'], $projects)) {
+                // $projects[$sample['project']] = upa('projects', 'fetch', array($sample['project']), False);
             }
 
-            if(!array_key_exists($sample['client'], $clients)){
-                //$clients[$sample['client']] = upa('clients', 'fetch', array($sample['client']), False);
+            if (! array_key_exists($sample['client'], $clients)) {
+                // $clients[$sample['client']] = upa('clients', 'fetch', array($sample['client']), False);
             }
 
-            if($sample['project'] == '0' || $sample['project'] == NULL){
+            if ($sample['project'] == '0' || $sample['project'] == null) {
                 continue;
             }
 
-            $project_details = json_decode($projects[$sample['project']]['custom_fields'], True);
+            $project_details = json_decode($projects[$sample['project']]['custom_fields'], true);
 
-
-            $sa = array();
+            $sa = [];
 
             $sa['sample_id'] = $sample['id'];
             $sa['client_id'] = $sample['client'];
 
-            if(isset($project_details['project_ontvangst'])){
-                $sa['received_date'] =  $project_details['project_ontvangst'];
-            } else{
-                $sa['received_date'] =  'Onbekend';
+            if (isset($project_details['project_ontvangst'])) {
+                $sa['received_date'] = $project_details['project_ontvangst'];
+            } else {
+                $sa['received_date'] = 'Onbekend';
             }
 
-            if(isset($project_details['project_tijd_ontvangst'])){
+            if (isset($project_details['project_tijd_ontvangst'])) {
                 $sa['received_time'] = $project_details['project_tijd_ontvangst'];
-            } else{
-                $sa['received_time'] =  'Onbekend';
+            } else {
+                $sa['received_time'] = 'Onbekend';
             }
 
             $sa['warning_note'] = '';
-            if(!empty($sample['sample_note'])){
-                $sa['warning_note'] = '<i class="icon icon-exclamation-sign" onClick="noteDisplay(\'' . $sample['id'] . '\')"></i>';
+            if (! empty($sample['sample_note'])) {
+                $sa['warning_note'] = '<i class="icon icon-exclamation-sign" onClick="noteDisplay(\''.$sample['id'].'\')"></i>';
 
-                //<a href="http://127.0.0.1/alpaca/samples/lookup/16101004" class="btn btn-primary btn-mini" title="Ga naar monster"><i class="icon icon-beaker"></i></a>
-
+                // <a href="http://127.0.0.1/alpaca/samples/lookup/16101004" class="btn btn-primary btn-mini" title="Ga naar monster"><i class="icon icon-beaker"></i></a>
 
             }
 
-
-            if($sample['sample_innoculated'] != ''){
+            if ($sample['sample_innoculated'] != '') {
                 $sa['analysis_date'] = date('d-m-Y', $sample['sample_innoculated']);
 
                 $innocTime = date('H:i:s', $sample['sample_innoculated']);
 
-                if($innocTime != '00:00:00'){
+                if ($innocTime != '00:00:00') {
                     $sa['analysis_time'] = date('H:i', $sample['sample_innoculated']);
-                }else{
+                } else {
                     $sa['analysis_time'] = '';
                 }
                 $sa['started'] = '1';
-            } else{
+            } else {
                 $sa['analysis_date'] = '';
                 $sa['analysis_time'] = '';
                 $sa['started'] = '0';
@@ -5081,48 +4786,43 @@ class samplesController extends Controller
 
             $sa['LB'] = ALPC_BASEPATH;
             $sa['sample_no'] = $sample['barcode'];
-            
-    
-                        
-            if(array_key_exists($sample['client'], $clients)){                
+
+            if (array_key_exists($sample['client'], $clients)) {
                 $sa['client'] = $clients[$sample['client']]['name'];
-            } else{
+            } else {
                 $sa['client'] = 'Onbekend';
-            }                                   
-            
+            }
+
             $sa['description'] = $sample['description'];
 
-            //$listAna = array('16', '60', '25', '36');
-            //$salmAna = array('23', '46', '39');
+            // $listAna = array('16', '60', '25', '36');
+            // $salmAna = array('23', '46', '39');
 
+            // $listeria = upa('sampleAnalysis', 'checkIfSampleHas', array($sample['id'], $listAna), False);
+            // $salmonella = upa('sampleAnalysis', 'checkIfSampleHas', array($sample['id'], $salmAna), False);
+            // $campy  = upa('sampleAnalysis', 'checkIfSampleHas', array($sample['id'], $campyAna), False);
+            // $stec  = upa('sampleAnalysis', 'checkIfSampleHas', array($sample['id'], $stecAna), False);
 
-            //$listeria = upa('sampleAnalysis', 'checkIfSampleHas', array($sample['id'], $listAna), False);
-            //$salmonella = upa('sampleAnalysis', 'checkIfSampleHas', array($sample['id'], $salmAna), False);
-            //$campy  = upa('sampleAnalysis', 'checkIfSampleHas', array($sample['id'], $campyAna), False);
-            //$stec  = upa('sampleAnalysis', 'checkIfSampleHas', array($sample['id'], $stecAna), False);
-
-
-
-            $listeria = checkKeyOrFalse($checkForSampleAnalysis, $sample['id'],'listeria');
-            $salmonella = checkKeyOrFalse($checkForSampleAnalysis, $sample['id'],'salmonella');
-            $campy  = checkKeyOrFalse($checkForSampleAnalysis, $sample['id'],'campylobacter');
-            $stec  = checkKeyOrFalse($checkForSampleAnalysis, $sample['id'],'stec');
+            $listeria = checkKeyOrFalse($checkForSampleAnalysis, $sample['id'], 'listeria');
+            $salmonella = checkKeyOrFalse($checkForSampleAnalysis, $sample['id'], 'salmonella');
+            $campy = checkKeyOrFalse($checkForSampleAnalysis, $sample['id'], 'campylobacter');
+            $stec = checkKeyOrFalse($checkForSampleAnalysis, $sample['id'], 'stec');
 
             $sa['ana_listeria'] = '';
             $sa['ana_salmonella'] = '';
             $sa['ana_campy'] = '';
             $sa['ana_stec'] = '';
 
-            if($listeria == True){
+            if ($listeria == true) {
                 $sa['ana_listeria'] = 'X';
             }
-            if($salmonella == True){
+            if ($salmonella == true) {
                 $sa['ana_salmonella'] = 'X';
             }
-            if($campy == True){
+            if ($campy == true) {
                 $sa['ana_campy'] = 'X';
             }
-            if($stec == True){
+            if ($stec == true) {
                 $sa['ana_stec'] = 'X';
             }
 
@@ -5136,16 +4836,16 @@ class samplesController extends Controller
         $retObj['html'] = $table;
         $retObj['listType'] = $listType;
 
-        if($search != False){
+        if ($search != false) {
 
-            //reset to the currently selected list type if no results found
-            if(count($result) == 0){
+            // reset to the currently selected list type if no results found
+            if (count($result) == 0) {
                 $retObj['listType'] = $listType;
-            } else{
+            } else {
 
                 $foundSampleType = $result[0]['sample_type'];
 
-                $sampelTypeLink = array();
+                $sampelTypeLink = [];
                 $sampelTypeLink['S'] = '1';
                 $sampelTypeLink['L'] = '2';
                 $sampelTypeLink['R'] = '3';
@@ -5153,188 +4853,170 @@ class samplesController extends Controller
             }
         }
 
-        if($loadFrom == 'topup'){
+        if ($loadFrom == 'topup') {
 
-            if(isset($_POST['currentlyInList'])){
-
+            if (isset($_POST['currentlyInList'])) {
 
                 $currentList = json_decode($_POST['currentlyInList']);
                 $sqlList = '';
-                $previousList = array();
+                $previousList = [];
 
-                foreach($currentList as $sampleIdInList){
-                    if(!empty($sampleIdInList)){
-                        $sqlList = $sqlList . $sampleIdInList . ',';
+                foreach ($currentList as $sampleIdInList) {
+                    if (! empty($sampleIdInList)) {
+                        $sqlList = $sqlList.$sampleIdInList.',';
                         $previousList[$sampleIdInList] = $sampleIdInList;
                     }
                 }
 
                 $this->Sample->deepFreed();
-                $query = "SELECT `id` FROM `samples` WHERE `id` IN (" . substr($sqlList, 0, -1) . ")";
-                $params = array();
+                $query = 'SELECT `id` FROM `samples` WHERE `id` IN ('.substr($sqlList, 0, -1).')';
+                $params = [];
                 $sql = $this->Sample->customQuery($query, $params);
-                foreach($sql as $sampleResult){
+                foreach ($sql as $sampleResult) {
                     unset($previousList[$sampleResult['id']]);
                 }
-
 
                 $retObj['toDelete'] = $previousList;
 
             }
         }
 
-        print json_encode($retObj, JSON_FORCE_OBJECT);
+        echo json_encode($retObj, JSON_FORCE_OBJECT);
     }
 
-    private function sampleTypeAndMatrix($barcode){
-        
-        $barExp = explode('.', $barcode);
-        $sampleBar = $barExp[0];        
-        
-        //remove legionella associated things
-        $sampleBar = str_ireplace('LA', '',$sampleBar, $isA);
-        $sampleBar = str_ireplace('LB', '',$sampleBar, $isB);
-        $sampleBar = str_ireplace('LC', '',$sampleBar, $isC);
-        $sampleBar = str_ireplace('L', '',$sampleBar, $isL);
+    private function sampleTypeAndMatrix($barcode)
+    {
 
-        //set sample type and matrix 
-        if($isA > 0)
-        {
+        $barExp = explode('.', $barcode);
+        $sampleBar = $barExp[0];
+
+        // remove legionella associated things
+        $sampleBar = str_ireplace('LA', '', $sampleBar, $isA);
+        $sampleBar = str_ireplace('LB', '', $sampleBar, $isB);
+        $sampleBar = str_ireplace('LC', '', $sampleBar, $isC);
+        $sampleBar = str_ireplace('L', '', $sampleBar, $isL);
+
+        // set sample type and matrix
+        if ($isA > 0) {
             $sampleType = 'L';
             $matrixType = 'A';
-        }
-
-        else if($isB > 0)
-        {
+        } elseif ($isB > 0) {
             $sampleType = 'L';
             $matrixType = 'B';
-        }
-
-        else if($isC > 0)
-        {
+        } elseif ($isC > 0) {
             $sampleType = 'L';
             $matrixType = 'C';
-        }
-
-        else if($isL > 0)
-        {
-            //old legionella samples 
+        } elseif ($isL > 0) {
+            // old legionella samples
             $sampleType = 'L';
             $matrixType = '-';
-        }
-
-        else
-        {
+        } else {
             $sampleType = 'S';
             $matrixType = '-';
         }
 
-        return[
-            'sampleBar' =>  $barExp[0],
+        return [
+            'sampleBar' => $barExp[0],
             'follow_no' => $sampleBar,
             'sampleType' => $sampleType,
-            'matrixType' => $matrixType
+            'matrixType' => $matrixType,
         ];
-        
-        
+
     }
 
-    private function isShortHand($barcode){
+    private function isShortHand($barcode)
+    {
 
         $barInfo = $this->sampleTypeAndMatrix($barcode);
-                
-        //check length 
-        if(strlen($barInfo['follow_no']) < 8) {
-            
+
+        // check length
+        if (strlen($barInfo['follow_no']) < 8) {
+
             return
             [
                 'barcode' => $barcode,
-                'follow_no' => $barInfo['follow_no'], 
-                'sample_type' => $barInfo['sampleType'], 
-                'matrix_type' =>  $barInfo['matrixType']
+                'follow_no' => $barInfo['follow_no'],
+                'sample_type' => $barInfo['sampleType'],
+                'matrix_type' => $barInfo['matrixType'],
             ];
-                        
-        }
 
-        else 
-        {
-            return False; 
+        } else {
+            return false;
         }
 
     }
 
-    function registerInnoculation($barcode, $quiet = False){
-        $this->render = False;
+    public function registerInnoculation($barcode, $quiet = false)
+    {
+        $this->render = false;
 
-        if(isset($_POST['storage'])){
+        if (isset($_POST['storage'])) {
             $storage = $_POST['storage'];
-        } else{
+        } else {
             $storage = '';
         }
 
-        if(isset($_POST['dilution_at'])){
+        if (isset($_POST['dilution_at'])) {
             $dilution_at = $_POST['dilution_at'];
-        } else{
+        } else {
             $dilution_at = '';
         }
 
         $barExp = explode('.', $barcode);
         $sampleBar = $barExp[0];
-        $sampleAnalysis = False;
-        $sampleAnalysisFollow = False;
-
+        $sampleAnalysis = false;
+        $sampleAnalysisFollow = false;
 
         $shortHand = $this->isShortHand($barcode);
-        
-        if($shortHand !== False){
+
+        if ($shortHand !== false) {
             $this->Sample->where('follow_no', $shortHand['follow_no']);
-            $this->Sample->where('sample_type', $shortHand['sample_type']); 
-            $this->Sample->where('leg_type', $shortHand['matrix_type']); 
+            $this->Sample->where('sample_type', $shortHand['sample_type']);
+            $this->Sample->where('leg_type', $shortHand['matrix_type']);
             $this->Sample->order('id', 'desc');
             $this->Sample->limit('1');
             $results = $this->Sample->search();
 
-        }
-
-
-        else{
+        } else {
             $this->Sample->where('barcode', $sampleBar);
             $results = $this->Sample->search();
         }
 
-
-        //check if a match was found
+        // check if a match was found
         if (empty($results)) {
-            if($quiet == False){
-                print json_encode(array('barcode' => 'BAR_WRONG'), JSON_FORCE_OBJECT);
+            if ($quiet == false) {
+                echo json_encode(['barcode' => 'BAR_WRONG'], JSON_FORCE_OBJECT);
             }
+
             return;
         }
 
         $authProject = $this->partOfAuthProject($results[0]['id']);
 
         if ($authProject === true) {
-            if($quiet == False){
-                print json_encode(array('barcode' => 'ALREADY_AUTHORIZED'), JSON_FORCE_OBJECT);
+            if ($quiet == false) {
+                echo json_encode(['barcode' => 'ALREADY_AUTHORIZED'], JSON_FORCE_OBJECT);
             }
+
             return;
         }
 
-        //check if this was already started? If so, deny save and request confirmation
+        // check if this was already started? If so, deny save and request confirmation
         $overwriteConfirmed = (isset($_POST['overwrite'])) ? true : false;
 
-        if(!empty($results[0]['sample_innoculated']) && $overwriteConfirmed == False){
-            print json_encode(array('barcode' => 'ALREADY_STARTED'), JSON_FORCE_OBJECT);
+        if (! empty($results[0]['sample_innoculated']) && $overwriteConfirmed == false) {
+            echo json_encode(['barcode' => 'ALREADY_STARTED'], JSON_FORCE_OBJECT);
+
             return;
         }
 
         $this->Sample->id = $results[0]['id'];
         $this->Sample->sample_innoculated = time();
-        
-        $this->Sample->stored_in = $storage;
-        $this->Sample->diluted_at = $dilution_at; 
 
-        $arr = array();
+        $this->Sample->stored_in = $storage;
+        $this->Sample->diluted_at = $dilution_at;
+
+        $arr = [];
         $arr['id'] = $results[0]['id'];
         $arr['date'] = date('d-m-Y', time());
         $arr['time'] = date('H:i', time());
@@ -5344,29 +5026,27 @@ class samplesController extends Controller
         $this->Sample->save();
         $estimatedEnd = $this->estimateEndPoints($results[0]['id']);
 
-        //assurance form started?
-        upa('assuranceForms', 'checkFormOrCreate', array(), False);
-        upa('assuranceForms', 'updateFormByInnocDate', array(time()), False);
-        upa('projects', 'setStartedFlag', array($results[0]['project']), False);
+        // assurance form started?
+        upa('assuranceForms', 'checkFormOrCreate', [], false);
+        upa('assuranceForms', 'updateFormByInnocDate', [time()], false);
+        upa('projects', 'setStartedFlag', [$results[0]['project']], false);
 
-        $event =  'Inzet datum / tijd en opslag bak geregistreerd: ' .  $arr['date'] . '/' . $arr['time'] . ' Opslag:' . $arr['storage'];
-        upa('changeTracker', 'changed', array(4, $results[0]['project'], $results[0]['id'], False, $event, False, False), False);
+        $event = 'Inzet datum / tijd en opslag bak geregistreerd: '.$arr['date'].'/'.$arr['time'].' Opslag:'.$arr['storage'];
+        upa('changeTracker', 'changed', [4, $results[0]['project'], $results[0]['id'], false, $event, false, false], false);
 
-        //update portal
-        if(!empty($results[0]['portal_sample_id'])){
-          //need to send innoc date to portal
-          upa('portal', 'sampleStart', array($results[0]['portal_sample_id'], time(), $estimatedEnd), False);
+        // update portal
+        if (! empty($results[0]['portal_sample_id'])) {
+            // need to send innoc date to portal
+            upa('portal', 'sampleStart', [$results[0]['portal_sample_id'], time(), $estimatedEnd], false);
         }
- 
-        
 
-        if($quiet == False){
-            print json_encode($arr, JSON_FORCE_OBJECT);
+        if ($quiet == false) {
+            echo json_encode($arr, JSON_FORCE_OBJECT);
         }
     }
-    
 
-    function getSampleInnoculationDate($project){
+    public function getSampleInnoculationDate($project)
+    {
 
         $this->Sample->where('project', $project);
         $this->Sample->notLike('sample_innoculated', '');
@@ -5374,65 +5054,67 @@ class samplesController extends Controller
         $this->Sample->limit(1);
 
         $result = $this->Sample->search();
-        if(!empty($result) && !empty($result[0]['sample_innoculated'])){
+        if (! empty($result) && ! empty($result[0]['sample_innoculated'])) {
             return $result[0]['sample_innoculated'];
-        } else{
-            return False;
+        } else {
+            return false;
         }
     }
 
-    function getSampleSpecificInnoculationDate($sample){
+    public function getSampleSpecificInnoculationDate($sample)
+    {
 
         $this->Sample->where('id', $sample);
         $this->Sample->limit(1);
 
         $result = $this->Sample->search();
-        if(!empty($result) && !empty($result[0]['sample_innoculated'])){
+        if (! empty($result) && ! empty($result[0]['sample_innoculated'])) {
             return $result[0]['sample_innoculated'];
-        } else{
-            return False;
+        } else {
+            return false;
         }
     }
 
-
-    function editSampleListLoad($sampleId){
-        $this->render = False;
+    public function editSampleListLoad($sampleId)
+    {
+        $this->render = false;
 
         $this->Sample->where('id', $sampleId);
         $result = $this->Sample->search();
 
-
-        if(!empty($result)){
-            $projectInfo =  upa('projects', 'fetchProjectInfo', array($result['0']['project']));        
+        if (! empty($result)) {
+            $projectInfo = upa('projects', 'fetchProjectInfo', [$result['0']['project']]);
 
             if ($projectInfo['auth_status'] == 1) {
-                print json_encode(False, JSON_FORCE_OBJECT);
+                echo json_encode(false, JSON_FORCE_OBJECT);
+
                 return;
             }
 
             $time = date('d-m-Y H:i', $result[0]['sample_innoculated']);
             $store = $result[0]['stored_in'];
             $diluted_at = $result[0]['diluted_at'];
-            print json_encode(array('time' => $time, 'store' => $store,  'diluted_at' => $diluted_at), JSON_FORCE_OBJECT);
-        } else{
-            print json_encode(False, JSON_FORCE_OBJECT);
+            echo json_encode(['time' => $time, 'store' => $store,  'diluted_at' => $diluted_at], JSON_FORCE_OBJECT);
+        } else {
+            echo json_encode(false, JSON_FORCE_OBJECT);
         }
     }
 
-    function editSampleListSave(){
-        $this->render = False;        
+    public function editSampleListSave()
+    {
+        $this->render = false;
         $this->Sample->where('id', $_POST['id']);
         $result = $this->Sample->search();
 
-        if(empty($result)){
+        if (empty($result)) {
             return;
         }
-        
-        //part of auth? 
-        $projectInfo =  upa('projects', 'fetchProjectInfo', array($result[0]['project']));
+
+        // part of auth?
+        $projectInfo = upa('projects', 'fetchProjectInfo', [$result[0]['project']]);
 
         if ($projectInfo['auth_status'] == 1) {
-            return; 
+            return;
         }
 
         $this->Sample->deepFreed();
@@ -5442,11 +5124,11 @@ class samplesController extends Controller
         $this->Sample->sample_innoculated = strtotime($_POST['innoc']);
         $this->Sample->save();
 
-        $msg = array();
+        $msg = [];
         $newTime = strtotime($_POST['innoc']);
 
-        upa('assuranceForms', 'checkFormOrCreate', array( $newTime), False);
-        upa('assuranceForms', 'updateFormByInnocDate', array(time()), False);
+        upa('assuranceForms', 'checkFormOrCreate', [$newTime], false);
+        upa('assuranceForms', 'updateFormByInnocDate', [time()], false);
 
         $msg['id'] = $_POST['id'];
         $msg['date'] = date('d-m-Y', $newTime);
@@ -5454,53 +5136,53 @@ class samplesController extends Controller
         $msg['storage'] = $_POST['storage'];
         $msg['diluted_at'] = $_POST['diluted_at'];
 
-        $event =  'Inzet datum / tijd, opslag bak en afweegstation  manueel gewijzigd naar: ' .  $msg['date'] . '/' . $msg['time'] . ' Opslag:' . $msg['storage'] . ' afweegstation : ' . $msg['diluted_at'] ;
+        $event = 'Inzet datum / tijd, opslag bak en afweegstation  manueel gewijzigd naar: '.$msg['date'].'/'.$msg['time'].' Opslag:'.$msg['storage'].' afweegstation : '.$msg['diluted_at'];
 
-        $sampleInfo = upa('samples', 'fetch', array($_POST['id']), False);
-        upa('changeTracker', 'changed', array(4, $sampleInfo['project'], $_POST['id'], False, $event, False, False), False);
+        $sampleInfo = upa('samples', 'fetch', [$_POST['id']], false);
+        upa('changeTracker', 'changed', [4, $sampleInfo['project'], $_POST['id'], false, $event, false, false], false);
 
-       
         unset($this->Sample->id);
         $this->Sample->deepFreed();
-        $estimatedEnd = $this->estimateEndPoints( $result['0']['id']);
+        $estimatedEnd = $this->estimateEndPoints($result['0']['id']);
 
-        if(!empty($result[0]['portal_sample_id'])){
-            //need to send innoc date to portal
-            upa('portal', 'sampleStart', array($result[0]['portal_sample_id'], $newTime, $estimatedEnd), False);
+        if (! empty($result[0]['portal_sample_id'])) {
+            // need to send innoc date to portal
+            upa('portal', 'sampleStart', [$result[0]['portal_sample_id'], $newTime, $estimatedEnd], false);
         }
 
-        print(json_encode($msg, JSON_FORCE_OBJECT));
+        echo json_encode($msg, JSON_FORCE_OBJECT);
     }
 
-    function updateBinSetting(){
+    public function updateBinSetting()
+    {
         $this->render = false;
 
         $binObject = json_decode(MESA_CURRENT_BIN, JSON_FORCE_OBJECT);
         $binObject = checkArrayOrEmpty($binObject);
         $user = getUserId();
-        $binObject[$user] =  (string)$_POST['bin'];
+        $binObject[$user] = (string) $_POST['bin'];
         $binEncode = json_encode($binObject, JSON_FORCE_OBJECT);
 
-        #upa('cvars', 'cvarSaveName', array('name' => 'MESA_CURRENT_BIN' , 'value' => $_POST['bin'] ), False);
-        upa('cvars', 'cvarSaveName', array('MESA_CURRENT_BIN', $binEncode ), False);
-        print json_encode(array(), JSON_FORCE_OBJECT);
+        // upa('cvars', 'cvarSaveName', array('name' => 'MESA_CURRENT_BIN' , 'value' => $_POST['bin'] ), False);
+        upa('cvars', 'cvarSaveName', ['MESA_CURRENT_BIN', $binEncode], false);
+        echo json_encode([], JSON_FORCE_OBJECT);
     }
 
-    function updateDilutionSetting(){
+    public function updateDilutionSetting()
+    {
         $this->render = false;
 
         $dilObject = json_decode(MESA_CURRENT_DILUTION, JSON_FORCE_OBJECT);
         $dilObject = checkArrayOrEmpty($dilObject);
         $user = getUserId();
-        $dilObject[$user] =  (string)$_POST['bin'];
+        $dilObject[$user] = (string) $_POST['bin'];
         $dilEncode = json_encode($dilObject, JSON_FORCE_OBJECT);
-        
-        upa('cvars', 'cvarSaveName', array('MESA_CURRENT_DILUTION', $dilEncode ), False);
-        print json_encode(array(), JSON_FORCE_OBJECT);
+
+        upa('cvars', 'cvarSaveName', ['MESA_CURRENT_DILUTION', $dilEncode], false);
+        echo json_encode([], JSON_FORCE_OBJECT);
     }
 
-
-    function getSamplesInRoughDate($start, $end, $field = False, $innoc = False)
+    public function getSamplesInRoughDate($start, $end, $field = false, $innoc = false)
     {
 
         $yearEnd = $end + (365 * 82800);
@@ -5510,21 +5192,21 @@ class samplesController extends Controller
         $this->Sample->lessThan('date_registered', $yearEnd);
 
         $preSelection = $this->Sample->search();
-        $selectedSamples = array();
+        $selectedSamples = [];
 
         foreach ($preSelection as $preSelectedSample) {
 
-            if($field == False && $innoc == False){
+            if ($field == false && $innoc == false) {
                 $dateForSample = $preSelectedSample['date_registered'];
                 if ($dateForSample >= $start && $dateForSample <= $end) {
                     array_push($selectedSamples, $preSelectedSample);
                 }
-            } elseif($field == False && $innoc == True){
+            } elseif ($field == false && $innoc == true) {
                 $dateForSample = $preSelectedSample['sample_innoculated'];
                 if ($dateForSample >= $start && $dateForSample <= $end) {
                     array_push($selectedSamples, $preSelectedSample);
                 }
-            }else{
+            } else {
                 $customFields = json_decode($preSelectedSample['custom_fields'], JSON_FORCE_OBJECT);
                 if (array_key_exists($field, $customFields)) {
                     $dateForSample = strtotime($customFields[$field]);
@@ -5538,27 +5220,29 @@ class samplesController extends Controller
         return $selectedSamples;
     }
 
-    function getSamplesForInnocDate($date){
-        $beginOfDay = strtotime("midnight", $date);
-        $endOfDay   = strtotime("tomorrow", $beginOfDay) - 1;
+    public function getSamplesForInnocDate($date)
+    {
+        $beginOfDay = strtotime('midnight', $date);
+        $endOfDay = strtotime('tomorrow', $beginOfDay) - 1;
         $this->Sample->greaterThan('sample_innoculated', $beginOfDay);
         $this->Sample->lessThan('sample_innoculated', $endOfDay);
         $result = $this->Sample->search();
+
         return $result;
     }
 
-    function grabBetweenBarcodes($barStart, $barStop){
+    public function grabBetweenBarcodes($barStart, $barStop)
+    {
 
         $this->render = false;
 
-        //check if not empty
-        if(empty($barStart) || empty($barStop))
-        {
-            return array(); 
+        // check if not empty
+        if (empty($barStart) || empty($barStop)) {
+            return [];
         }
 
-        #704: we need to check if this bar start is actually
-        #a multipart barcode, and only use the first part if it is.
+        // 704: we need to check if this bar start is actually
+        // a multipart barcode, and only use the first part if it is.
         $barStartExplode = explode('.', $barStart);
         $barStopExplode = explode('.', $barStop);
 
@@ -5568,184 +5252,177 @@ class samplesController extends Controller
         $startShortHand = $this->isShortHand($barStart);
         $stopShortHand = $this->isShortHand($barStop);
 
-        
-
-        //return empty, this can't work 
-        //we dont allow mixing short-hands and full barcodes
-        if(($startShortHand === False && is_array($stopShortHand) ) ||  ($stopShortHand === False && is_array($startShortHand)) )
-        {
-            return array();            
+        // return empty, this can't work
+        // we dont allow mixing short-hands and full barcodes
+        if (($startShortHand === false && is_array($stopShortHand)) || ($stopShortHand === false && is_array($startShortHand))) {
+            return [];
         }
 
-        //normal lookup 
-        if($startShortHand === False && $stopShortHand === false)
-        {                        
-            
+        // normal lookup
+        if ($startShortHand === false && $stopShortHand === false) {
+
             $parsedStartBar = $this->sampleTypeAndMatrix($barStart);
-            $parsedStopBar = $this->sampleTypeAndMatrix($barStop);            
+            $parsedStopBar = $this->sampleTypeAndMatrix($barStop);
 
             $sampleTypes = array_unique([$parsedStartBar['sampleType'], $parsedStopBar['sampleType']]);
             $sampleLegTypes = array_unique([$parsedStartBar['matrixType'], $parsedStopBar['matrixType']]);
 
-            //we dont allow mixing of sample types, or matrix types
-            if(count($sampleTypes) > 1 || count($sampleLegTypes) > 1){
-                return array();
+            // we dont allow mixing of sample types, or matrix types
+            if (count($sampleTypes) > 1 || count($sampleLegTypes) > 1) {
+                return [];
             }
 
-            //find beginning and end point
-            $sql = "SELECT * FROM `samples` WHERE (`barcode` = :barcode OR  `barcode` = :barcode2) AND `sample_type` = :sample_type AND `leg_type` = :leg_type  ORDER BY `id` DESC LIMIT 2";
-            $results = $this->Sample->customQuery($sql, array('barcode' => $barStart, 'barcode2' => $barStop, 'sample_type' => $parsedStartBar['sampleType']  , 'leg_type' => $parsedStartBar['matrixType'] ));
-                       
-            //did not find one of the endpoints, can't determine range 
-            if($barStart !== $barStop && count($results) < 2){
-                return array();
+            // find beginning and end point
+            $sql = 'SELECT * FROM `samples` WHERE (`barcode` = :barcode OR  `barcode` = :barcode2) AND `sample_type` = :sample_type AND `leg_type` = :leg_type  ORDER BY `id` DESC LIMIT 2';
+            $results = $this->Sample->customQuery($sql, ['barcode' => $barStart, 'barcode2' => $barStop, 'sample_type' => $parsedStartBar['sampleType'], 'leg_type' => $parsedStartBar['matrixType']]);
+
+            // did not find one of the endpoints, can't determine range
+            if ($barStart !== $barStop && count($results) < 2) {
+                return [];
             }
 
-
-            //account for the fact that start & stop might be the same
-            if($barStart !== $barStop){
+            // account for the fact that start & stop might be the same
+            if ($barStart !== $barStop) {
                 $minID = min($results[0]['id'], $results[1]['id']);
                 $maxID = max($results[0]['id'], $results[1]['id']);
-            } else{
+            } else {
                 $minID = $results[0]['id'];
                 $maxID = $minID;
             }
-            
-            //grab samples
-            $sql = "SELECT * FROM `samples` WHERE (`id` >= :minID AND  `id` <= :maxID) AND `sample_type` = :sample_type AND `leg_type` = :leg_type  ORDER BY `id` ASC";
-            $results = $this->Sample->customQuery($sql, array('minID' => $minID, 'maxID' => $maxID, 'sample_type' => $parsedStartBar['sampleType']  , 'leg_type' => $parsedStartBar['matrixType'] ));
-                                    
+
+            // grab samples
+            $sql = 'SELECT * FROM `samples` WHERE (`id` >= :minID AND  `id` <= :maxID) AND `sample_type` = :sample_type AND `leg_type` = :leg_type  ORDER BY `id` ASC';
+            $results = $this->Sample->customQuery($sql, ['minID' => $minID, 'maxID' => $maxID, 'sample_type' => $parsedStartBar['sampleType'], 'leg_type' => $parsedStartBar['matrixType']]);
+
         }
 
-        //shorthand lookup 
-        else 
-        {            
+        // shorthand lookup
+        else {
             $sampleTypes = array_unique([$startShortHand['sample_type'], $stopShortHand['sample_type']]);
             $sampleLegTypes = array_unique([$startShortHand['matrix_type'], $stopShortHand['matrix_type']]);
 
-            //we dont allow mixing of sample types, or matrix types
-            if(count($sampleTypes) > 1 || count($sampleLegTypes) > 1){
-                return array();
+            // we dont allow mixing of sample types, or matrix types
+            if (count($sampleTypes) > 1 || count($sampleLegTypes) > 1) {
+                return [];
             }
 
-            
+            // find beginning and end point
+            $sql = 'SELECT * FROM `samples` WHERE (`follow_no` = :follow_no OR  `follow_no` = :follow_no2) AND `sample_type` = :sample_type AND `leg_type` = :leg_type  ORDER BY `id` DESC LIMIT 2';
+            $results = $this->Sample->customQuery($sql, ['follow_no' => $startShortHand['follow_no'],
+                'follow_no2' => $stopShortHand['follow_no'],
+                'sample_type' => $startShortHand['sample_type'],
+                'leg_type' => $startShortHand['matrix_type']]);
 
-            //find beginning and end point
-            $sql = "SELECT * FROM `samples` WHERE (`follow_no` = :follow_no OR  `follow_no` = :follow_no2) AND `sample_type` = :sample_type AND `leg_type` = :leg_type  ORDER BY `id` DESC LIMIT 2";
-            $results = $this->Sample->customQuery($sql, array(  'follow_no' => $startShortHand['follow_no'], 
-                                                                'follow_no2' => $stopShortHand['follow_no'], 
-                                                                'sample_type' => $startShortHand['sample_type'], 
-                                                                'leg_type' => $startShortHand['matrix_type'] ));
-            
-            //did not find one of the endpoints, can't determine range 
-            if($startShortHand['follow_no'] !== $stopShortHand['follow_no'] && count($results) < 2){
-                return array();
+            // did not find one of the endpoints, can't determine range
+            if ($startShortHand['follow_no'] !== $stopShortHand['follow_no'] && count($results) < 2) {
+                return [];
             }
 
-            //account for the fact that start & stop might be the same
-            if($startShortHand['follow_no'] !== $stopShortHand['follow_no']){
+            // account for the fact that start & stop might be the same
+            if ($startShortHand['follow_no'] !== $stopShortHand['follow_no']) {
                 $minID = min($results[0]['id'], $results[1]['id']);
                 $maxID = max($results[0]['id'], $results[1]['id']);
-            } else{
+            } else {
                 $minID = $results[0]['id'];
                 $maxID = $minID;
-            }            
+            }
 
-            //grab samples
-            $sql = "SELECT * FROM `samples` WHERE (`id` >= :minID AND  `id` <= :maxID) AND `sample_type` = :sample_type AND `leg_type` = :leg_type  ORDER BY `id` ASC";
-            $results = $this->Sample->customQuery($sql, array(  'minID' => $minID, 
-                                                                'maxID' => $maxID, 
-                                                                'sample_type' => $startShortHand['sample_type'], 
-                                                                'leg_type' => $startShortHand['matrix_type'] ));            
+            // grab samples
+            $sql = 'SELECT * FROM `samples` WHERE (`id` >= :minID AND  `id` <= :maxID) AND `sample_type` = :sample_type AND `leg_type` = :leg_type  ORDER BY `id` ASC';
+            $results = $this->Sample->customQuery($sql, ['minID' => $minID,
+                'maxID' => $maxID,
+                'sample_type' => $startShortHand['sample_type'],
+                'leg_type' => $startShortHand['matrix_type']]);
 
-        }        
-        
+        }
+
         return $results;
     }
 
-    function fetchNote($sampleId = False){
+    public function fetchNote($sampleId = false)
+    {
 
-        if($sampleId == False && isset($_POST['sampleId'])){
+        if ($sampleId == false && isset($_POST['sampleId'])) {
             $sampleId = $_POST['sampleId'];
         }
 
-        $this->render = False;
+        $this->render = false;
         $this->Sample->where('id', $sampleId);
         $result = $this->Sample->search();
 
-        $arr = array();
+        $arr = [];
         $arr['note'] = '';
 
-        if(!empty($result)){
+        if (! empty($result)) {
             $arr['note'] = $result[0]['sample_note'];
         }
-        print json_encode($arr, JSON_FORCE_OBJECT);
+        echo json_encode($arr, JSON_FORCE_OBJECT);
     }
 
-    function auditTrail(){
-    }
+    public function auditTrail() {}
 
     private function isValidTimeStamp($timestamp)
     {
-      return ((string) (int) $timestamp === $timestamp)
-        && ($timestamp <= PHP_INT_MAX)
-        && ($timestamp >= ~PHP_INT_MAX);
+        return ((string) (int) $timestamp === $timestamp)
+          && ($timestamp <= PHP_INT_MAX)
+          && ($timestamp >= ~PHP_INT_MAX);
     }
 
-    function sampleAuditTrail($barcode = False){
+    public function sampleAuditTrail($barcode = false)
+    {
 
-        if(isset($_POST['barcode'])){
-          $this->doNotRenderHeader = True;
-          $barcode = $_POST['barcode'];
-        } else{
-          //using the print viewing thing
-          $this->renderAlternateHeader = 'slim';
+        if (isset($_POST['barcode'])) {
+            $this->doNotRenderHeader = true;
+            $barcode = $_POST['barcode'];
+        } else {
+            // using the print viewing thing
+            $this->renderAlternateHeader = 'slim';
         }
 
-        //$barcode = $_POST['barcode'];
+        // $barcode = $_POST['barcode'];
 
         $barExp = explode('.', $barcode);
         $sampleBar = $barExp[0];
 
         $shortHand = $this->isShortHand($sampleBar);
 
-        if($shortHand === False){
-            $this->Sample->where('barcode', $sampleBar);   
-                 
-        } else{
-            $this->Sample->where('follow_no', $shortHand['follow_no']);                
-            $this->Sample->where('sample_type', $shortHand['sample_type']); 
-            $this->Sample->where('leg_type', $shortHand['matrix_type']);                    
+        if ($shortHand === false) {
+            $this->Sample->where('barcode', $sampleBar);
+
+        } else {
+            $this->Sample->where('follow_no', $shortHand['follow_no']);
+            $this->Sample->where('sample_type', $shortHand['sample_type']);
+            $this->Sample->where('leg_type', $shortHand['matrix_type']);
         }
 
-        $this->Sample->order('id', 'desc');   
-        $this->Sample->limit('1');            
+        $this->Sample->order('id', 'desc');
+        $this->Sample->limit('1');
         $results = $this->Sample->search();
-        $sampleAnalysis = False;
-        $sampleAnalysisFollow = False;
+        $sampleAnalysis = false;
+        $sampleAnalysisFollow = false;
 
-
-        //check if a match was found
+        // check if a match was found
         if (empty($results)) {
-            $this->render = False;
-            print 'Foute barcode';
+            $this->render = false;
+            echo 'Foute barcode';
+
             return;
-        } else{
-          $result = $results[0];
-          $sample = $result;
+        } else {
+            $result = $results[0];
+            $sample = $result;
         }
 
-        //sample info
+        // sample info
         $this->_template->set('barcode', $sampleBar);
 
-        //grab clietn info
-        $clientInfo = upa('clients', 'fetch', array($result['client']), False);
+        // grab clietn info
+        $clientInfo = upa('clients', 'fetch', [$result['client']], false);
 
         $title = checkKeyOrFalse($clientInfo, 'title');
         $first = checkKeyOrFalse($clientInfo, 'fname');
         $middle = checkKeyOrFalse($clientInfo, 'mname');
         $last = checkKeyOrFalse($clientInfo, 'lname');
-        $contact = $title . ' ' . $first . ' ' . $middle . ' ' . $last;
+        $contact = $title.' '.$first.' '.$middle.' '.$last;
 
         $this->_template->set('client_id', $result['client']);
         $this->_template->set('opdrachtgever', checkKeyOrFalse($clientInfo, 'name'));
@@ -5754,41 +5431,40 @@ class samplesController extends Controller
         $this->_template->set('number', checkKeyOrFalse($clientInfo, 'street_number'));
         $this->_template->set('place', checkKeyOrFalse($clientInfo, 'place'));
 
-        //grab project info
-        $projectInfo = upa('projects', 'fetch', array($result['project']), False);
-        $numberOfSamples =  upa('samples', 'countSamplesInProject', array($projectInfo['id']));
+        // grab project info
+        $projectInfo = upa('projects', 'fetch', [$result['project']], false);
+        $numberOfSamples = upa('samples', 'countSamplesInProject', [$projectInfo['id']]);
 
         $this->_template->set('numberofsamples', checkKeyOrFalse($numberOfSamples));
-        
+
         $this->_template->set('projectid', checkKeyOrFalse($projectInfo, 'reference'));
         $this->_template->set('projectName', checkKeyOrFalse($projectInfo, 'project_name'));
 
-        //projectid??
-
+        // projectid??
 
         $this->_template->set('revision', checkKeyOrFalse($projectInfo, 'revision'));
 
-        if($projectInfo['auth_on'] == NULL){
-          $this->_template->set('last_auth', 'Nog niet geauthoriseerd geweest');
-          $this->_template->set('last_auth_by', 'Nog niet geauthoriseerd geweest');
-        } else{
-          $this->_template->set('last_auth', date('d-m-Y', $projectInfo['auth_on']));
-          $authName = upa('profiles', 'getUserFullName', array($projectInfo['auth_by']), False);
-          $this->_template->set('last_auth_by', $authName);
+        if ($projectInfo['auth_on'] == null) {
+            $this->_template->set('last_auth', 'Nog niet geauthoriseerd geweest');
+            $this->_template->set('last_auth_by', 'Nog niet geauthoriseerd geweest');
+        } else {
+            $this->_template->set('last_auth', date('d-m-Y', $projectInfo['auth_on']));
+            $authName = upa('profiles', 'getUserFullName', [$projectInfo['auth_by']], false);
+            $this->_template->set('last_auth_by', $authName);
         }
 
-        if($projectInfo['rap_on'] == NULL){
-          $this->_template->set('last_rap', 'Nog niet gerapporteerd geweest');
-          $this->_template->set('last_rap_by', 'Nog niet gerapporteerd geweest');
-        } else{
-          $this->_template->set('last_rap', date('d-m-Y', $projectInfo['rap_on']));
-          $authName = upa('profiles', 'getUserFullName', array($projectInfo['rap_by']), False);
-          $this->_template->set('last_rap_by', $authName);
+        if ($projectInfo['rap_on'] == null) {
+            $this->_template->set('last_rap', 'Nog niet gerapporteerd geweest');
+            $this->_template->set('last_rap_by', 'Nog niet gerapporteerd geweest');
+        } else {
+            $this->_template->set('last_rap', date('d-m-Y', $projectInfo['rap_on']));
+            $authName = upa('profiles', 'getUserFullName', [$projectInfo['rap_by']], false);
+            $this->_template->set('last_rap_by', $authName);
         }
 
         $this->_template->set('project_notes', $projectInfo['project_notes']);
 
-        //algemene monster gegevens
+        // algemene monster gegevens
         $pcf = json_decode($projectInfo['custom_fields'], JSON_FORCE_OBJECT);
         $pef = json_decode($projectInfo['project_extra'], JSON_FORCE_OBJECT);
 
@@ -5797,11 +5473,11 @@ class samplesController extends Controller
         $this->_template->set('date_receive', checkKeyOrFalse($pcf, 'project_ontvangst'));
         $this->_template->set('time_receive', checkKeyOrFalse($pcf, 'project_tijd_ontvangst'));
 
-        //innoculation data
-        if(empty($sample['sample_innoculated'])){
-          $innoc = 'Nog niet ingezet';
-        } else{
-          $innoc = date('d-m-Y H:i', $sample['sample_innoculated']);
+        // innoculation data
+        if (empty($sample['sample_innoculated'])) {
+            $innoc = 'Nog niet ingezet';
+        } else {
+            $innoc = date('d-m-Y H:i', $sample['sample_innoculated']);
         }
 
         $this->_template->set('timedate_innoc', $innoc);
@@ -5814,44 +5490,40 @@ class samplesController extends Controller
         $this->_template->set('sample_description', $sample['description']);
         $this->_template->set('sample_details', checkKeyOrFalse($scf, 'details'));
         $this->_template->set('sample_notes', $sample['sample_note']);
-        $this->_template->set('portal_notes',  $sample['portal_notes']);
+        $this->_template->set('portal_notes', $sample['portal_notes']);
 
+        $sampleMethod = [];
 
-
-        $sampleMethod = array();
-
-        //is this a legionella sample if so retreive the sample method from project
-        //if not, retreive from sample
+        // is this a legionella sample if so retreive the sample method from project
+        // if not, retreive from sample
         //
-        if($sample['sample_type'] == 'L'){
-          $method = checkKeyOrFalse($pef, 'sample_method');
-          //use sample table as fallback
-          if($method == False){
+        if ($sample['sample_type'] == 'L') {
+            $method = checkKeyOrFalse($pef, 'sample_method');
+            // use sample table as fallback
+            if ($method == false) {
+                $method = $sample['sampling_method'];
+            }
+        } else {
             $method = $sample['sampling_method'];
-          }
-        } else{
-          $method = $sample['sampling_method'];
         }
 
-        $sampleMethod = upa('sampleProcedures', 'fetch', array($method), False);
+        $sampleMethod = upa('sampleProcedures', 'fetch', [$method], false);
         $smf = json_decode($sampleMethod['fields'], JSON_FORCE_OBJECT);
 
         $this->_template->set('sampling_by', checkKeyOrFalse($smf, 'door'));
         $this->_template->set('sampling_method', checkKeyOrFalse($sampleMethod, 'name'));
 
-        //grab borgingsformulier
+        // grab borgingsformulier
         $validStamp = $this->isValidTimeStamp($sample['sample_innoculated']);
 
-        if($validStamp != False){
-          $beginOfDay = strtotime("midnight", $sample['sample_innoculated']);
-          $bf = upa('assuranceForms', 'fetchByDate', array($beginOfDay), False);
-        } else{
-          $bf = False;
+        if ($validStamp != false) {
+            $beginOfDay = strtotime('midnight', $sample['sample_innoculated']);
+            $bf = upa('assuranceForms', 'fetchByDate', [$beginOfDay], false);
+        } else {
+            $bf = false;
         }
 
-
-
-        if($bf !== False){
+        if ($bf !== false) {
             $this->_template->set('borgHider', '');
             $this->_template->set('borgMsg', 'hide');
             $bdf = json_decode($bf['data'], JSON_FORCE_OBJECT);
@@ -5861,40 +5533,40 @@ class samplesController extends Controller
             $userGegoten = checkKeyOrFalse($bdf, '0', 'gegoten');
 
             $this->_template->set('bf_afweeg', userIdToName($userAfweeg));
-            $this->_template->set('bf_inzet',  userIdToName($userInzet));
-            $this->_template->set('bf_gegoten',  userIdToName($userGegoten));
+            $this->_template->set('bf_inzet', userIdToName($userInzet));
+            $this->_template->set('bf_gegoten', userIdToName($userGegoten));
 
-            $borgRevisions = upa('changeTracker', 'changesForAssuranceForm', array($bf['id'], True), False);
+            $borgRevisions = upa('changeTracker', 'changesForAssuranceForm', [$bf['id'], true], false);
             $this->_template->set('borg_revisions', $borgRevisions);
 
-            //grab analysis
-            $ana = upa('sampleAnalysis', 'fetchAnalysisArray', array($sample['id']), False);
-            $av = array();
-            foreach($ana as $follow => $thisAna){
-              $volgNo = $follow + 1;
-              $av[$volgNo] = $thisAna;
+            // grab analysis
+            $ana = upa('sampleAnalysis', 'fetchAnalysisArray', [$sample['id']], false);
+            $av = [];
+            foreach ($ana as $follow => $thisAna) {
+                $volgNo = $follow + 1;
+                $av[$volgNo] = $thisAna;
             }
             unset($ana);
 
-            //build ophopings table_title
+            // build ophopings table_title
             $ophopingsTable = '';
-            //$opHopings = array('pfz' => 'PFZ', 'pfz_buizen' => 'PFZ Buizen', 'citraat' => 'Citraat', 'bpw' => 'BPW');
-            $opHopings = array('pfz' => 'PFZ', 'pfz_buizen' => 'PFZ Buizen', 'bpw' => 'BPW');
-            foreach($opHopings as $opMedia => $readableName){
-              $tht = checkKeyOrFalse($bdf, '2', 'tht_' . $opMedia);
-                            $fieldId = 'b2_tht_' . $opMedia;
-                            $isOutOfSpec = $this->auditTrailDateIsOutOfSpec($tht, $bf['date']);
-                            $thisOpArray = array(
-                                'media' => $readableName,
-                                'tht'=> $tht,
-                                'tht_style' => $this->auditTrailOutOfSpecStyle($isOutOfSpec),
-                                'tht_note' => $this->auditTrailFieldNote($bdf, $fieldId, $isOutOfSpec)
-                            );
-              $ophopingsTable .= generateHTML('audittrail/ophopingline', $thisOpArray);
+            // $opHopings = array('pfz' => 'PFZ', 'pfz_buizen' => 'PFZ Buizen', 'citraat' => 'Citraat', 'bpw' => 'BPW');
+            $opHopings = ['pfz' => 'PFZ', 'pfz_buizen' => 'PFZ Buizen', 'bpw' => 'BPW'];
+            foreach ($opHopings as $opMedia => $readableName) {
+                $tht = checkKeyOrFalse($bdf, '2', 'tht_'.$opMedia);
+                $fieldId = 'b2_tht_'.$opMedia;
+                $isOutOfSpec = $this->auditTrailDateIsOutOfSpec($tht, $bf['date']);
+                $thisOpArray = [
+                    'media' => $readableName,
+                    'tht' => $tht,
+                    'tht_style' => $this->auditTrailOutOfSpecStyle($isOutOfSpec),
+                    'tht_note' => $this->auditTrailFieldNote($bdf, $fieldId, $isOutOfSpec),
+                ];
+                $ophopingsTable .= generateHTML('audittrail/ophopingline', $thisOpArray);
             }
 
             $this->_template->set('ophopings_table', $ophopingsTable);
-            $assayInfo = array();
+            $assayInfo = [];
 
             $analysisTable = '';
             $assayTable = '';
@@ -5907,367 +5579,354 @@ class samplesController extends Controller
             $assayResultTable = '';
             $confResultTable = '';
 
-            foreach($av as $volg => $ana){
+            foreach ($av as $volg => $ana) {
 
-              $thisAssayInfo =  upa('assays', 'fetch', array($ana['assay_base']), False);
-         
-              $thisAssayRevision = upa('assays', 'fetchRevisionNumber', array($ana['assay_base']), False);
-              $thisAssayInfoCustom = json_decode($thisAssayInfo['custom_fields'], JSON_FORCE_OBJECT);
+                $thisAssayInfo = upa('assays', 'fetch', [$ana['assay_base']], false);
 
+                $thisAssayRevision = upa('assays', 'fetchRevisionNumber', [$ana['assay_base']], false);
+                $thisAssayInfoCustom = json_decode($thisAssayInfo['custom_fields'], JSON_FORCE_OBJECT);
 
-              if(is_array($thisAssayInfoCustom)){
-                  foreach($thisAssayInfoCustom as $cF => $cV){
-                    $thisAssayInfo['custom_' . $cF] = $cV;
-                  }
-              }
-              $assayInfo[$volg] = $thisAssayInfo;
-
-              $rep = array();
-              $rep['volg'] = $volg;
-              $rep['name'] = checkKeyOrFalse($assayInfo, $volg, 'name');
-              $rep['date_in'] = date('d-m-Y', $bf['date']);
-              $rep['time_in'] = checkKeyOrFalse($bdf, '0', 'instoof');
-
-
-              $blockForOut = checkKeyOrFalse($bdf, '1', $assayInfo[$volg]['duration']);
-              $rep['date_out'] = checkKeyOrBlank($blockForOut, 'datum_uitstoof');
-              $rep['time_out'] = checkKeyOrBlank($blockForOut, 'tijd_uitstoof');
-              $rep['date_read'] = checkKeyOrBlank($blockForOut, 'datum_aflezen');
-              $rep['time_read'] = checkKeyOrBlank($blockForOut, 'tijd_aflezen');
-              $rep['read_by'] = userIdToName( checkKeyOrBlank($blockForOut, 'afgelezen_door'));
-
-              $analysisTable .= generateHTML('audittrail/analysisrow', $rep);
-
-              $repA = array();
-              $repA['volg'] = $volg;
-              $repA['name'] = checkKeyOrFalse($assayInfo, $volg, 'name');
-              $repA['q'] = checkKeyOrFalse($assayInfo, $volg, 'custom_accred');
-              $repA['techniek'] = checkKeyOrFalse($assayInfo, $volg, 'custom_techniek');
-              $repA['ref'] = checkKeyOrFalse($assayInfo, $volg, 'custom_internrefnummer');
-              $repA['conf'] = checkKeyOrFalse($assayInfo, $volg, 'custom_conform');
-              $repA['refmethod'] = checkKeyOrFalse($assayInfo, $volg, 'custom_referentiemethode');
-              $repA['assay_id'] = checkKeyOrFalse($assayInfo, $volg, 'original_id');
-              $repA['revision'] = $thisAssayRevision;
-
-              $assayTable .= generateHTML('audittrail/assayline', $repA);
-
-              $media = upa('assays', 'assayMedia', array($ana['assay_base']), false);
-
-              foreach($media as $thisMediaId => $thisMedia){
-                $repM = array();
-                $repM['volg'] = $volg;
-                $repM['name'] = $thisMedia['name'];
-                $repM['media_tht'] = checkKeyOrFalse($bdf, '3', $thisMedia['id']);
-                $mediaFieldId = 'b3_' . $thisMedia['id'];
-                $mediaIsOutOfSpec = !$this->auditTrailIsNotApplicable($repM['media_tht']) && ($this->auditTrailDateIsOutOfSpec($repM['media_tht'], $bf['date']) || $this->auditTrailWasOutOfDateHere($bdf, $thisMedia['id'], $sample['id']));
-                $repM['media_tht_style'] = $this->auditTrailOutOfSpecStyle($mediaIsOutOfSpec);
-                $repM['media_tht_note'] = $this->auditTrailFieldNote($bdf, $mediaFieldId, $mediaIsOutOfSpec);
-
-                $suppTxt = '';
-                $suppThtTxt = '';
-                $supplements = json_decode($thisMedia['supplements'], JSON_FORCE_OBJECT);
-
-                if(is_array($supplements)){
-                  foreach($supplements as $supplement){
-                    //$suppTHT = checkKeyOrFalse();
-
-                    $suppTxt .= $supplement['name'];
-                    $keyName = 'extra_' . $thisMedia['id'] . '_' . $supplement['supplementId'];
-                    $suppTht = checkKeyOrFalse($bdf, '3', $keyName);
-                    $suppFieldId = 'b3_' . $keyName;
-                    $suppIsOutOfSpec = !$this->auditTrailIsNotApplicable($suppTht) && ($this->auditTrailDateIsOutOfSpec($suppTht, $bf['date']) || $this->auditTrailWasOutOfDateHere($bdf, $thisMedia['id'], $sample['id']));
-                    $suppThtTxt .= '<span style="' . $this->auditTrailOutOfSpecStyle($suppIsOutOfSpec) . '">' . $suppTht . $this->auditTrailFieldNote($bdf, $suppFieldId, $suppIsOutOfSpec) . '</span>';
-
-                    //add nbsp and br
-                    $suppTxt .= '&nbsp; <br />';
-                    $suppThtTxt .= '&nbsp; <br />';
-
-                  }
+                if (is_array($thisAssayInfoCustom)) {
+                    foreach ($thisAssayInfoCustom as $cF => $cV) {
+                        $thisAssayInfo['custom_'.$cF] = $cV;
+                    }
                 }
+                $assayInfo[$volg] = $thisAssayInfo;
 
-                $repM['supptxt'] = $suppTxt;
-                $repM['suppthttxt'] = $suppThtTxt;
+                $rep = [];
+                $rep['volg'] = $volg;
+                $rep['name'] = checkKeyOrFalse($assayInfo, $volg, 'name');
+                $rep['date_in'] = date('d-m-Y', $bf['date']);
+                $rep['time_in'] = checkKeyOrFalse($bdf, '0', 'instoof');
 
-                $mediaTable .= generateHTML('audittrail/medialine', $repM);
-              }
+                $blockForOut = checkKeyOrFalse($bdf, '1', $assayInfo[$volg]['duration']);
+                $rep['date_out'] = checkKeyOrBlank($blockForOut, 'datum_uitstoof');
+                $rep['time_out'] = checkKeyOrBlank($blockForOut, 'tijd_uitstoof');
+                $rep['date_read'] = checkKeyOrBlank($blockForOut, 'datum_aflezen');
+                $rep['time_read'] = checkKeyOrBlank($blockForOut, 'tijd_aflezen');
+                $rep['read_by'] = userIdToName(checkKeyOrBlank($blockForOut, 'afgelezen_door'));
 
-              $material = upa('assays', 'assayMaterial', array($ana['assay_base']), false);
+                $analysisTable .= generateHTML('audittrail/analysisrow', $rep);
 
-              foreach($material as $thisMaterialId => $thisMaterial){
-                $repMat = array();
-                $repMat['volg'] = $volg;
-                $repMat['name'] = $thisMaterial['name'];
-                $repMat['value']  = checkKeyOrFalse($bdf, '3', $thisMaterialId);
-                $repMat['value']  = $repMat['value'] . $thisMaterial['supplements'];
-                $materialRange = checkKeyOrFalse($thisMaterial, 'acceptable_range');
-                $materialIsOutOfSpec = !$this->auditTrailIsNotApplicable(checkKeyOrFalse($bdf, '3', $thisMaterialId)) && ($this->auditTrailMaterialIsOutOfSpec(checkKeyOrFalse($bdf, '3', $thisMaterialId), $materialRange) || $this->auditTrailWasOutOfDateHere($bdf, $thisMaterialId, $sample['id']));
-                $repMat['value_style'] = $this->auditTrailOutOfSpecStyle($materialIsOutOfSpec);
-                $repMat['value_note'] = $this->auditTrailFieldNote($bdf, 'b3_' . $thisMaterialId, $materialIsOutOfSpec);
-                $materialTable .= generateHTML('audittrail/matline', $repMat);
-              }
+                $repA = [];
+                $repA['volg'] = $volg;
+                $repA['name'] = checkKeyOrFalse($assayInfo, $volg, 'name');
+                $repA['q'] = checkKeyOrFalse($assayInfo, $volg, 'custom_accred');
+                $repA['techniek'] = checkKeyOrFalse($assayInfo, $volg, 'custom_techniek');
+                $repA['ref'] = checkKeyOrFalse($assayInfo, $volg, 'custom_internrefnummer');
+                $repA['conf'] = checkKeyOrFalse($assayInfo, $volg, 'custom_conform');
+                $repA['refmethod'] = checkKeyOrFalse($assayInfo, $volg, 'custom_referentiemethode');
+                $repA['assay_id'] = checkKeyOrFalse($assayInfo, $volg, 'original_id');
+                $repA['revision'] = $thisAssayRevision;
 
-              $conf = array();
-              $conf['volg'] = $volg;
-              $conf['name'] = checkKeyOrFalse($assayInfo, $volg, 'name');
-              $confOption = '';
+                $assayTable .= generateHTML('audittrail/assayline', $repA);
 
+                $media = upa('assays', 'assayMedia', [$ana['assay_base']], false);
 
-              if($thisAssayInfo['confirmation'] == 0){
-                $confOption = 'Nee';
-              } else {
-                if($ana['conf_requested'] == 0){
-                  $confOption = 'Nee';
-                }
-                if($ana['conf_requested'] == 1){
-                    $confOption = 'Ja';
-                }
-                if($ana['conf_requested'] == 2){
-                    $confOption = 'Nee';
-                }
+                foreach ($media as $thisMediaId => $thisMedia) {
+                    $repM = [];
+                    $repM['volg'] = $volg;
+                    $repM['name'] = $thisMedia['name'];
+                    $repM['media_tht'] = checkKeyOrFalse($bdf, '3', $thisMedia['id']);
+                    $mediaFieldId = 'b3_'.$thisMedia['id'];
+                    $mediaIsOutOfSpec = ! $this->auditTrailIsNotApplicable($repM['media_tht']) && ($this->auditTrailDateIsOutOfSpec($repM['media_tht'], $bf['date']) || $this->auditTrailWasOutOfDateHere($bdf, $thisMedia['id'], $sample['id']));
+                    $repM['media_tht_style'] = $this->auditTrailOutOfSpecStyle($mediaIsOutOfSpec);
+                    $repM['media_tht_note'] = $this->auditTrailFieldNote($bdf, $mediaFieldId, $mediaIsOutOfSpec);
 
-                if($thisAssayInfo['confirmation_type'] == '0'){
-                  $globalConf = True;
-                } else{
-                  $globalConf = False;
-                }
-              }
+                    $suppTxt = '';
+                    $suppThtTxt = '';
+                    $supplements = json_decode($thisMedia['supplements'], JSON_FORCE_OBJECT);
 
+                    if (is_array($supplements)) {
+                        foreach ($supplements as $supplement) {
+                            // $suppTHT = checkKeyOrFalse();
 
-              $conf['conf'] = $confOption;
-              $confTable .= generateHTML('audittrail/confrow', $conf);
+                            $suppTxt .= $supplement['name'];
+                            $keyName = 'extra_'.$thisMedia['id'].'_'.$supplement['supplementId'];
+                            $suppTht = checkKeyOrFalse($bdf, '3', $keyName);
+                            $suppFieldId = 'b3_'.$keyName;
+                            $suppIsOutOfSpec = ! $this->auditTrailIsNotApplicable($suppTht) && ($this->auditTrailDateIsOutOfSpec($suppTht, $bf['date']) || $this->auditTrailWasOutOfDateHere($bdf, $thisMedia['id'], $sample['id']));
+                            $suppThtTxt .= '<span style="'.$this->auditTrailOutOfSpecStyle($suppIsOutOfSpec).'">'.$suppTht.$this->auditTrailFieldNote($bdf, $suppFieldId, $suppIsOutOfSpec).'</span>';
 
-              $confRows = upa('confirmations', 'fetchLine', array($ana['id']), False);
-              $confScript = json_decode($thisAssayInfo['confirmation_script'], JSON_FORCE_OBJECT);
-              $supportScript = json_decode($thisAssayInfo['confirmation_support'], JSON_FORCE_OBJECT);
-              $confData = json_decode($confRows['data'], JSON_FORCE_OBJECT);
-              $raceTracks = json_decode($confRows['racetrack'], JSON_FORCE_OBJECT) ;
-              $metaData =  json_decode($confRows['metadata'], JSON_FORCE_OBJECT) ;
+                            // add nbsp and br
+                            $suppTxt .= '&nbsp; <br />';
+                            $suppThtTxt .= '&nbsp; <br />';
 
-
-              if(!is_array($confRows)){
-                $confRows = array();
-              }
-
-              if(!is_array($confScript)){
-                $confScript = array();
-              }
-
-              if(!is_array($confData)){
-                $confData = array();
-              }
-
-
-              if($ana['conf_requested'] == 1){
-                $inuse = json_decode($confRows['in_use'], JSON_FORCE_OBJECT);
-
-                // if(!is_array($inuseDf)){
-                //   $inuse = array();
-                // } else{
-                //   $inuse = array();
-                //   //we need to consolidate this to a unique thingy
-                //   foreach($inuseDf as $mediaDf => $mediaReps){
-                //     foreach($mediaReps as $mediasInuse){
-                //       $keys = array_keys($mediasInuse, True);
-                //       $inuse = array_merge($inuse, $keys);
-                //     }
-                //   }
-                // }
-
-                //foreach($confScript as $confRow){
-
-                  $assayResults = upa('results', 'getTestResults', array($ana['id'], True), False);
-
-                  foreach($assayResults as $asRes){
-                  #$status = checkKeyOrFalse($inuse, $confRow['mediaId']);
-
-                  $thisDf = $asRes['df'];
-                  $thisRep = $asRes['rep'];
-
-                  if($globalConf == True){
-                    $thisDf = 'global';
-                  }
-
-                  $raceTrackExists = checkKeyOrFalse($raceTracks, $thisDf, $thisRep);
-
-                  if($raceTrackExists == False){
-                    continue;
-                  }
-
-                  foreach($confScript as $confRow){
-
-                  $status = checkKeyOrFalse($inuse, $thisDf, $thisRep, $confRow['mediaId']);
-
-                  if($status === True){
-
-                    $confResultRow = array();
-                    $cm = array();
-
-                    $cm['df'] = $thisDf;
-
-                    $cm['rep'] = $thisRep;
-                    if($globalConf == True){
-                      $cm['df'] = 'Globaal';
+                        }
                     }
 
+                    $repM['supptxt'] = $suppTxt;
+                    $repM['suppthttxt'] = $suppThtTxt;
 
-                    $thisConfMedia = upa('media', 'fetch' , array($confRow['mediaId']), False);
-                    $cm['volg'] =  $volg;
-                    $cm['name'] =  $thisConfMedia['name'];
-                    $cm['tht'] = checkKeyOrFalse($bdf, '3', $confRow['mediaId']);
-
-                    //$cm['ingezet'] = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_inzet');
-                    //$cm['afgelezen'] = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_aflees');
-
-                    $cm['ingezet'] = checkKeyOrFalse($metaData, $thisDf, $thisRep, $confRow['chainId'] - 1, $confRow['mediaId'] . '_inzet');
-                    $cm['afgelezen'] = checkKeyOrFalse($metaData,$thisDf, $thisRep, $confRow['chainId'] - 1, $confRow['mediaId'] . '_aflees');
-
-                    $inzetId = checkKeyOrFalse($metaData, $thisDf, $thisRep, $confRow['chainId'] -1, $confRow['mediaId'] . '_inzet_user');
-                    $afleesId = checkKeyOrFalse($metaData,  $thisDf, $thisRep, $confRow['chainId'] -1, $confRow['mediaId'] . '_aflees_user');
-
-                    $inzetBy = userIdToName($inzetId);
-                    $afleesBy = userIdToName($afleesId);
-
-                    $cm['inzetby'] =  $inzetBy;
-                    $cm['afleesby'] =  $afleesBy;
-
-                    $confResultRow['volg'] = $volg;
-                    $confResultRow['name'] =  $thisConfMedia['name'];
-                    $confResultRow['df'] =   $cm['df'] ;
-                    $confResultRow['rep'] = $cm['rep'];
-
-
-                    //$thisConfGetest = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_n');
-                    //$thisConfPos = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_pos');
-
-                    $thisConfGetest = count($raceTracks[$thisDf][$thisRep]);
-                    $ratio = checkKeyOrFalse($metaData, $thisDf, $thisRep, 'ratio');
-                    $thisConfPos = round($thisConfGetest * $ratio);
-
-                    $confResultRow['kve1'] = checkKeyOrFalse($raceTracks, $thisDf, $thisRep, 0, $confRow['chainId'] - 1);
-                    $confResultRow['kve2'] = checkKeyOrFalse($raceTracks, $thisDf, $thisRep, 1, $confRow['chainId'] - 1);
-                    $confResultRow['kve3'] = checkKeyOrFalse($raceTracks, $thisDf, $thisRep, 2, $confRow['chainId'] - 1);
-                    $confResultRow['kve4'] = checkKeyOrFalse($raceTracks, $thisDf, $thisRep, 3, $confRow['chainId'] - 1);
-                    $confResultRow['kve5'] = checkKeyOrFalse($raceTracks, $thisDf, $thisRep, 4, $confRow['chainId'] - 1);
-
-                    #$thisConfPosControl = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_poscontrol');
-                    #$thisConfNegControl = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_negcontrol');
-                    #$thisConfBlankControl = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_blankcontrol');
-
-                    $thisConfPosControl = upa('confKeyStore', 'fetchValue', array($cm['ingezet'], $confRow['mediaId'], 'poscontrol'), False);
-                    $thisConfNegControl = upa('confKeyStore', 'fetchValue', array($cm['ingezet'], $confRow['mediaId'], 'negcontrol'), False);
-                    $thisConfBlankControl = upa('confKeyStore', 'fetchValue', array($cm['ingezet'], $confRow['mediaId'], 'blankcontrol'), False);
-
-                    $confResultRow['n'] =  $thisConfGetest;
-                    $confResultRow['n_pos'] = $thisConfPos;
-                    $confResultRow['pos'] =  $thisConfPosControl;
-                    $confResultRow['neg'] =  $thisConfNegControl;
-                    $confResultRow['blank'] =  $thisConfBlankControl;
-
-
-                    $confMediaTable .= generateHTML('audittrail/confmediarow', $cm);
-                    $confResultTable .= generateHTML('audittrail/confResultRow', $confResultRow);
-                  }
-                  //extra closure
-                  }
-
-
-
-                  foreach($supportScript as $supportRow){
-                      $status = checkKeyOrFalse($inuse, $thisDf, $thisRep, $supportRow['mediaId']);
-
-                      if($status === True){
-                        $thisConfMedia = upa('media', 'fetch' , array($supportRow['mediaId']), False);
-                        $cm['volg'] =  $volg;
-                        $cm['name'] =  $thisConfMedia['name'];
-
-                        $cm['ingezet'] = 'NVT';
-                        $cm['inzetby'] = 'NVT';
-                        $cm['afgelezen'] = 'NVT';
-                        $cm['afleesby'] = 'NVT';
-
-                        $cm['tht'] = checkKeyOrFalse($bdf, '3', $supportRow['mediaId']);
-
-                        $confMediaTable .= generateHTML('audittrail/confmediarow', $cm);
-                      }
-                  }
-
-                  //break out of this loop if needed
-                  if($globalConf == True){
-                    break;
-                  }
-                }
-              }
-
-              $cn = array();
-              $cn['volg'] = $volg;
-              $cn['note'] = checkKeyOrFalse($confRows, 'note');
-
-              if(!empty($cn['note'])){
-                $noteTable .= generateHTML('audittrail/noterow', $cn);
-              }
-
-              $ar = array();
-              $ar['volg'] = $volg;
-              //$ar['revision'] = upa('revisions', 'analysisRevisionReport', array($sample['id'], $ana['id'], True));
-              $ar['revision'] = upa('changeTracker', 'changesForAnalysis', array($sample['id'], $ana['id'], True));
-              if($ar['revision'] != False){
-                $revTable .= generateHTML('audittrail/assayrev', $ar);
-              }
-
-              //get results
-              $assayResults = upa('results', 'getTestResultsByDf', array($ana['id'], True), False);
-              $assayResultArr = array();
-              $assayResultArr['volg'] = $volg;
-
-              $dfI = 0;
-              $ctValues = '';
-
-              for($aI = 1; $aI >= 0.0000000001; $aI = $aI / 10 ){
-
-                $resultKey = checkKeyOrFalse($assayResults, (string)$aI);
-
-                if($resultKey != false){
-                  $valuesForDf = '';
-
-                  foreach($resultKey as $resultRep => $resultFields){
-                      $dataJson = $resultFields['data'];
-                      $dataForDf = json_decode($dataJson, JSON_FORCE_OBJECT);
-                      $kve =  checkKeyOrFalse($dataForDf, 'kve');
-                      $ct =  checkKeyOrFalse($dataForDf, 'Ctwaarde');
-
-                      if($kve !== False){
-                        $valuesForDf .= $kve . ',';
-                      }
-                      if($ct !== False){
-                        $ctValues .= $ct;
-                      }
-
-                  }
-                    $assayResultArr['res_' . $dfI] = rtrim($valuesForDf, ',');
-                } else{
-                    $assayResultArr['res_' . $dfI] = 'n.u.';
+                    $mediaTable .= generateHTML('audittrail/medialine', $repM);
                 }
 
-                $dfI++;
-              }
+                $material = upa('assays', 'assayMaterial', [$ana['assay_base']], false);
 
-              $assayResultArr['ct_value'] = rtrim($ctValues, ',');
-              $endResultForAssay = upa('results', 'endResultsAsJson', array($ana['id']), false);
-              $endResultJson = json_decode($endResultForAssay, JSON_FORCE_OBJECT);
-              $endResultKve = checkKeyOrFalse($endResultJson, 'output', 'kve');
-              $assayResultArr['end_result'] = $endResultKve;
-              $assayResultTable .= generateHTML('audittrail/assayResultRow', $assayResultArr);
+                foreach ($material as $thisMaterialId => $thisMaterial) {
+                    $repMat = [];
+                    $repMat['volg'] = $volg;
+                    $repMat['name'] = $thisMaterial['name'];
+                    $repMat['value'] = checkKeyOrFalse($bdf, '3', $thisMaterialId);
+                    $repMat['value'] = $repMat['value'].$thisMaterial['supplements'];
+                    $materialRange = checkKeyOrFalse($thisMaterial, 'acceptable_range');
+                    $materialIsOutOfSpec = ! $this->auditTrailIsNotApplicable(checkKeyOrFalse($bdf, '3', $thisMaterialId)) && ($this->auditTrailMaterialIsOutOfSpec(checkKeyOrFalse($bdf, '3', $thisMaterialId), $materialRange) || $this->auditTrailWasOutOfDateHere($bdf, $thisMaterialId, $sample['id']));
+                    $repMat['value_style'] = $this->auditTrailOutOfSpecStyle($materialIsOutOfSpec);
+                    $repMat['value_note'] = $this->auditTrailFieldNote($bdf, 'b3_'.$thisMaterialId, $materialIsOutOfSpec);
+                    $materialTable .= generateHTML('audittrail/matline', $repMat);
+                }
+
+                $conf = [];
+                $conf['volg'] = $volg;
+                $conf['name'] = checkKeyOrFalse($assayInfo, $volg, 'name');
+                $confOption = '';
+
+                if ($thisAssayInfo['confirmation'] == 0) {
+                    $confOption = 'Nee';
+                } else {
+                    if ($ana['conf_requested'] == 0) {
+                        $confOption = 'Nee';
+                    }
+                    if ($ana['conf_requested'] == 1) {
+                        $confOption = 'Ja';
+                    }
+                    if ($ana['conf_requested'] == 2) {
+                        $confOption = 'Nee';
+                    }
+
+                    if ($thisAssayInfo['confirmation_type'] == '0') {
+                        $globalConf = true;
+                    } else {
+                        $globalConf = false;
+                    }
+                }
+
+                $conf['conf'] = $confOption;
+                $confTable .= generateHTML('audittrail/confrow', $conf);
+
+                $confRows = upa('confirmations', 'fetchLine', [$ana['id']], false);
+                $confScript = json_decode($thisAssayInfo['confirmation_script'], JSON_FORCE_OBJECT);
+                $supportScript = json_decode($thisAssayInfo['confirmation_support'], JSON_FORCE_OBJECT);
+                $confData = json_decode($confRows['data'], JSON_FORCE_OBJECT);
+                $raceTracks = json_decode($confRows['racetrack'], JSON_FORCE_OBJECT);
+                $metaData = json_decode($confRows['metadata'], JSON_FORCE_OBJECT);
+
+                if (! is_array($confRows)) {
+                    $confRows = [];
+                }
+
+                if (! is_array($confScript)) {
+                    $confScript = [];
+                }
+
+                if (! is_array($confData)) {
+                    $confData = [];
+                }
+
+                if ($ana['conf_requested'] == 1) {
+                    $inuse = json_decode($confRows['in_use'], JSON_FORCE_OBJECT);
+
+                    // if(!is_array($inuseDf)){
+                    //   $inuse = array();
+                    // } else{
+                    //   $inuse = array();
+                    //   //we need to consolidate this to a unique thingy
+                    //   foreach($inuseDf as $mediaDf => $mediaReps){
+                    //     foreach($mediaReps as $mediasInuse){
+                    //       $keys = array_keys($mediasInuse, True);
+                    //       $inuse = array_merge($inuse, $keys);
+                    //     }
+                    //   }
+                    // }
+
+                    // foreach($confScript as $confRow){
+
+                    $assayResults = upa('results', 'getTestResults', [$ana['id'], true], false);
+
+                    foreach ($assayResults as $asRes) {
+                        // $status = checkKeyOrFalse($inuse, $confRow['mediaId']);
+
+                        $thisDf = $asRes['df'];
+                        $thisRep = $asRes['rep'];
+
+                        if ($globalConf == true) {
+                            $thisDf = 'global';
+                        }
+
+                        $raceTrackExists = checkKeyOrFalse($raceTracks, $thisDf, $thisRep);
+
+                        if ($raceTrackExists == false) {
+                            continue;
+                        }
+
+                        foreach ($confScript as $confRow) {
+
+                            $status = checkKeyOrFalse($inuse, $thisDf, $thisRep, $confRow['mediaId']);
+
+                            if ($status === true) {
+
+                                $confResultRow = [];
+                                $cm = [];
+
+                                $cm['df'] = $thisDf;
+
+                                $cm['rep'] = $thisRep;
+                                if ($globalConf == true) {
+                                    $cm['df'] = 'Globaal';
+                                }
+
+                                $thisConfMedia = upa('media', 'fetch', [$confRow['mediaId']], false);
+                                $cm['volg'] = $volg;
+                                $cm['name'] = $thisConfMedia['name'];
+                                $cm['tht'] = checkKeyOrFalse($bdf, '3', $confRow['mediaId']);
+
+                                // $cm['ingezet'] = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_inzet');
+                                // $cm['afgelezen'] = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_aflees');
+
+                                $cm['ingezet'] = checkKeyOrFalse($metaData, $thisDf, $thisRep, $confRow['chainId'] - 1, $confRow['mediaId'].'_inzet');
+                                $cm['afgelezen'] = checkKeyOrFalse($metaData, $thisDf, $thisRep, $confRow['chainId'] - 1, $confRow['mediaId'].'_aflees');
+
+                                $inzetId = checkKeyOrFalse($metaData, $thisDf, $thisRep, $confRow['chainId'] - 1, $confRow['mediaId'].'_inzet_user');
+                                $afleesId = checkKeyOrFalse($metaData, $thisDf, $thisRep, $confRow['chainId'] - 1, $confRow['mediaId'].'_aflees_user');
+
+                                $inzetBy = userIdToName($inzetId);
+                                $afleesBy = userIdToName($afleesId);
+
+                                $cm['inzetby'] = $inzetBy;
+                                $cm['afleesby'] = $afleesBy;
+
+                                $confResultRow['volg'] = $volg;
+                                $confResultRow['name'] = $thisConfMedia['name'];
+                                $confResultRow['df'] = $cm['df'];
+                                $confResultRow['rep'] = $cm['rep'];
+
+                                // $thisConfGetest = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_n');
+                                // $thisConfPos = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_pos');
+
+                                $thisConfGetest = count($raceTracks[$thisDf][$thisRep]);
+                                $ratio = checkKeyOrFalse($metaData, $thisDf, $thisRep, 'ratio');
+                                $thisConfPos = round($thisConfGetest * $ratio);
+
+                                $confResultRow['kve1'] = checkKeyOrFalse($raceTracks, $thisDf, $thisRep, 0, $confRow['chainId'] - 1);
+                                $confResultRow['kve2'] = checkKeyOrFalse($raceTracks, $thisDf, $thisRep, 1, $confRow['chainId'] - 1);
+                                $confResultRow['kve3'] = checkKeyOrFalse($raceTracks, $thisDf, $thisRep, 2, $confRow['chainId'] - 1);
+                                $confResultRow['kve4'] = checkKeyOrFalse($raceTracks, $thisDf, $thisRep, 3, $confRow['chainId'] - 1);
+                                $confResultRow['kve5'] = checkKeyOrFalse($raceTracks, $thisDf, $thisRep, 4, $confRow['chainId'] - 1);
+
+                                // $thisConfPosControl = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_poscontrol');
+                                // $thisConfNegControl = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_negcontrol');
+                                // $thisConfBlankControl = checkKeyOrFalse($confData, $confRow['chainId'], $confRow['mediaId'] . '_blankcontrol');
+
+                                $thisConfPosControl = upa('confKeyStore', 'fetchValue', [$cm['ingezet'], $confRow['mediaId'], 'poscontrol'], false);
+                                $thisConfNegControl = upa('confKeyStore', 'fetchValue', [$cm['ingezet'], $confRow['mediaId'], 'negcontrol'], false);
+                                $thisConfBlankControl = upa('confKeyStore', 'fetchValue', [$cm['ingezet'], $confRow['mediaId'], 'blankcontrol'], false);
+
+                                $confResultRow['n'] = $thisConfGetest;
+                                $confResultRow['n_pos'] = $thisConfPos;
+                                $confResultRow['pos'] = $thisConfPosControl;
+                                $confResultRow['neg'] = $thisConfNegControl;
+                                $confResultRow['blank'] = $thisConfBlankControl;
+
+                                $confMediaTable .= generateHTML('audittrail/confmediarow', $cm);
+                                $confResultTable .= generateHTML('audittrail/confResultRow', $confResultRow);
+                            }
+                            // extra closure
+                        }
+
+                        foreach ($supportScript as $supportRow) {
+                            $status = checkKeyOrFalse($inuse, $thisDf, $thisRep, $supportRow['mediaId']);
+
+                            if ($status === true) {
+                                $thisConfMedia = upa('media', 'fetch', [$supportRow['mediaId']], false);
+                                $cm['volg'] = $volg;
+                                $cm['name'] = $thisConfMedia['name'];
+
+                                $cm['ingezet'] = 'NVT';
+                                $cm['inzetby'] = 'NVT';
+                                $cm['afgelezen'] = 'NVT';
+                                $cm['afleesby'] = 'NVT';
+
+                                $cm['tht'] = checkKeyOrFalse($bdf, '3', $supportRow['mediaId']);
+
+                                $confMediaTable .= generateHTML('audittrail/confmediarow', $cm);
+                            }
+                        }
+
+                        // break out of this loop if needed
+                        if ($globalConf == true) {
+                            break;
+                        }
+                    }
+                }
+
+                $cn = [];
+                $cn['volg'] = $volg;
+                $cn['note'] = checkKeyOrFalse($confRows, 'note');
+
+                if (! empty($cn['note'])) {
+                    $noteTable .= generateHTML('audittrail/noterow', $cn);
+                }
+
+                $ar = [];
+                $ar['volg'] = $volg;
+                // $ar['revision'] = upa('revisions', 'analysisRevisionReport', array($sample['id'], $ana['id'], True));
+                $ar['revision'] = upa('changeTracker', 'changesForAnalysis', [$sample['id'], $ana['id'], true]);
+                if ($ar['revision'] != false) {
+                    $revTable .= generateHTML('audittrail/assayrev', $ar);
+                }
+
+                // get results
+                $assayResults = upa('results', 'getTestResultsByDf', [$ana['id'], true], false);
+                $assayResultArr = [];
+                $assayResultArr['volg'] = $volg;
+
+                $dfI = 0;
+                $ctValues = '';
+
+                for ($aI = 1; $aI >= 0.0000000001; $aI = $aI / 10) {
+
+                    $resultKey = checkKeyOrFalse($assayResults, (string) $aI);
+
+                    if ($resultKey != false) {
+                        $valuesForDf = '';
+
+                        foreach ($resultKey as $resultRep => $resultFields) {
+                            $dataJson = $resultFields['data'];
+                            $dataForDf = json_decode($dataJson, JSON_FORCE_OBJECT);
+                            $kve = checkKeyOrFalse($dataForDf, 'kve');
+                            $ct = checkKeyOrFalse($dataForDf, 'Ctwaarde');
+
+                            if ($kve !== false) {
+                                $valuesForDf .= $kve.',';
+                            }
+                            if ($ct !== false) {
+                                $ctValues .= $ct;
+                            }
+
+                        }
+                        $assayResultArr['res_'.$dfI] = rtrim($valuesForDf, ',');
+                    } else {
+                        $assayResultArr['res_'.$dfI] = 'n.u.';
+                    }
+
+                    $dfI++;
+                }
+
+                $assayResultArr['ct_value'] = rtrim($ctValues, ',');
+                $endResultForAssay = upa('results', 'endResultsAsJson', [$ana['id']], false);
+                $endResultJson = json_decode($endResultForAssay, JSON_FORCE_OBJECT);
+                $endResultKve = checkKeyOrFalse($endResultJson, 'output', 'kve');
+                $assayResultArr['end_result'] = $endResultKve;
+                $assayResultTable .= generateHTML('audittrail/assayResultRow', $assayResultArr);
 
             }
 
-            //proj rev
-            //$projectRevision = upa('revisions', 'projectRevisionReport', array($projectInfo['id'], True));
-            //$sampleRevision = upa('revisions', 'sampleRevisionReport', array($sample['id'], True));
+            // proj rev
+            // $projectRevision = upa('revisions', 'projectRevisionReport', array($projectInfo['id'], True));
+            // $sampleRevision = upa('revisions', 'sampleRevisionReport', array($sample['id'], True));
 
-            $projectRevision = upa('changeTracker', 'changesForProject', array($projectInfo['id'], True));
-            $sampleRevision = upa('changeTracker', 'changesForSample', array($sample['id'], True));
-
-
+            $projectRevision = upa('changeTracker', 'changesForProject', [$projectInfo['id'], true]);
+            $sampleRevision = upa('changeTracker', 'changesForSample', [$sample['id'], true]);
 
             $this->_template->set('analysis_rows', $analysisTable);
             $this->_template->set('assay_rows', $assayTable);
@@ -6281,63 +5940,62 @@ class samplesController extends Controller
 
             $this->_template->set('project_revisions', $projectRevision);
             $this->_template->set('sample_revisions', $sampleRevision);
-            
-
 
             $this->_template->set('assay_revisions', $revTable);
-        }else{
-          $this->_template->set('borgHider', 'hidden');
-          $this->_template->set('borgMsg', '');
+        } else {
+            $this->_template->set('borgHider', 'hidden');
+            $this->_template->set('borgMsg', '');
         }
     }
 
-    function runningConf(){
+    public function runningConf()
+    {
 
-        $running = upa('sampleAnalysis', 'getRunningConf', array(), False);
-        $runningSamples = array();
+        $running = upa('sampleAnalysis', 'getRunningConf', [], false);
+        $runningSamples = [];
 
-        foreach($running as $saRunning){
-          if(!in_array($saRunning['sample'], $runningSamples)){
-            array_push($runningSamples, $saRunning['sample']);
-          }
+        foreach ($running as $saRunning) {
+            if (! in_array($saRunning['sample'], $runningSamples)) {
+                array_push($runningSamples, $saRunning['sample']);
+            }
         }
 
-        foreach($runningSamples as $sample){
-          $this->Sample->where('id', $sample);
-          $this->Sample->insertOR();
+        foreach ($runningSamples as $sample) {
+            $this->Sample->where('id', $sample);
+            $this->Sample->insertOR();
         }
 
         $samples = $this->Sample->search();
-        $sampleInfo = array();
-        foreach($samples as $sample){
-          $sampleInfo[$sample['id']] = $sample;
+        $sampleInfo = [];
+        foreach ($samples as $sample) {
+            $sampleInfo[$sample['id']] = $sample;
         }
 
-        foreach($running as $i => $thisRunning){
-          if(array_key_exists($thisRunning['sample'], $sampleInfo)){
-            $thisSample = $sampleInfo[$thisRunning['sample']];
-            $running[$i]['client'] = customerIdToName($thisSample['client']);
-            $running[$i]['clientId'] = $thisSample['client'];
-            $running[$i]['barcode'] = $thisSample['barcode'];
-            $running[$i]['description'] = $thisSample['description'];
-            $assay = upa('assays', 'fetchSingle', array($thisRunning['assay_base']), False);
-            $running[$i]['assay_name'] = $assay['name'];
-            $running[$i]['barcode_specific'] = $thisSample['barcode'] . '.' .  $thisRunning['follow_number'];
+        foreach ($running as $i => $thisRunning) {
+            if (array_key_exists($thisRunning['sample'], $sampleInfo)) {
+                $thisSample = $sampleInfo[$thisRunning['sample']];
+                $running[$i]['client'] = customerIdToName($thisSample['client']);
+                $running[$i]['clientId'] = $thisSample['client'];
+                $running[$i]['barcode'] = $thisSample['barcode'];
+                $running[$i]['description'] = $thisSample['description'];
+                $assay = upa('assays', 'fetchSingle', [$thisRunning['assay_base']], false);
+                $running[$i]['assay_name'] = $assay['name'];
+                $running[$i]['barcode_specific'] = $thisSample['barcode'].'.'.$thisRunning['follow_number'];
 
-          }else {
-            //TODO: log this
-            unset($running[$i]);
-          }
+            } else {
+                // TODO: log this
+                unset($running[$i]);
+            }
         }
 
-        $tF = new tableFactory();
+        $tF = new tableFactory;
         $tF->loadTemplate('runningConfTable');
         $tF->loadValues($running);
         $this->_template->set('table', $tF->renderTable());
     }
 
-
-    function listAllClientSamples($id){
+    public function listAllClientSamples($id)
+    {
 
         $table = '';
 
@@ -6346,20 +6004,19 @@ class samplesController extends Controller
 
         $result = $this->Sample->search();
 
-        $projects = array();
+        $projects = [];
 
-        foreach($result as $sample){
+        foreach ($result as $sample) {
 
-            $repStack = array();
+            $repStack = [];
             $repStack['barcode'] = $sample['barcode'];
             $repStack['sample_id'] = $sample['id'];
             $repStack['project_id'] = $sample['project'];
 
-
-            if(!array_key_exists($sample['project'], $projects)){
-               $projectInfo = upa('projects', 'fetch', array($sample['project']), False);
-            } else{
-              $projectInfo = $projects[$sample['project']];
+            if (! array_key_exists($sample['project'], $projects)) {
+                $projectInfo = upa('projects', 'fetch', [$sample['project']], false);
+            } else {
+                $projectInfo = $projects[$sample['project']];
             }
 
             $repStack['project'] = $projectInfo['reference'];
@@ -6368,12 +6025,11 @@ class samplesController extends Controller
             $scf = json_decode($sample['custom_fields'], JSON_FORCE_OBJECT);
             $repStack['details'] = checkKeyOrFalse($scf, 'details');
 
-            if($sample['sample_innoculated'] == ''){
-              $repStack['innoc'] = 'Nog niet ingezet';
-            }else{
-              $repStack['innoc'] = date('d-m-Y', $sample['sample_innoculated']);
+            if ($sample['sample_innoculated'] == '') {
+                $repStack['innoc'] = 'Nog niet ingezet';
+            } else {
+                $repStack['innoc'] = date('d-m-Y', $sample['sample_innoculated']);
             }
-
 
             $table .= generateHTML('samples/sampleAllListRow', $repStack);
         }
@@ -6381,103 +6037,106 @@ class samplesController extends Controller
         $this->_template->set('table', $table);
     }
 
-    function dataMiningGrab($projects){
+    public function dataMiningGrab($projects)
+    {
 
-      foreach($projects as $project){
-        $this->Sample->where('project', $project['id']);
-        $this->Sample->insertOR();
-      }
+        foreach ($projects as $project) {
+            $this->Sample->where('project', $project['id']);
+            $this->Sample->insertOR();
+        }
 
-      $results = $this->Sample->search();
+        $results = $this->Sample->search();
 
-      $retResults = array();
+        $retResults = [];
 
-      foreach($results as $result){
-        $retResults[$result['id']] = $result;
-      }
+        foreach ($results as $result) {
+            $retResults[$result['id']] = $result;
+        }
 
-      return $retResults;
+        return $retResults;
     }
 
-    function sampleNoteSummaryForProject($project){
-      $this->Sample->where('project', $project);
-      $samples = $this->Sample->search();
+    public function sampleNoteSummaryForProject($project)
+    {
+        $this->Sample->where('project', $project);
+        $samples = $this->Sample->search();
 
-      $sampleNoteList = '';
+        $sampleNoteList = '';
 
-      foreach($samples as $sample){
-        $sampleNoteList .= '<p><strong>' . $sample['barcode'] . '</strong><br/>' . $sample['sample_note'] . '</p>';
-      }
+        foreach ($samples as $sample) {
+            $sampleNoteList .= '<p><strong>'.$sample['barcode'].'</strong><br/>'.$sample['sample_note'].'</p>';
+        }
 
-      $sampleNoteList .= '';
-      return $sampleNoteList;
+        $sampleNoteList .= '';
+
+        return $sampleNoteList;
 
     }
 
-    function sampleBackward($current){
-        $this->render = False;
+    public function sampleBackward($current)
+    {
+        $this->render = false;
         $this->Sample->order('id', 'DESC');
         $this->Sample->lessThanHard('id', $current);
         $this->Sample->limit('1');
         $result = $this->Sample->search();
 
-        if($result){
-          $ret = array('prev_id' => $result[0]['id'], 'prev_barcode' => $result[0]['barcode'] );
-        } else{
-          $ret = array('prev_id' => False, 'prev_barcode' => False);
+        if ($result) {
+            $ret = ['prev_id' => $result[0]['id'], 'prev_barcode' => $result[0]['barcode']];
+        } else {
+            $ret = ['prev_id' => false, 'prev_barcode' => false];
         }
 
-        print(json_encode($ret));
+        echo json_encode($ret);
     }
 
-    function sampleForward($current){
-        $this->render = False;
+    public function sampleForward($current)
+    {
+        $this->render = false;
         $this->Sample->order('id', 'ASC');
         $this->Sample->greaterThanHard('id', $current);
         $this->Sample->limit('1');
         $result = $this->Sample->search();
 
-        if($result){
-          $ret = array('next_id' => $result[0]['id'], 'next_barcode' => $result[0]['barcode'] );
-        } else{
-          $ret = array('next_id' => False, 'next_barcode' => False);
+        if ($result) {
+            $ret = ['next_id' => $result[0]['id'], 'next_barcode' => $result[0]['barcode']];
+        } else {
+            $ret = ['next_id' => false, 'next_barcode' => false];
         }
 
-        print(json_encode($ret));
+        echo json_encode($ret);
     }
 
-    function sampleGetProjectFollowNo($id, $project){
+    public function sampleGetProjectFollowNo($id, $project)
+    {
 
-          $this->render = False;
-          #$this->Sample->where('id', $id);
-          $this->Sample->where('project', $project);
-          $this->Sample->order('id', 'ASC');
-          $this->Sample->order('follow_no', 'ASC');
-          $results = array();
-          $pResults = $this->Sample->search();
+        $this->render = false;
+        // $this->Sample->where('id', $id);
+        $this->Sample->where('project', $project);
+        $this->Sample->order('id', 'ASC');
+        $this->Sample->order('follow_no', 'ASC');
+        $results = [];
+        $pResults = $this->Sample->search();
 
-          $followNo = 1;
-          foreach($pResults as $idx => $sample){
-            if($sample['id'] == $id ){
-                $retObj = array();
-                //check if this has a custom follow flag?
+        $followNo = 1;
+        foreach ($pResults as $idx => $sample) {
+            if ($sample['id'] == $id) {
+                $retObj = [];
+                // check if this has a custom follow flag?
                 $sampleExtra = json_decode($sample['sample_extra'], JSON_FORCE_OBJECT);
                 $retObj['db_follow'] = $followNo;
 
-                if( is_array($sampleExtra) && array_key_exists('follow', $sampleExtra)){
-                  $retObj['custom_follow'] = $sampleExtra['follow'];
-                } else{
-                  $retObj['custom_follow'] = $followNo;
+                if (is_array($sampleExtra) && array_key_exists('follow', $sampleExtra)) {
+                    $retObj['custom_follow'] = $sampleExtra['follow'];
+                } else {
+                    $retObj['custom_follow'] = $followNo;
                 }
+
                 return $retObj;
-            } else{
+            } else {
                 unset($results[$idx]);
                 $followNo++;
             }
-          }
+        }
     }
-
-
-
-
 }

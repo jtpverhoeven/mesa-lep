@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\NoteKind;
 use App\Support\ProjectStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
     'last_edit', 'custom_fields', 'revision', 'auth_status', 'auth_by', 'auth_on',
     'print_version', 'predicted_end', 'project_extra', 'is_ready', 'special_type',
     'rap_stat', 'rap_by', 'rap_on', 'rap_rev', 'became_ready_on', 'started', 'added_by',
-    'portal_id', 'locked', 'locked_by', 'lock_pass', 'lock_message', 'print_info',
+    'portal_id', 'locked', 'locked_by', 'lock_pass', 'lock_message', 'print_info', 'billed',
 ])]
 class Project extends Model
 {
@@ -38,6 +39,27 @@ class Project extends Model
     public function isReadOnly(): bool
     {
         return $this->isAuthorized() || $this->isAuthorizationBlocked();
+    }
+
+    public function isBilled(): bool
+    {
+        return (int) $this->billed !== 0;
+    }
+
+    /**
+     * @param  string  $billingStatus  '0' (not yet billed), '1' (billed) or 'all'.
+     */
+    public function matchesBillingStatus(string $billingStatus): bool
+    {
+        return $billingStatus === 'all' || (int) $this->isBilled() === (int) $billingStatus;
+    }
+
+    /**
+     * @param  string  $billingStatus  '0' (not yet billed), '1' (billed) or 'all'.
+     */
+    public function scopeBillingStatus(Builder $query, string $billingStatus): void
+    {
+        $query->when($billingStatus !== 'all', fn (Builder $projects) => $projects->where('billed', (int) $billingStatus));
     }
 
     /**
