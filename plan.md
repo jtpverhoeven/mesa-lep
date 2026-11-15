@@ -1,7 +1,6 @@
 # Roadmap
 
-
-- Facturatie
+- 
 
 - Audit trail
 
@@ -39,7 +38,7 @@ Data mining:
 * Locked projects should not be allowed to generate a report / temp report i think. Make cvar for behaviour?
 * Shoudl show some feedback when authorizing a project that work is underway, and do a little SFX probbably.
 * Aanmelden als shoudl conform to column width and only be half-size when tht selected.
-
+* Add raw output for billing as well, not just the new excel
 
 # Phoenix verification script
 
