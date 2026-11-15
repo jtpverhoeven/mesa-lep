@@ -1,8 +1,12 @@
 # Roadmap
 
-- Status indicators
+- Lopende bevestigingen
+
+- Facturatie
 
 - Audit trail
+
+- Fix THT accept button on voorportaal
 
 Data mining:
 
@@ -13,6 +17,8 @@ Data mining:
     - Deauthorisatie
     
     - User printers
+
+
 
 # To verify
 - Check if supporting media is always on in legacy? (i think they might be default: on)   

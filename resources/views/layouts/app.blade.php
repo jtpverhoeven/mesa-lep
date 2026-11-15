@@ -100,10 +100,12 @@
                             @can('samples.create')<a href="{{ route('samples.bulk.create', ['registrationType' => 'rodac']) }}" @class(['selected' => request()->routeIs('samples.bulk.*') && request()->route('registrationType') === 'rodac'])>RODAC aanmelden</a>@endcan
                             @can('samples.assign-research')<a href="{{ route('samples.assign-analyses') }}" @class(['selected' => request()->routeIs('samples.assign-analyses*')])>Analyses toevoegen<sidebar-badge counter="awaiting_analysis" label="monsters zonder analyses"></sidebar-badge></a>@endcan
                             @can('samples.view')<a href="{{ route('samples.lookup') }}" @class(['selected' => request()->routeIs('samples.lookup*')])>Resultaten invoeren</a>@endcan
-                            @can('samples.photos.manage')<a href="{{ route('samples.photos.index') }}" @class(['selected' => request()->routeIs('samples.photos.*')])>Monsterfoto's</a>@endcan
+                            @can('samples.view')<a href="{{ route('samples.running-confirmations') }}" @class(['selected' => request()->routeIs('samples.running-confirmations')])>Lopende bevestigingen</a>@endcan                            
                             @can('shelf-life-studies.view')<a href="{{ route('sample-buffers.tht') }}" @class(['selected' => request()->routeIs('sample-buffers.tht')])>THT onderzoeken<sidebar-badge counter="tht" severity="warn" label="THT-onderzoeken om in te zetten"></sidebar-badge></a>@endcan
-                            
                             @can('samples.list')<div class="nav-row"><a href="{{ route('samples.register') }}" @class(['selected' => request()->routeIs('samples.register*')])>Monsterlijst</a><sidebar-badge counter="not_inoculated" severity="danger" label="monsters niet ingezet" opens-not-inoculated></sidebar-badge></div>@endcan
+                            @can('samples.photos.manage')<a href="{{ route('samples.photos.index') }}" @class(['selected' => request()->routeIs('samples.photos.*')])>Monsterfoto's</a>@endcan
+                            
+                            
                             <span class="nav-group"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px" aria-hidden="true" focusable="false"><rect width="20" height="14" x="2" y="7" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path><path d="M2 12h20"></path></svg>Projecten</span>
                             @can('projects.view')<a href="{{ route('projects.search') }}" @class(['selected' => request()->routeIs('projects.search*')])>Projecten zoeken</a>@endcan
                             @can('projects.view')

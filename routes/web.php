@@ -44,6 +44,7 @@ use App\Http\Controllers\ReportNoteController;
 use App\Http\Controllers\ReportSenderController;
 use App\Http\Controllers\ResearchProfileController;
 use App\Http\Controllers\ResultController;
+use App\Http\Controllers\RunningConfirmationController;
 use App\Http\Controllers\SampleAnalysisAssignmentController;
 use App\Http\Controllers\SampleBufferController;
 use App\Http\Controllers\SampleBufferImportController;
@@ -147,6 +148,9 @@ Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/samples/look
     Route::post('/{sample}/research', [SampleLookupController::class, 'update'])->name('samples.lookup.research');
     Route::get('/{barcode?}', [SampleLookupController::class, 'index'])->where('barcode', '[^/]{1,32}')->name('samples.lookup');
 });
+
+Route::get('/laboratory/samples/running-confirmations', RunningConfirmationController::class)
+    ->middleware(['auth', 'can:samples.view'])->name('samples.running-confirmations');
 
 Route::middleware(['auth', 'can:samples.photos.manage'])->prefix('laboratory/samples/photos')->group(function () {
     Route::get('/', [SamplePhotoController::class, 'index'])->name('samples.photos.index');
