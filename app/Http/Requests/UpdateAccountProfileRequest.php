@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Printer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateAccountProfileRequest extends FormRequest
 {
@@ -31,6 +33,7 @@ class UpdateAccountProfileRequest extends FormRequest
             'phone_number' => ['nullable', 'string', 'max:50'],
             'email' => ['prohibited'],
             'username' => ['prohibited'],
+            'printer' => ['sometimes', 'nullable', 'integer', Rule::exists(Printer::class, 'id')],
         ];
     }
 }

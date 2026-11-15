@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\RunPrintProfileJob;
+use App\Jobs\SendLabelPrinterSpoolJob;
 use App\Models\LabelDesign;
 use App\Models\Printer;
 use App\Models\PrintProfile;
@@ -128,14 +129,27 @@ class PrintProfileAdministrationTest extends TestCase
     public function test_run_queues_the_saved_script_and_ignores_posted_script_content(): void
     {
         $sample = $this->sample();
-        $profile = PrintProfile::factory()->create();
-        $this->actingAs($this->userWithPermissions());
-        Queue::fake([RunPrintProfileJob::class]);
+        $profilePrinter = Printer::factory()->create();
+        $userPrinter = Printer::factory()->create();
+        $design = LabelDesign::factory()->create(['zpl' => '{sample_barcode}']);
+        $script = "10 SAMPLE PRINT $design->id PRINTER $profilePrinter->id COPIES 1";
+        $profile = PrintProfile::factory()->create(['profile' => $script]);
+        $user = $this->userWithPermissions();
+        $user->update(['printer' => $userPrinter->id]);
+        $this->actingAs($user);
+        Queue::fake([RunPrintProfileJob::class, SendLabelPrinterSpoolJob::class]);
 
         $this->postJson(route('print-profiles.run', $profile), ['barcode' => $sample->barcode, 'profile' => '10 EXEC evil'])
             ->assertAccepted()->assertJsonPath('message', 'Printprofiel staat in de wachtrij.');
 
-        Queue::assertPushed(RunPrintProfileJob::class, fn (RunPrintProfileJob $job): bool => $job->profileId === $profile->id && $job->profileScript === '10 EXIT' && $job->sampleId === $sample->id);
+        $job = Queue::pushed(RunPrintProfileJob::class)->sole();
+        $this->assertSame($userPrinter->id, $job->printerOverride);
+        $this->assertSame($script, $job->profileScript);
+        $this->assertSame($sample->id, $job->sampleId);
+
+        $this->app->call([$job, 'handle']);
+
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $spool): bool => $spool->printerId === $userPrinter->id);
     }
 
     public function test_missing_profiles_return_404_and_do_not_queue(): void

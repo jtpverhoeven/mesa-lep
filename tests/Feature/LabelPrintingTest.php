@@ -95,6 +95,23 @@ class LabelPrintingTest extends TestCase
             && $job->activityContext['user_id'] === $user->id);
     }
 
+    public function test_user_default_printer_overrides_automatic_event_destinations(): void
+    {
+        Queue::fake([SendLabelPrinterSpoolJob::class]);
+        $configuredPrinter = Printer::factory()->create();
+        $userPrinter = Printer::factory()->create();
+        $user = User::factory()->create(['printer' => $userPrinter->id]);
+        $this->actingAs($user);
+        $sample = $this->sample('M260001');
+        $design = LabelDesign::factory()->create(['zpl' => '{sample_barcode};']);
+        $event = LabelEvent::factory()->for($design, 'labelDesign')->for($configuredPrinter, 'printer')->create();
+
+        app(DispatchLabelEvents::class)->handle([$sample]);
+
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, fn (SendLabelPrinterSpoolJob $job): bool => $job->printerId === $userPrinter->id
+            && $job->eventIds === [$event->id]);
+    }
+
     public function test_automatic_printing_logs_matching_event_ids_with_the_sample_that_triggered_them(): void
     {
         $this->withPrintingLogs(function (): void {

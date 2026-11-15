@@ -6,6 +6,7 @@
     </div>
     <account-settings v-bind="{{ Illuminate\Support\Js::from([
         'account' => $account,
+        'printers' => $printers,
         'profileUrl' => route('account.profile.update'),
         'aliasUrl' => route('account.alias.update'),
         'passwordUrl' => route('account.password.update'),

@@ -27,15 +27,16 @@ class AssayController extends Controller
             ->with('assayType:id,name')
             ->where('active', 1)
             ->orderBy('name')
-            ->get(['id', 'name', 'type_base', 'type', 'dillution', 'replicates', 'article_code'])
+            ->get(['id', 'original_id', 'name', 'type_base', 'type', 'dillution', 'replicates', 'confirmation'])
             ->map(fn (Assay $assay): array => [
                 'id' => $assay->id,
+                'original_id' => $assay->original_id,
                 'name' => $assay->name,
                 'assayType' => $assay->assayType?->name ?? '-',
                 'typeLabel' => $typeLabels[$assay->type] ?? $assay->type,
                 'dilution' => $assay->dillution ? 'Ja' : 'Nee',
                 'replicates' => $assay->replicates ? 'Ja' : 'Nee',
-                'articleCode' => $assay->article_code ?: '-',
+                'confirmation' => (int) $assay->confirmation === 1 ? 'Ja' : 'Nee',
             ])
             ->values();
 

@@ -8,7 +8,10 @@ use App\Models\AssayField;
 use App\Models\AssayType;
 use App\Models\Matrix;
 use App\Models\Media;
+use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Auth\Middleware\Authorize;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -198,5 +201,65 @@ class AssayAdministrationTest extends TestCase
         $this->assertSame('{"method":"USP"}', $revision->custom_fields);
         $this->assertSame([$matrix->id], $revision->matrices->modelKeys());
         $this->assertSame([$assay->id, $revision->id], $revision->revisions->modelKeys());
+    }
+
+    public function test_index_displays_original_id_and_confirmation_status(): void
+    {
+        $type = AssayType::create([
+            'name' => 'Administration',
+            'description' => '',
+            'added_by' => 42,
+            'added_date' => '1473249600',
+        ]);
+        $confirmedAssay = $this->createActiveAssayRevision($type, 'Confirmed assay', 1);
+        $unconfirmedAssay = $this->createActiveAssayRevision($type, 'Unconfirmed assay', 0);
+
+        $response = $this->withoutMiddleware([
+            Authenticate::class,
+            Authorize::class,
+        ])->get(route('assays.index'));
+
+        $response->assertViewIs('assays.index')
+            ->assertViewHas('assays', fn (Collection $assays): bool => $assays->mapWithKeys(
+                fn (array $assay): array => [
+                    $assay['name'] => [$assay['original_id'], $assay['confirmation']],
+                ],
+            )->all() === [
+                'Confirmed assay' => [$confirmedAssay->original_id, 'Ja'],
+                'Unconfirmed assay' => [$unconfirmedAssay->original_id, 'Nee'],
+            ] && $assays->every(
+                fn (array $assay): bool => ! array_key_exists('articleCode', $assay),
+            ));
+    }
+
+    private function createActiveAssayRevision(AssayType $type, string $name, int $confirmation): Assay
+    {
+        $assay = Assay::create([
+            'original_id' => 0,
+            'name' => $name,
+            'type_base' => $type->id,
+            'media_id' => '[]',
+            'dillution' => 0,
+            'replicates' => 0,
+            'confirmation' => $confirmation,
+            'confirmation_script' => '{}',
+            'type' => 1,
+            'meta_assays' => '',
+            'max_count' => 300,
+            'min_count' => 0,
+            'script' => '$result = $count;',
+            'custom_fields' => '{}',
+            'duration' => '48',
+            'start_from' => 'r',
+            'active' => 0,
+            'article_code' => '',
+        ]);
+        $assay->update(['original_id' => $assay->id]);
+
+        $revision = $assay->replicate();
+        $revision->active = 1;
+        $revision->save();
+
+        return $revision;
     }
 }

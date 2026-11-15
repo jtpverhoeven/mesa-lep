@@ -55,7 +55,8 @@ class ManualLabelPrintingController extends Controller
                 return $response ?: response()->json(['message' => 'Deze printopdracht wordt al verwerkt.'], 409);
             }
 
-            $plan = $builder->handle($request->validated(), $request->user()->name);
+            $user = $request->user();
+            $plan = $builder->handle($request->validated(), $user->name, $user->defaultPrinter?->id);
             $limit = max(0, (int) $cvars->valueOrDefault('MAX_LABEL_PRINT', '250'));
 
             if ($plan['total_labels'] > $limit) {

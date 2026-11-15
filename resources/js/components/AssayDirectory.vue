@@ -33,7 +33,7 @@ function assayEditUrl(assay) {
                 v-model:filters="filters"
                 :value="props.assays"
                 data-key="id"
-                :global-filter-fields="['id', 'name', 'assayType', 'typeLabel', 'dilution', 'replicates', 'articleCode']"
+                :global-filter-fields="['id', 'original_id', 'name', 'assayType', 'typeLabel', 'dilution', 'replicates', 'confirmation']"
                 sort-field="name"
                 :sort-order="1"
                 paginator
@@ -43,6 +43,7 @@ function assayEditUrl(assay) {
                 class="assay-data-table"
             >
                 <Column field="id" header="ID" sortable />
+                <Column field="original_id" header="Original ID" sortable />
                 <Column field="name" header="Analyse" sortable>
                     <template #body="{ data }"><strong>{{ data.name }}</strong></template>
                 </Column>
@@ -50,7 +51,7 @@ function assayEditUrl(assay) {
                 <Column field="typeLabel" header="Soort" sortable />
                 <Column field="dilution" header="Verdunning" sortable />
                 <Column field="replicates" header="Replica's" sortable />
-                <Column field="articleCode" header="Artikelcode" sortable />
+                <Column field="confirmation" header="Bevestigingen" sortable />
                 <Column header="Acties">
                     <template #body="{ data }"><a class="text-link" :href="assayEditUrl(data)">Bewerken</a></template>
                 </Column>

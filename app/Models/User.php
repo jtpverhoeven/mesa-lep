@@ -7,12 +7,13 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'enabled', 'alias'])]
+#[Fillable(['name', 'email', 'password', 'enabled', 'alias', 'printer'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -30,7 +31,13 @@ class User extends Authenticatable
             'enabled' => 'boolean',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'printer' => 'integer',
         ];
+    }
+
+    public function defaultPrinter(): BelongsTo
+    {
+        return $this->belongsTo(Printer::class, 'printer');
     }
 
     public function profile(): HasOne

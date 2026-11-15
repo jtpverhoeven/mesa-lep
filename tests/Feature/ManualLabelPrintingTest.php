@@ -308,31 +308,48 @@ class ManualLabelPrintingTest extends TestCase
     }
 
     #[DataProvider('printerOverrides')]
-    public function test_scan_combines_multiple_profiles_sample_copies_and_extra_labels_on_default_or_override_printers(bool $override): void
+    public function test_manual_scans_prefer_the_selected_printer_then_user_default_then_profile_destinations(bool $userDefault, bool $manualOverride): void
     {
         [$sample, $sampleDesign, $analysisDesign, $printer] = $this->printingFixtures();
+        $userPrinter = Printer::factory()->create();
         $otherPrinter = Printer::factory()->create();
         $extra = LabelDesign::factory()->create(['zpl' => 'EXTRA:{sample_barcode}', 'default_printer' => $otherPrinter->id]);
         $first = PrintProfile::factory()->create(['profile' => "10 SAMPLE PRINT $sampleDesign->id PRINTER $printer->id COPIES 2"]);
         $second = PrintProfile::factory()->create(['profile' => "10 SAMPLE PRINT $extra->id PRINTER $otherPrinter->id COPIES 1"]);
-        $this->actingAs($this->operator());
+        $operator = $this->operator();
+
+        if ($userDefault) {
+            $operator->update(['printer' => $userPrinter->id]);
+        }
+
+        $this->actingAs($operator);
         Queue::fake();
 
         $this->postJson(route('printing.store'), $this->payload($sample, [
             'print_sample_amount' => 2, 'also_print' => true, 'also_print_amount' => 3,
             'also_print_selection' => $extra->id, 'profile_ids' => [$first->id, $second->id],
-            'printer' => $override ? $printer->id : 0,
+            'printer' => $manualOverride ? $printer->id : 0,
         ]))->assertAccepted()->assertJsonPath('total_labels', 8)->assertJsonPath('sample_count', 1);
 
-        Queue::assertPushed(SendLabelPrinterSpoolJob::class, $override ? 1 : 2);
+        $expectedPrinterIds = $manualOverride ? [$printer->id] : ($userDefault ? [$userPrinter->id] : [$printer->id, $otherPrinter->id]);
+        sort($expectedPrinterIds);
+        Queue::assertPushed(SendLabelPrinterSpoolJob::class, count($expectedPrinterIds));
         $spools = Queue::pushed(SendLabelPrinterSpoolJob::class)->keyBy('printerId');
-        $this->assertSame(4, substr_count($spools[$printer->id]->zpl, 'S260001|'));
-        $this->assertSame(4, substr_count($spools[$override ? $printer->id : $otherPrinter->id]->zpl, 'EXTRA:'));
+        $actualPrinterIds = $spools->keys()->map(fn (int|string $id): int => (int) $id)->sort()->values()->all();
+        $zpl = $spools->pluck('zpl')->implode('');
+        $this->assertSame($expectedPrinterIds, $actualPrinterIds);
+        $this->assertSame(4, substr_count($zpl, 'S260001|'));
+        $this->assertSame(4, substr_count($zpl, 'EXTRA:'));
     }
 
     public static function printerOverrides(): array
     {
-        return [[false], [true]];
+        return [
+            'configured destinations' => [false, false],
+            'user default' => [true, false],
+            'manual selection without user default' => [false, true],
+            'manual selection before user default' => [true, true],
+        ];
     }
 
     #[DataProvider('duplicateBarcodes')]

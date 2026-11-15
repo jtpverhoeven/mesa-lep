@@ -10,6 +10,7 @@ use App\Actions\Profiles\UpdateAccountProfile;
 use App\Http\Requests\UpdateAccountAliasRequest;
 use App\Http\Requests\UpdateAccountProfileRequest;
 use App\Http\Requests\UploadAccountImageRequest;
+use App\Models\Printer;
 use App\Support\AccountImages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class AccountSettingsController extends Controller
 {
     public function edit(Request $request): View
     {
-        $user = $request->user()->load('profile');
+        $user = $request->user()->load(['profile', 'defaultPrinter']);
         [$firstName, $lastName] = array_pad(explode(' ', trim($user->name), 2), 2, '');
 
         return view('account.settings', [
@@ -29,10 +30,13 @@ class AccountSettingsController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'alias' => $user->alias,
+                'printer' => $user->defaultPrinter?->id,
                 'profile' => $user->profile?->only(['title', 'first_name', 'last_name', 'gender', 'job_title', 'phone_number'])
                     ?? ['first_name' => $firstName, 'last_name' => $lastName],
                 'images' => collect(['avatar', 'nl', 'en'])->mapWithKeys(fn (string $kind): array => [$kind => AccountImages::url($user, $kind)])->all(),
             ],
+            'printers' => Printer::query()->orderBy('name')->orderBy('id')->get(['id', 'name'])
+                ->map(fn (Printer $printer): array => ['id' => $printer->id, 'name' => $printer->name])->all(),
         ]);
     }
 

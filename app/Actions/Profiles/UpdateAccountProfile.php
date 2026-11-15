@@ -8,11 +8,17 @@ use Illuminate\Support\Facades\DB;
 
 class UpdateAccountProfile
 {
-    /** @param array{title?: ?string, first_name: string, last_name: string, gender?: ?string, job_title?: ?string, phone_number?: ?string} $data */
+    /** @param array{title?: ?string, first_name: string, last_name: string, gender?: ?string, job_title?: ?string, phone_number?: ?string, printer?: int|string|null} $data */
     public function handle(User $user, array $data): void
     {
         DB::transaction(function () use ($user, $data): void {
-            $user->update(['name' => trim($data['first_name'].' '.$data['last_name'])]);
+            $userAttributes = ['name' => trim($data['first_name'].' '.$data['last_name'])];
+
+            if (array_key_exists('printer', $data)) {
+                $userAttributes['printer'] = $data['printer'] === null ? null : (int) $data['printer'];
+            }
+
+            $user->update($userAttributes);
             $this->ensureProfile($user)->fill($data)->save();
         });
     }

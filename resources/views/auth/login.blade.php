@@ -9,5 +9,8 @@
         'initialLogin' => old('login', ''),
         'remember' => (bool) old('remember'),
         'status' => session('status', ''),
+        'printers' => $printers,
+        'initialPrinter' => (string) old('printer', ''),
+        'printerError' => $errors->first('printer'),
     ]) }}"></login-form>
 @endsection

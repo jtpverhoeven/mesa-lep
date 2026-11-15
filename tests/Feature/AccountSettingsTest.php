@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Printer;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Filesystem\FilesystemAdapter;
@@ -87,12 +88,15 @@ class AccountSettingsTest extends TestCase
 
     public function test_settings_are_available_without_administrative_permissions_and_escape_names(): void
     {
-        $user = User::factory()->create(['enabled' => true, 'name' => '<script>alert("name")</script>']);
+        $printer = Printer::factory()->create();
+        $user = User::factory()->create(['enabled' => true, 'name' => '<script>alert("name")</script>', 'printer' => $printer->id]);
 
         $this->actingAs($user)->get(route('account.settings'))
             ->assertOk()->assertSee('Accountinstellingen')->assertDontSee('<aside', false)
             ->assertViewHas('account', fn (array $account): bool => $account['email'] === $user->email
-                && ! isset($account['password']) && $account['images'] === ['avatar' => null, 'nl' => null, 'en' => null])
+                && $account['printer'] === $printer->id && ! isset($account['password'])
+                && $account['images'] === ['avatar' => null, 'nl' => null, 'en' => null])
+            ->assertViewHas('printers', [['id' => $printer->id, 'name' => $printer->name]])
             ->assertDontSee($user->name, false);
 
         $this->assertDatabaseCount('profiles', 0);
@@ -102,17 +106,32 @@ class AccountSettingsTest extends TestCase
     {
         $user = $this->userWithProfile();
         $other = $this->userWithProfile();
+        $printer = Printer::factory()->create();
         $password = $user->password;
 
         $this->actingAs($user)->putJson(route('account.profile.update'), [
-            ...$this->profileData(), 'user_id' => $other->id, 'enabled' => false,
+            ...$this->profileData(), 'printer' => $printer->id, 'user_id' => $other->id, 'enabled' => false,
             'roles' => ['administrator'], 'password' => 'injected', 'avatar_path' => 'other.png',
         ])->assertOk()->assertJsonPath('name', 'Ada Lovelace');
 
-        $this->assertDatabaseHas('users', ['id' => $user->id, 'name' => 'Ada Lovelace', 'email' => $user->email, 'password' => $password, 'enabled' => true]);
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id, 'name' => 'Ada Lovelace', 'email' => $user->email, 'password' => $password,
+            'enabled' => true, 'printer' => $printer->id,
+        ]);
         $this->assertDatabaseHas('profiles', [...$this->profileData(), 'user_id' => $user->id, 'locale' => 'en', 'avatar_path' => null]);
         $this->assertSame($other->name, $other->fresh()->name);
         $this->assertFalse($user->fresh()->hasRole('administrator'));
+    }
+
+    public function test_profile_settings_can_clear_the_default_printer(): void
+    {
+        $printer = Printer::factory()->create();
+        $user = $this->userWithProfile();
+        $user->update(['printer' => $printer->id]);
+
+        $this->actingAs($user)->putJson(route('account.profile.update'), [...$this->profileData(), 'printer' => null])->assertOk();
+
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'printer' => null]);
     }
 
     public function test_a_missing_profile_is_created_when_personal_details_are_saved(): void
@@ -135,6 +154,7 @@ class AccountSettingsTest extends TestCase
         $this->assertSame($user->name, $user->fresh()->name);
         $this->assertSame($user->email, $user->fresh()->email);
         $this->assertSame('Original', $user->profile->fresh()->first_name);
+        $this->assertNull($user->fresh()->printer);
     }
 
     public static function invalidProfileFields(): array
@@ -149,6 +169,7 @@ class AccountSettingsTest extends TestCase
             'gender length' => ['gender', str_repeat('g', 21)],
             'job length' => ['job_title', str_repeat('j', 151)],
             'phone length' => ['phone_number', str_repeat('1', 51)],
+            'printer must exist' => ['printer', 999999],
         ];
     }
 
@@ -204,6 +225,59 @@ class AccountSettingsTest extends TestCase
         $this->post('/login', ['login' => strtoupper($value), 'password' => 'password'])->assertRedirect('/dashboard');
 
         $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_login_page_lists_available_printers(): void
+    {
+        $printer = Printer::factory()->create();
+
+        $this->get('/login')->assertViewIs('auth.login')
+            ->assertViewHas('printers', [['id' => $printer->id, 'name' => $printer->name]]);
+    }
+
+    public function test_login_saves_a_selected_printer_as_the_user_default(): void
+    {
+        $printer = Printer::factory()->create();
+        $user = User::factory()->create(['enabled' => true]);
+
+        $this->post('/login', ['login' => $user->email, 'password' => 'password', 'printer' => $printer->id])
+            ->assertRedirect('/dashboard');
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'printer' => $printer->id]);
+    }
+
+    public function test_login_keeps_the_saved_printer_when_the_preference_is_left_unchanged(): void
+    {
+        $printer = Printer::factory()->create();
+        $user = User::factory()->create(['enabled' => true, 'printer' => $printer->id]);
+
+        $this->post('/login', ['login' => $user->email, 'password' => 'password', 'printer' => ''])
+            ->assertRedirect('/dashboard');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'printer' => $printer->id]);
+    }
+
+    public function test_login_clears_the_saved_printer_when_no_personal_printer_is_selected(): void
+    {
+        $printer = Printer::factory()->create();
+        $user = User::factory()->create(['enabled' => true, 'printer' => $printer->id]);
+
+        $this->post('/login', ['login' => $user->email, 'password' => 'password', 'printer' => 0])
+            ->assertRedirect('/dashboard');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'printer' => null]);
+    }
+
+    public function test_login_rejects_a_printer_that_does_not_exist_before_authenticating(): void
+    {
+        $user = User::factory()->create(['enabled' => true]);
+
+        $this->postJson('/login', ['login' => $user->email, 'password' => 'password', 'printer' => 999999])
+            ->assertUnprocessable()->assertJsonValidationErrors('printer');
+
+        $this->assertGuest();
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'printer' => null]);
     }
 
     public function test_disabled_accounts_cannot_log_in_using_an_alias(): void

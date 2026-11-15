@@ -62,7 +62,7 @@ class PrintProfileController extends Controller
 
         try {
             $plan = $buildPrintProfilePlan->handle(new PrintProfile(['profile' => $request->validated('profile')]), $sample,
-                $request->filled('printer_override') ? $request->integer('printer_override') : null,
+                $this->resolvePrinterOverride($request),
                 dateOffset: $request->integer('date_offset'), currentUser: $request->user()->name);
         } catch (InvalidArgumentException $exception) {
             throw ValidationException::withMessages(['profile' => $exception->getMessage()]);
@@ -77,7 +77,7 @@ class PrintProfileController extends Controller
 
         try {
             $queuePrintProfile->handle($printProfile, $sample,
-                $request->filled('printer_override') ? $request->integer('printer_override') : null,
+                $this->resolvePrinterOverride($request),
                 $request->integer('date_offset'), $request->user()->name);
         } catch (InvalidArgumentException $exception) {
             throw ValidationException::withMessages(['profile' => $exception->getMessage()]);
@@ -95,5 +95,12 @@ class PrintProfileController extends Controller
                 'labelDesigns' => LabelDesign::query()->orderBy('name')->orderBy('id')->get(['id', 'name'])->toArray(),
             ],
         ]);
+    }
+
+    private function resolvePrinterOverride(TestPrintProfileRequest $request): ?int
+    {
+        return $request->filled('printer_override')
+            ? $request->integer('printer_override')
+            : $request->user()->defaultPrinter?->id;
     }
 }

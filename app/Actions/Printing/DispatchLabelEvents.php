@@ -19,7 +19,9 @@ class DispatchLabelEvents
     public function handle(iterable $records, ?int $printerOverride = null): array
     {
         $printedAt = now();
-        $currentUser = Auth::user()?->name ?? '';
+        $user = Auth::user();
+        $printerOverride = $printerOverride ?: $user?->defaultPrinter?->id;
+        $currentUser = $user?->name ?? '';
         $plan = [];
         $ruleHits = [];
 

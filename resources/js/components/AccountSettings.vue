@@ -9,6 +9,7 @@ import AvatarCropper from './AvatarCropper.vue';
 
 const props = defineProps({
     account: { type: Object, required: true },
+    printers: { type: Array, required: true },
     profileUrl: String, aliasUrl: String, passwordUrl: String,
     imageUrls: { type: Object, required: true }, csrf: String,
 });
@@ -17,6 +18,7 @@ const profile = reactive({
     ...props.account.profile,
 });
 const displayName = ref(props.account.name);
+const printer = ref(props.account.printer ?? null);
 const alias = ref(props.account.alias ?? '');
 const images = reactive({ ...props.account.images });
 const passwords = reactive({ current_password: '', password: '', password_confirmation: '' });
@@ -42,6 +44,10 @@ const genders = computed(() => {
     if (profile.gender && !options.some(option => option.value === profile.gender)) options.push({ label: profile.gender, value: profile.gender });
     return options;
 });
+const printerOptions = computed(() => [
+    { label: 'Geen persoonlijke standaardprinter', value: null },
+    ...props.printers.map(printer => ({ label: printer.name, value: printer.id })),
+]);
 
 function broadcast(detail) {
     window.dispatchEvent(new CustomEvent('mesa:account-updated', { detail }));
@@ -81,7 +87,7 @@ async function submit(scope, url, method, data, saved) {
 }
 
 function saveProfile() {
-    return submit('profile', props.profileUrl, 'PUT', profile, result => {
+    return submit('profile', props.profileUrl, 'PUT', { ...profile, printer: printer.value }, result => {
         displayName.value = result.name;
         broadcast({ name: result.name });
     });
@@ -149,6 +155,12 @@ function removeImage(kind) {
                         <div class="field">
                             <label for="profile-gender">Geslacht</label>
                             <Select input-id="profile-gender" v-model="profile.gender" :options="genders" option-label="label" option-value="value" :invalid="Boolean(states.profile.errors.gender)" />
+                        </div>
+                        <div class="field sm:col-span-2">
+                            <label for="profile-printer">Standaardprinter</label>
+                            <Select input-id="profile-printer" v-model="printer" :options="printerOptions" option-label="label" option-value="value" :invalid="Boolean(states.profile.errors.printer)" :aria-describedby="states.profile.errors.printer ? 'profile-printer-error profile-printer-help' : 'profile-printer-help'" />
+                            <small id="profile-printer-help" class="text-muted">Deze printer overschrijft printerinstellingen voor automatische labels en printprofielen. Een printer die u bij handmatig printen kiest blijft leidend.</small>
+                            <small v-if="states.profile.errors.printer" id="profile-printer-error" class="text-danger">{{ states.profile.errors.printer[0] }}</small>
                         </div>
                         <div class="field sm:col-span-2">
                             <label for="profile-email">E-mailadres</label>

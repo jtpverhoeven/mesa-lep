@@ -1,31 +1,10 @@
 # Roadmap
 
-- Other calculations
-    Need to check what we need to build.
-        xlegionellaPassthrough.class.php
-        xmaz7218.class.php
-        xmaz7218grens.class.php
-        xmazLegionella2019.class.php
-        xmazKarkasKiem.class.php
-        xmazKarkasEntero.class.php
-        xmazLucht.class.php
-        xrodac.class.php
-        xmazVrij.class.php                
-        xph.class.php
-        
-        xmazSchelp.class.php
-        
-        xmpn.class.php
-        
-
-        ?mazLegionella.class.php               
-        
-
-- Audit trail
+- Default printer
 
 - Status indicators
 
-- Default printer
+- Audit trail
 
 Data mining:
 
@@ -51,6 +30,7 @@ Data mining:
 # Ideas - Improvements after code base done
 * Should input in assays be allowed  when sample not yet innoculated?
 * ZPL render 
+* Show print queue somewhere with a live view? 
 * Peek into projects (samples) for project overviews
 * Printer connection test (if this is posible on zebra)
 * Create a default test label 
@@ -60,13 +40,14 @@ Data mining:
 * Shoudl show some feedback when authorizing a project that work is underway, and do a little SFX probbably.
 * Aanmelden als shoudl conform to column width and only be half-size when tht selected.
 
+
 # Phoenix verification script
 
 * Use project,sample,result,confirmation data to simulate new entry from authorized projects, confirm with storedResult if the two systems are on-par. report failures
 
 # Mesa-Retro
 
-* 
+* Terminal like program for expert (no mouse and more developer ways) to interact with the back-end.
 
 # Result-Insight
 

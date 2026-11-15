@@ -27,7 +27,7 @@ class BuildManualLabelPrintPlan
      * @param  array<string, mixed>  $options
      * @return array{labels: list<array<string, mixed>>, total_labels: int, sample_count: int}
      */
-    public function handle(array $options, string $currentUser): array
+    public function handle(array $options, string $currentUser, ?int $userPrinterOverride = null): array
     {
         if (($options['mode'] ?? null) === 'legionella') {
             return $this->legionella($options, $currentUser);
@@ -38,7 +38,7 @@ class BuildManualLabelPrintPlan
         $designs = LabelDesign::query()->orderBy('id')->get()->keyBy('id');
         $printers = Printer::query()->get()->keyBy('id');
         $profiles = PrintProfile::query()->whereKey($options['profile_ids'] ?? [])->orderBy('id')->get();
-        $override = ($options['printer'] ?? 0) ?: null;
+        $override = ($options['printer'] ?? 0) ?: $userPrinterOverride;
         $sampleDesign = $this->design($designs, $options['sample_label_select'] ?? 'default', 'default_sample');
         $analysisDesign = $this->design($designs, $options['assay_label_select'] ?? 'default', 'default_analysis');
         $labels = [];
