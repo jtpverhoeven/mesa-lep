@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -19,6 +20,23 @@ class SampleBuffer extends Model
     protected $table = 'samplebuffers';
 
     public $timestamps = false;
+
+    /** Rows waiting in the portal; accepted (authorized) THT rows live on the THT list instead. */
+    public function scopeParked(Builder $query): void
+    {
+        $query->where('authorized', 0);
+    }
+
+    public function scopeAcceptedTht(Builder $query): void
+    {
+        $query->where('authorized', 1)->where('tht', 1);
+    }
+
+    /** Accepted THT studies whose THT date is before the given day (legacy: due by tomorrow). */
+    public function scopeThtDueBefore(Builder $query, string $date): void
+    {
+        $query->acceptedTht()->where('tht_date', '<', $date);
+    }
 
     public function clientRecord(): BelongsTo
     {

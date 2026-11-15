@@ -255,6 +255,7 @@ Route::middleware(['auth', 'can:projects.view'])->prefix('laboratory/projects')-
 Route::middleware(['auth', 'can:samples.list'])->prefix('laboratory/samples/register')->group(function () {
     Route::get('/', [SampleRegisterController::class, 'index'])->name('samples.register');
     Route::get('/data', [SampleRegisterController::class, 'data'])->name('samples.register.data');
+    Route::get('/not-inoculated', [SampleRegisterController::class, 'notInoculated'])->name('samples.register.not-inoculated');
     Route::patch('/settings', [SampleRegisterController::class, 'settings'])->name('samples.register.settings');
     Route::post('/inoculation', [SampleRegisterController::class, 'inoculate'])->name('samples.register.inoculation');
     Route::patch('/{sample}/conditions', [SampleRegisterController::class, 'updateConditions'])->name('samples.register.conditions');

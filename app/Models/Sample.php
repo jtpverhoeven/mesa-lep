@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Actions\Samples\EstimateRegisteredSampleEndpoints;
 use App\Enums\NoteKind;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -31,6 +32,19 @@ class Sample extends Model
         $this->refresh();
 
         return $predictedEnd;
+    }
+
+    /** Legacy isEmpty samples that still have no analyses and a client to load options for. */
+    public function scopeAwaitingAnalysis(Builder $query): void
+    {
+        $query->where('isEmpty', 1)->whereDoesntHave('analyses')->whereHas('client');
+    }
+
+    /** Samples registered before the cutoff that were never put in the incubator (legacy: empty, null or 0). */
+    public function scopeNotInoculatedSince(Builder $query, int $registeredBefore): void
+    {
+        $query->where('date_registered', '<', (string) $registeredBefore)
+            ->where(fn (Builder $inoculation) => $inoculation->whereNull('sample_innoculated')->orWhereIn('sample_innoculated', ['', '0']));
     }
 
     public function client(): BelongsTo

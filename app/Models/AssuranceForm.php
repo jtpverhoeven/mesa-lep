@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 #[Fillable([
@@ -19,6 +20,12 @@ class AssuranceForm extends Model
         return [
             'is_complete' => 'boolean',
         ];
+    }
+
+    /** Incomplete forms whose cooldown (BORG_TIME_BEFORE_CHECK) has passed; the date column is a unix timestamp string. */
+    public function scopeAwaitingData(Builder $query, int $dateBefore): void
+    {
+        $query->where('is_complete', false)->whereRaw('CAST("date" AS BIGINT) < ?', [$dateBefore]);
     }
 
     /** @return array<string|int, mixed> */

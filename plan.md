@@ -1,7 +1,5 @@
 # Roadmap
 
-- Default printer
-
 - Status indicators
 
 - Audit trail

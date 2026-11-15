@@ -27,3 +27,7 @@ Broadcast::channel('keyrings.{type}.{typeId}', function (User $user, string $typ
 Broadcast::channel('keyrings.admin', function (User $user): bool {
     return $user->enabled && $user->can('administration.access') && $user->can('keyrings.manage');
 });
+
+Broadcast::channel('sidebar-counts', function (User $user): bool {
+    return $user->enabled;
+});

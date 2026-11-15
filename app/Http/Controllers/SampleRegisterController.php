@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Samples\QueryNotInoculatedSamples;
 use App\Actions\Samples\RegisterSampleInoculation;
 use App\Actions\Samples\UpdateSampleInoculationConditions;
 use App\Models\Sample;
@@ -17,6 +18,8 @@ use Illuminate\View\View;
 class SampleRegisterController extends Controller
 {
     private const STORAGE_CVAR = 'MESA_CURRENT_BIN';
+
+    private const NOT_INOCULATED_LIMIT = 100;
 
     private const DILUTION_CVAR = 'MESA_CURRENT_DILUTION';
 
@@ -61,6 +64,18 @@ class SampleRegisterController extends Controller
             'next_cursor' => $hasMore && $samples->isNotEmpty() ? (int) $samples->last()->id : null,
             'has_more' => $hasMore,
             'settings' => $this->settingsForUser((string) $request->user()->getAuthIdentifier()),
+        ]]);
+    }
+
+    public function notInoculated(QueryNotInoculatedSamples $notInoculated): JsonResponse
+    {
+        $query = $notInoculated->handle();
+        $total = (clone $query)->count();
+        $samples = $query->with(['client', 'project', 'analyses.assayRecord'])->orderBy('id')->limit(self::NOT_INOCULATED_LIMIT)->get();
+
+        return response()->json(['data' => [
+            'samples' => $samples->map(fn (Sample $sample): array => $this->sampleData($sample))->all(),
+            'total' => $total,
         ]]);
     }
 

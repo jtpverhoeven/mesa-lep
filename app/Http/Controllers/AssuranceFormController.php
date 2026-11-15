@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\AssuranceForms\BuildAssuranceFormState;
 use App\Actions\AssuranceForms\GetOrCreateAssuranceForm;
+use App\Actions\AssuranceForms\QueryFormsAwaitingData;
 use App\Actions\AssuranceForms\ResolveAssuranceDay;
 use App\Actions\AssuranceForms\SynchronizeAssuranceForm;
 use App\Actions\AssuranceForms\UpdateAssuranceExplanation;
@@ -11,7 +12,6 @@ use App\Actions\AssuranceForms\UpdateAssuranceFormField;
 use App\Http\Requests\AssuranceForms\UpdateAssuranceExplanationRequest;
 use App\Http\Requests\AssuranceForms\UpdateAssuranceFormFieldRequest;
 use App\Models\AssuranceForm;
-use App\Support\Cvars;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +20,7 @@ use InvalidArgumentException;
 
 class AssuranceFormController extends Controller
 {
-    public function __construct(private Cvars $cvars) {}
+    public function __construct(private QueryFormsAwaitingData $formsAwaitingData) {}
 
     public function index(Request $request, ResolveAssuranceDay $resolveDay): View
     {
@@ -165,16 +165,9 @@ class AssuranceFormController extends Controller
      */
     private function incompleteForms(): array
     {
-        $days = max(0, (int) ($this->cvars->value('BORG_TIME_BEFORE_CHECK') ?? 10));
-        $cutoff = CarbonImmutable::now('Europe/Amsterdam')->subDays($days);
-
-        return AssuranceForm::query()
-            ->where('is_complete', false)
+        return $this->formsAwaitingData->handle()
             ->orderBy('date')
             ->get(['id', 'date'])
-            ->filter(fn (AssuranceForm $form): bool => CarbonImmutable::createFromTimestamp((int) $form->date, 'UTC')
-                ->setTimezone('Europe/Amsterdam')
-                ->lessThan($cutoff))
             ->map(fn (AssuranceForm $form): array => [
                 'id' => (int) $form->id,
                 'form_date' => CarbonImmutable::createFromTimestamp((int) $form->date, 'Europe/Amsterdam')->format('Y-m-d'),

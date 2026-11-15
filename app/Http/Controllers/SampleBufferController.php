@@ -111,12 +111,12 @@ class SampleBufferController extends Controller
     private function forTab(Builder $query, string $tab): void
     {
         if ($tab === 'staged_tht') {
-            $query->where('authorized', 1)->where('tht', 1);
+            $query->acceptedTht();
 
             return;
         }
 
-        $query->where('authorized', 0);
+        $query->parked();
 
         match ($tab) {
             'tht' => $query->where('tht', 1),
@@ -129,11 +129,11 @@ class SampleBufferController extends Controller
     private function counts(): array
     {
         return [
-            'normal' => SampleBuffer::query()->where('authorized', 0)->where('tht', 0)->where(fn (Builder $query) => $query->whereNull('sample_research_type')->orWhereNotIn('sample_research_type', ['2', '3']))->count(),
-            'tht' => SampleBuffer::query()->where('authorized', 0)->where('tht', 1)->count(),
-            'legionella' => SampleBuffer::query()->where('authorized', 0)->where('tht', 0)->where('sample_research_type', '3')->count(),
-            'rodac' => SampleBuffer::query()->where('authorized', 0)->where('tht', 0)->where('sample_research_type', '2')->count(),
-            'staged_tht' => SampleBuffer::query()->where('authorized', 1)->where('tht', 1)->count(),
+            'normal' => SampleBuffer::query()->parked()->where('tht', 0)->where(fn (Builder $query) => $query->whereNull('sample_research_type')->orWhereNotIn('sample_research_type', ['2', '3']))->count(),
+            'tht' => SampleBuffer::query()->parked()->where('tht', 1)->count(),
+            'legionella' => SampleBuffer::query()->parked()->where('tht', 0)->where('sample_research_type', '3')->count(),
+            'rodac' => SampleBuffer::query()->parked()->where('tht', 0)->where('sample_research_type', '2')->count(),
+            'staged_tht' => SampleBuffer::query()->acceptedTht()->count(),
         ];
     }
 

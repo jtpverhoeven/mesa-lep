@@ -31,9 +31,7 @@ class SampleAnalysisAssignmentController extends Controller
         $search = trim((string) ($validated['search'] ?? ''));
 
         $query = Sample::query()
-            ->where('isEmpty', 1)
-            ->whereDoesntHave('analyses')
-            ->whereHas('client')
+            ->awaitingAnalysis()
             ->with([
                 'client:id,name,notes,attachment',
                 'project:id,custom_fields',

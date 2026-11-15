@@ -24,6 +24,16 @@ class GetProjectOverview
         'blocked' => 'Geblokkeerd',
     ];
 
+    /** Column filters per status, shared with the sidebar counts so badges always match the lists. */
+    public const FILTERS = [
+        'received' => ['started' => 0],
+        'running' => ['is_ready' => 0, 'started' => 1, 'auth_status' => 0],
+        'completed' => ['auth_status' => 0, 'is_ready' => 1, 'started' => 1],
+        'authorized' => ['auth_status' => 1, 'rap_stat' => 0, 'started' => 1],
+        'reported' => ['auth_status' => 1, 'rap_stat' => 1, 'started' => 1],
+        'blocked' => ['locked' => 1, 'auth_status' => 0],
+    ];
+
     /**
      * Legacy memberships overlap: received only checks started, and blocking does not replace lifecycle views.
      *
@@ -31,14 +41,14 @@ class GetProjectOverview
      */
     public function handle(string $status, int $page = 1): LengthAwarePaginator
     {
-        [$filters, $sort, $direction] = match ($status) {
-            'received' => [['started' => 0], 'project_date', 'asc'],
-            'running' => [['is_ready' => 0, 'started' => 1, 'auth_status' => 0], 'predicted_end', 'asc'],
-            'completed' => [['auth_status' => 0, 'is_ready' => 1, 'started' => 1], 'became_ready_on', 'asc'],
-            'authorized' => [['auth_status' => 1, 'rap_stat' => 0, 'started' => 1], 'auth_on', 'asc'],
-            'reported' => [['auth_status' => 1, 'rap_stat' => 1, 'started' => 1], 'rap_on', 'desc'],
-            'blocked' => [['locked' => 1, 'auth_status' => 0], 'predicted_end', 'asc'],
-            default => throw new InvalidArgumentException('Unknown project overview status.'),
+        $filters = self::FILTERS[$status] ?? throw new InvalidArgumentException('Unknown project overview status.');
+        [$sort, $direction] = match ($status) {
+            'received' => ['project_date', 'asc'],
+            'running' => ['predicted_end', 'asc'],
+            'completed' => ['became_ready_on', 'asc'],
+            'authorized' => ['auth_on', 'asc'],
+            'reported' => ['rap_on', 'desc'],
+            'blocked' => ['predicted_end', 'asc'],
         };
 
         $projects = Project::query()

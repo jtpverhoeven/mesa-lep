@@ -141,6 +141,9 @@ export const MesaPreset = definePreset(Aura, {
                 dark: { root: { secondary: secondaryButton, ...pastelButtons } },
             },
         },
+        badge: {
+            root: { borderRadius: '999px', padding: '0 5px', fontSize: '10px', minWidth: '16px', height: '16px' },
+        },
         paginator: {
             root: { padding: '8px 12px', gap: '4px', borderRadius: '0' },
             navButton: { width: '30px', height: '30px', borderRadius: 'var(--control-radius)' },
