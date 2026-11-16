@@ -1,7 +1,5 @@
 # Roadmap
 
-- 
-
 - Audit trail
 
 Data mining:
@@ -20,7 +18,6 @@ Data mining:
 - agent reports "I added Quill's core CSS to the stylesheet. Without it the bullet markers didn't render.", perhaps this was just tailwind, and we are bloating the css? 
 
 # Known bugs
-- Should allow deleting individual analyses on sample create screens.
 - Metadata change tracker error. puts from -> to as key->value
 - Check legionella and rodac special cases in the new code for template selection once we get these things up and running
 - Check UX on input of samplelookup, are we focusing properly on first fields

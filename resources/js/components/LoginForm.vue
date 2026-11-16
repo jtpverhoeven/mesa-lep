@@ -19,7 +19,7 @@ onMounted(() => loginInput.value?.focus());
 
 <template>
     <section class="login-panel">
-        <div class="eyebrow">MESA LIMS</div>
+        <div class="eyebrow">mesaLIMS</div>
         <h1>Inloggen</h1>
         <div v-if="status" class="notice success" role="status">{{ status }}</div>
         <form method="POST" :action="action">

@@ -380,3 +380,14 @@ test('sample navigation waits for an in-flight detail save', async () => {
     finish({ ok: true, json: async () => ({ data: { sample: { description: 'Updated sample' }, read_only: false } }) });
     await pending;
 });
+test('removing profile assays excludes them and deselects the profile once empty', () => {
+    const store = useSampleResearchStore();
+    store.addProfile({ id: 1, name: 'Profiel', assays: [{ id: 10, assay: 100 }, { id: 11, assay: 101 }] });
+    const [entry] = store.selected;
+
+    store.removeProfileAssay(entry.key, 10);
+    assert.deepEqual(store.selected[0].excludedAssayProfileIds, [10]);
+
+    store.removeProfileAssay(entry.key, 11);
+    assert.equal(store.selected.length, 0);
+});

@@ -163,6 +163,12 @@ export const useSampleResearchStore = defineStore('sampleResearch', {
             const entry = this.selected.find((item) => item.key === key && item.type === 'assay');
             if (entry) entry.settings = settings;
         },
+        removeProfileAssay(key, assayProfileId) {
+            const entry = this.selected.find((item) => item.key === key && item.type === 'profile');
+            if (!entry) return;
+            entry.excludedAssayProfileIds = [...new Set([...entry.excludedAssayProfileIds, Number(assayProfileId)])];
+            if (!this.effectiveAssays(entry).length) this.remove(key);
+        },
         remove(key) {
             this.selected = this.selected.filter((entry) => entry.key !== key);
         },

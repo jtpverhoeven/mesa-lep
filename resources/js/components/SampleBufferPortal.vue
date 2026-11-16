@@ -241,4 +241,11 @@ onMounted(() => store.load());
 .metadata-cell-editor { display:grid; grid-template-columns:minmax(0,1fr) 32px 32px; gap:6px; align-items:start; }
 .metadata-cell-editor input,.metadata-cell-editor textarea { width:100%; min-height:32px; border:1px solid #9eabb2; border-radius:2px; background:var(--surface); color:var(--ink); padding:6px 8px; font:inherit; resize:vertical; }
 @media (max-width:760px) { .buffer-sort { margin-left:0; flex-wrap:wrap; }.buffer-toolbar > label:first-child { flex:1 1 100%; }.buffer-toolbar > label:first-child select { flex:1; }.buffer-table-wrap { max-height:calc(100vh - 340px); }.buffer-detail-grid { grid-template-columns:1fr; gap:8px; } }
+@media (min-width:701px) {
+    .sample-buffer-workspace { display:flex; flex-direction:column; height:100%; min-height:0; overflow:hidden; }
+    .buffer-tabs { flex:0 0 auto; }
+    .buffer-panel { display:flex; flex:1 1 auto; flex-direction:column; min-height:0; }
+    .buffer-toolbar,.buffer-footer { flex:0 0 auto; }
+    .buffer-table-wrap { flex:1 1 auto; min-height:0; max-height:none; }
+}
 </style>
