@@ -8,6 +8,8 @@ import ConfirmationTableDirectory from './components/ConfirmationTableDirectory.
 import ConfirmationTableEditor from './components/ConfirmationTableEditor.vue';
 import AssayMetaSelector from './components/AssayMetaSelector.vue';
 import AssuranceFormViewer from './components/AssuranceFormViewer.vue';
+import AuditTrail from './components/AuditTrail.vue';
+import AuditTrailPrint from './components/AuditTrailPrint.vue';
 import OpenVue from 'openvue/config';
 import ConfirmationService from 'openvue/confirmationservice';
 import ToastService from 'openvue/toastservice';
@@ -76,6 +78,8 @@ app.component('billing-overview', BillingOverview);
 app.component('assay-directory', AssayDirectory);
 app.component('assay-confirmation-editor', AssayConfirmationEditor);
 app.component('assay-meta-selector', AssayMetaSelector);
+app.component('audit-trail', AuditTrail);
+app.component('audit-trail-print', AuditTrailPrint);
 app.component('confirmation-table-directory', ConfirmationTableDirectory);
 app.component('confirmation-table-editor', ConfirmationTableEditor);
 app.component('assurance-form-viewer', AssuranceFormViewer);

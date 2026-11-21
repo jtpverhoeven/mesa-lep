@@ -6,6 +6,7 @@ use App\Http\Controllers\AssayController;
 use App\Http\Controllers\AssayFieldController;
 use App\Http\Controllers\AssayTypeController;
 use App\Http\Controllers\AssuranceFormController;
+use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BulkSampleController;
 use App\Http\Controllers\ChangeRevisionController;
@@ -307,6 +308,12 @@ Route::middleware(['auth', 'can:assurance-form.view'])->prefix('laboratory/assur
     Route::patch('/{assuranceForm}/fields', [AssuranceFormController::class, 'updateField'])->name('assurance-forms.fields.update');
     Route::patch('/{assuranceForm}/explanation', [AssuranceFormController::class, 'updateExplanation'])->name('assurance-forms.explanation.update');
     Route::get('/{assuranceForm}/print', [AssuranceFormController::class, 'print'])->name('assurance-forms.print');
+});
+
+Route::middleware(['auth', 'can:assurance-form.view'])->prefix('laboratory/audit-trail')->group(function () {
+    Route::get('/data', [AuditTrailController::class, 'show'])->name('audit-trail.data');
+    Route::get('/{barcode}/print', [AuditTrailController::class, 'print'])->where('barcode', '[^/]{1,32}')->name('audit-trail.print');
+    Route::get('/{barcode?}', [AuditTrailController::class, 'index'])->where('barcode', '[^/]{1,32}')->name('audit-trail');
 });
 
 Route::middleware(['auth', 'can:samples.view'])->prefix('laboratory/sample-analyses')->group(function () {

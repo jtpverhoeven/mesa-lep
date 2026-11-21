@@ -1,7 +1,5 @@
 # Roadmap
 
-- Audit trail
-
 Data mining:
 
     - Resultaten uitvoeren
@@ -9,19 +7,18 @@ Data mining:
     - Rapportages
 
     - Deauthorisatie
-    
-    - User printers
+        
 
 
 # To verify
 - Check if supporting media is always on in legacy? (i think they might be default: on)   
-- agent reports "I added Quill's core CSS to the stylesheet. Without it the bullet markers didn't render.", perhaps this was just tailwind, and we are bloating the css? 
 
 # Known bugs
 - Metadata change tracker error. puts from -> to as key->value
 - Check legionella and rodac special cases in the new code for template selection once we get these things up and running
 - Check UX on input of samplelookup, are we focusing properly on first fields
 - Aantal monsters does not work in normal flow
+-
 
 # Ideas - Improvements after code base done
 * Should input in assays be allowed  when sample not yet innoculated?

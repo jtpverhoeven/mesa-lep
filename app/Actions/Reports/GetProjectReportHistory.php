@@ -22,9 +22,7 @@ class GetProjectReportHistory
                     'transaction' => $last->transaction,
                     'send_url' => $last->transaction === null ? null : route('reports.send.show', $last->transaction),
                     'date' => is_numeric($last->date) ? Carbon::createFromTimestamp((int) $last->date, 'Europe/Amsterdam')->format('d-m-Y') : $last->date,
-                    'type' => match ((int) $last->type) {
-                        1 => 'Rapport', 2 => 'Voorlopig rapport', 3 => 'Rapport per monster', default => 'Onbekend',
-                    },
+                    'type' => $last->typeLabel(),
                     'revision' => $last->revision,
                     'content' => $exports->map(fn (Export $export): array => [
                         'id' => $export->id,

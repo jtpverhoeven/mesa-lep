@@ -14,24 +14,7 @@ class GetChangeRevisions
      */
     public function handle(string $scope, int $id, array $types = [], int $page = 1, ?int $sampleId = null): array
     {
-        $query = ChangeRevision::query();
-        if ($scope === 'project') {
-            $query->where(function (Builder $query) use ($id): void {
-                $query->where('project', $id)->orWhere(function (Builder $query) use ($id): void {
-                    $query->where(function (Builder $query): void {
-                        $query->whereNull('project')->orWhere('project', 0);
-                    })->whereIn('sample', Sample::query()->where('project', $id)->select('id'));
-                });
-            });
-        } else {
-            $column = match ($scope) {
-                'sample' => 'sample', 'analysis' => 'said', 'assurance-form' => 'assurance_form',
-            };
-            $query->where($column, $id);
-            if ($scope === 'analysis') {
-                $query->where('sample', $sampleId);
-            }
-        }
+        $query = $this->query($scope, $id, $sampleId);
 
         $availableTypes = (clone $query)->distinct()->pluck('type')->map(fn (string $type): array => [
             'value' => $type, 'label' => ChangeType::label($type),
@@ -50,5 +33,28 @@ class GetChangeRevisions
             'meta' => ['current_page' => $revisions->currentPage(), 'last_page' => $revisions->lastPage(), 'total' => $revisions->total()],
             'types' => $availableTypes,
         ];
+    }
+
+    /** The revisions of one project, sample, analysis or assurance form; a project includes its samples' own revisions. */
+    public function query(string $scope, int $id, ?int $sampleId = null): Builder
+    {
+        $query = ChangeRevision::query();
+
+        if ($scope === 'project') {
+            return $query->where(function (Builder $query) use ($id): void {
+                $query->where('project', $id)->orWhere(function (Builder $query) use ($id): void {
+                    $query->where(function (Builder $query): void {
+                        $query->whereNull('project')->orWhere('project', 0);
+                    })->whereIn('sample', Sample::query()->where('project', $id)->select('id'));
+                });
+            });
+        }
+
+        $column = match ($scope) {
+            'sample' => 'sample', 'analysis' => 'said', 'assurance-form' => 'assurance_form',
+        };
+        $query->where($column, $id);
+
+        return $scope === 'analysis' ? $query->where('sample', $sampleId) : $query;
     }
 }

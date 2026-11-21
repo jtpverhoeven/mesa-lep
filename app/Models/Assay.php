@@ -36,6 +36,32 @@ class Assay extends Model
             ->all() ?? []);
     }
 
+    /**
+     * The media this assay lists, from the legacy JSON array or a single bare id.
+     *
+     * @return list<int>
+     */
+    public function mediaIds(): array
+    {
+        $value = $this->media_id;
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            $value = json_last_error() === JSON_ERROR_NONE ? $decoded : [];
+        }
+
+        if (! is_array($value)) {
+            return is_numeric($value) ? [(int) $value] : [];
+        }
+
+        return collect($value)
+            ->map(fn (mixed $id): int => is_array($id) ? (int) ($id['mediaId'] ?? 0) : (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public function original(): BelongsTo
     {
         return $this->belongsTo(self::class, 'original_id');

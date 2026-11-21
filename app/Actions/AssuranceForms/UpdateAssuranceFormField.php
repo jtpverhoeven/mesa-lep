@@ -74,8 +74,8 @@ class UpdateAssuranceFormField
             $revisionTo = $value;
             if (in_array($key, ['beheer', 'afgewogen', 'ingezet', 'gegoten', 'afgelezen_door'], true)) {
                 $users = $data['users_available_at_time'] ?? [];
-                $previous = $users[$previous] ?? User::query()->find($previous)?->name ?? (string) $previous;
-                $revisionTo = $users[$value] ?? User::query()->find($value)?->name ?? $value;
+                $previous = $users[$previous] ?? (filled($previous) ? User::query()->find($previous)?->name : null) ?? (string) $previous;
+                $revisionTo = $users[$value] ?? (filled($value) ? User::query()->find($value)?->name : null) ?? $value;
             }
             $this->changeTracker->changed(13, assuranceForm: $form->id,
                 event: 'Veld gewijzigd: '.$label, from: $previous, to: $revisionTo);

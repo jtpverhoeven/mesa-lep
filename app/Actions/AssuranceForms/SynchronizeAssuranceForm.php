@@ -50,7 +50,7 @@ class SynchronizeAssuranceForm
                         continue;
                     }
 
-                    foreach ($this->decodeMediaIds($assay->media_id) as $mediaId) {
+                    foreach ($assay->mediaIds() as $mediaId) {
                         $mediaIds[$mediaId] = true;
                     }
 
@@ -127,25 +127,6 @@ class SynchronizeAssuranceForm
     public function hasSamplesForDay(string $formDate): bool
     {
         return $this->samplesForDay($formDate)->isNotEmpty();
-    }
-
-    private function decodeMediaIds(mixed $value): array
-    {
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
-            $value = json_last_error() === JSON_ERROR_NONE ? $decoded : [];
-        }
-
-        if (! is_array($value)) {
-            return is_numeric($value) ? [(int) $value] : [];
-        }
-
-        return collect($value)
-            ->map(fn (mixed $id): int => is_array($id) ? (int) ($id['mediaId'] ?? 0) : (int) $id)
-            ->filter(fn (int $id): bool => $id > 0)
-            ->unique()
-            ->values()
-            ->all();
     }
 
     private function confirmationMediaIds(SampleAnalysis $analysis, Assay $assay): array

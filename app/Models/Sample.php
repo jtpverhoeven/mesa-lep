@@ -47,6 +47,16 @@ class Sample extends Model
             ->where(fn (Builder $inoculation) => $inoculation->whereNull('sample_innoculated')->orWhereIn('sample_innoculated', ['', '0']));
     }
 
+    /** Where the sample came from; sources 0 and 2 are both entered in the LIMS. */
+    public function sourceLabel(): string
+    {
+        return match ((int) $this->source) {
+            1 => 'CSV import',
+            3 => 'Portal',
+            default => 'LIMS',
+        };
+    }
+
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class, 'client');

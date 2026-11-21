@@ -52,6 +52,13 @@ class Export extends Model
         return $this->belongsTo(Sample::class, 'sample_id');
     }
 
+    public function typeLabel(): string
+    {
+        return match ((int) $this->type) {
+            1 => 'Rapport', 2 => 'Voorlopig rapport', 3 => 'Rapport per monster', default => 'Onbekend',
+        };
+    }
+
     public function storagePath(): string
     {
         if (preg_match('/\A[0-9a-f]{64}\z/', $this->hash) !== 1) {

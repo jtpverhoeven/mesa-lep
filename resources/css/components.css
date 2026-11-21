@@ -563,4 +563,174 @@
         text-decoration: line-through;
         text-decoration-color: color-mix(in srgb, var(--danger) 60%, transparent);
     }
+
+    /* Audit trail: the scan field, the data-gathering animation and the report tables. */
+    .audit-scan-form {
+        @apply mb-4 flex flex-wrap items-center gap-2;
+    }
+
+    .audit-scan-field {
+        @apply w-72 max-w-full flex-none;
+    }
+
+    .audit-stack {
+        @apply grid gap-3;
+    }
+
+    .audit-facts {
+        @apply m-0 grid grid-cols-[minmax(130px,35%)_minmax(0,1fr)] border border-line text-xs;
+    }
+
+    .audit-facts dt,
+    .audit-facts dd {
+        @apply m-0 border-b border-line px-2.5 py-1.5 whitespace-pre-line;
+        overflow-wrap: anywhere;
+    }
+
+    .audit-facts dt {
+        @apply bg-surface-alt text-muted;
+    }
+
+    .audit-facts > :nth-last-child(-n + 2) {
+        @apply border-b-0;
+    }
+
+    .audit-note-line {
+        @apply m-0 mb-1.5 last:mb-0;
+    }
+
+    .audit-table th,
+    .audit-table td {
+        @apply align-top text-xs;
+    }
+
+    .audit-table td {
+        @apply whitespace-pre-line;
+    }
+
+    /* An assurance form value that is out of specification or was used after its THT date, as the form itself marks it. */
+    .audit-flagged {
+        @apply rounded-control bg-danger-faint px-1.5 py-0.5 font-semibold text-danger;
+    }
+
+    .audit-tags {
+        @apply ml-1.5 inline-flex flex-wrap gap-1 align-middle;
+    }
+
+    .audit-tag {
+        @apply gap-1 text-[10px];
+    }
+
+    .audit-note {
+        @apply mt-1 block text-xs text-danger italic;
+    }
+
+    .audit-tabs [data-pc-name='tablist'] {
+        @apply border-t-0 border-b border-line;
+    }
+
+    .audit-subjects > [data-pc-name='tablist'] [data-pc-name='tab'] {
+        @apply px-4 py-3 text-xs font-bold;
+    }
+
+    .audit-print-heading {
+        @apply m-0 hidden text-base font-bold;
+    }
+
+    .audit-loading {
+        @apply mx-auto grid max-w-md gap-3 border border-line bg-surface p-6 text-center;
+    }
+
+    .audit-loading h2 {
+        @apply m-0 text-sm font-bold;
+    }
+
+    .audit-scanner {
+        @apply relative mx-auto grid size-24 place-items-center overflow-hidden rounded-control border border-line text-accent;
+    }
+
+    .audit-scanner-line {
+        @apply absolute inset-x-2 h-0.5 bg-accent;
+        box-shadow: 0 0 8px var(--accent);
+        animation: audit-scan 1.4s ease-in-out infinite;
+    }
+
+    .audit-progress {
+        @apply h-1.5;
+    }
+
+    .audit-steps {
+        @apply m-0 grid list-none gap-1.5 p-0 text-left text-xs text-muted;
+    }
+
+    .audit-steps li {
+        @apply flex items-center gap-2 transition-colors;
+    }
+
+    .audit-steps li.active {
+        @apply font-bold text-ink;
+    }
+
+    .audit-steps li.done {
+        @apply text-success;
+    }
+
+    .audit-step-dot {
+        @apply inline-block size-1.5 rounded-full bg-line;
+        margin-inline: 4px;
+    }
+
+    .audit-printing {
+        @apply mx-auto max-w-[1100px] p-6;
+    }
+
+    .audit-print-header {
+        @apply mb-4 flex items-center justify-between border-b border-line pb-3;
+    }
+
+    .audit-print-header h1 {
+        @apply m-0 text-xl font-semibold;
+    }
+
+    /* The print view lists every tab below each other; the tab bars only make sense on screen. */
+    .audit-printing [data-pc-name='tablist'] {
+        display: none;
+    }
+
+    .audit-printing [data-pc-name='tabpanel'] {
+        display: block !important;
+    }
+
+    .audit-printing .audit-print-heading {
+        @apply mt-4 block border-b border-line pb-1;
+    }
+
+    .audit-printing .audit-subjects > [data-pc-name='tabpanels'] > [data-pc-name='tabpanel'] + [data-pc-name='tabpanel'] {
+        break-before: page;
+    }
+
+    .audit-printing .audit-table tr {
+        break-inside: avoid;
+    }
+}
+
+@keyframes audit-scan {
+    0%,
+    100% {
+        top: 10%;
+    }
+
+    50% {
+        top: 85%;
+    }
+}
+
+@media print {
+    .audit-printing [data-pc-name='button'] {
+        display: none;
+    }
+
+    .audit-print-page {
+        background: #fff;
+    }
 }
